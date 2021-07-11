@@ -19,11 +19,11 @@ include(${PROJECT_NAME}_Dependencies)
 ### the library
 add_subdirectory(src)
 prepend_current_path(GPUTI_SOURCES)
-inclusionCCD_copy_headers(${GPUTI_SOURCES})
-CCD_set_source_group(${GPUTI_SOURCES})
+gupti_copy_headers(${GPUTI_SOURCES})
+gputi_set_source_group(${GPUTI_SOURCES})
 add_library(gputi STATIC ${GPUTI_SOURCES})
 target_include_directories(gputi PUBLIC ${PROJECT_BINARY_DIR}/include)
-target_link_libraries(gputi PRIVATE warnings::all)
+# target_link_libraries(gputi PRIVATE warnings::all)
 target_compile_definitions(gputi PUBLIC NOMINMAX)
 
 # Request that gputi be built with -std=c++11
@@ -39,7 +39,7 @@ set_target_properties( gputi
                       )
 
 # executable
-add_executable(gputi_bin app/test.cu)
+add_executable(gputi_bin app/main.cu)
 set_target_properties(gputi_bin PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 target_link_libraries(gputi_bin PRIVATE gputi)
                   
