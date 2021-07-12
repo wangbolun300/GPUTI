@@ -11,23 +11,23 @@ item::item() {
 
 }
 
-item item_max() {
+__device__ item item_max() {
 	item it;
 	it.key = INT_MAX;
 	return it;
 }
-item item_min() {
+__device__ item item_min() {
 	item it;
 	it.key = INT_MIN;
 	return it;
 }
-bool custom_compare_no_larger(const item &a, const item &b) {
+__device__ bool custom_compare_no_larger(const item &a, const item &b) {
 	if (a.key <= b.key) {
 		return true;
 	}
 	return false;
 }
-bool custom_compare_less(const item &a, const item &b) {
+__device__ bool custom_compare_less(const item &a, const item &b) {
 	if (a.key < b.key) {
 		return true;
 	}
@@ -35,7 +35,7 @@ bool custom_compare_less(const item &a, const item &b) {
 }
 
 // Prototype of a utility function to swap two integers
-void swap(item *x, item *y);
+__device__ void swap(item *x, item *y);
 
 
 
@@ -54,7 +54,7 @@ MinHeap::MinHeap()
 }
 
 // Inserts a new key 'k'
-void MinHeap::insertKey(item k)
+__device__ void MinHeap::insertKey(item k)
 {
 	if (heap_size == capacity)
 	{
@@ -77,7 +77,7 @@ void MinHeap::insertKey(item k)
 
 // Decreases value of key at index 'i' to new_val. It is assumed that
 // new_val is smaller than harr[i].
-void MinHeap::decreaseKey(int i, item new_val)
+__device__ void MinHeap::decreaseKey(int i, item new_val)
 {
 	harr[i] = new_val;
 	while (i != 0 && !custom_compare_no_larger(harr[parent(i)], harr[i]))
@@ -88,7 +88,7 @@ void MinHeap::decreaseKey(int i, item new_val)
 }
 
 // Method to remove minimum element (or root) from min heap
-item MinHeap::extractMin()
+__device__ item MinHeap::extractMin()
 {
 	if (heap_size <= 0)
 		return item_max();
@@ -110,7 +110,7 @@ item MinHeap::extractMin()
 
 // This function deletes key at index i. It first reduced value to minus
 // infinite, then calls extractMin()
-void MinHeap::deleteKey(int i)
+__device__ void MinHeap::deleteKey(int i)
 {
 	decreaseKey(i, item_min());
 	extractMin();
@@ -118,7 +118,7 @@ void MinHeap::deleteKey(int i)
 
 // A recursive method to heapify a subtree with the root at given index
 // This method assumes that the subtrees are already heapified
-void MinHeap::MinHeapify(int i)
+__device__ void MinHeap::MinHeapify(int i)
 {
 	int l = left(i);
 	int r = right(i);
@@ -135,7 +135,7 @@ void MinHeap::MinHeapify(int i)
 }
 
 // A utility function to swap two elements
-void swap(item *x, item *y)
+__device__ void swap(item *x, item *y)
 {
 	item temp = *x;
 	*x = *y;
