@@ -4,10 +4,10 @@
 using namespace std;
   
 
-item::item(int i) {
+__device__ item::item(int i) {
 	key = i;
 }
-item::item() {
+__device__ item::item() {
 
 }
 
@@ -55,10 +55,10 @@ MinHeap::MinHeap()
 
 // Inserts a new key 'k'
 __device__ void MinHeap::insertKey(item k)
-{
-	if (heap_size == capacity)
+{	// to avoid overflow, instead of comparing with capacity, we compare with capacity -1
+	if (heap_size == capacity-1)
 	{
-		cout << "\nOverflow: Could not insertKey\n";
+		//cout << "\nOverflow: Could not insertKey\n";
 		return;
 	}
 

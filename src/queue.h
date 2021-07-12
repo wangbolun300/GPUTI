@@ -4,8 +4,8 @@
 class item {
 public:
 	int key;
-	item(int i);
-	item();
+	__device__ item(int i);
+	__device__ item();
 };
 
 // A class for Min Heap
