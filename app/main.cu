@@ -8,7 +8,9 @@
 
 
 int main(int argc, char ** argv){
+    // MinHeap h;
     MinHeap h;
+
     // h.insertKey(item(3));
 	// h.insertKey(item(2));
 	// h.deleteKey(1);
@@ -20,6 +22,8 @@ int main(int argc, char ** argv){
     // std::cout << h.getMin().key << " ";
     // h.decreaseKey(2, 1);
     // std::cout << h.getMin().key;
+
+    std::cout<<"size "<<sizeof(MinHeap)<<std::endl;
     std::cout<<"done!"<<std::endl;
     return 1;
 }
