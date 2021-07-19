@@ -4,7 +4,8 @@ src/queue.h
 src/para.h
 src/para.cu
 src/Type.hpp
-
+src/body.h
+src/body.cu
 PARENT_SCOPE
 )
 ################################################################################

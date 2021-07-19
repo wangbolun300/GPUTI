@@ -46,7 +46,7 @@ __device__ void swap(item *x, item *y);
 // 	capacity = cap;
 // 	harr = new item[cap];
 // }
-MinHeap::MinHeap()
+__device__ MinHeap::MinHeap()
 {
 	heap_size = 0;
 	capacity = HEAP_SIZE;

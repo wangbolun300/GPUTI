@@ -17,7 +17,7 @@ class MinHeap
 public:
 	// Constructor
 	//MinHeap(int capacity);
-    MinHeap();
+   __device__ MinHeap();
 	// to heapify a subtree with the root at given index
 	__device__ void MinHeapify(int);
 
