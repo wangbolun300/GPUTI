@@ -20,8 +20,8 @@ __global__ void test_heap(ptest *ids, int m, int n, ptest *out){
            heap.insertKey(it);
        }
        for(int i=0;i<n;i++){
-           get_array(heap,n,out[tx]);
-          // out[tx][n]=heap.extractMin().key;
+        //    get_array(heap,n,out[tx]);
+          out[tx][i]=heap.extractMin().key;
        }
     }
 }
