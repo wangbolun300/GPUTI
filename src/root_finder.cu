@@ -48,12 +48,6 @@ __device__ void convert_tuv_to_array(
                v0_dw = power(1, itv2->first.second),
                v1_up = itv2->second.first,
                v1_dw = power(1, itv2->second.second);
-        t_up=new Scalar[8];
-        t_dw=new Scalar[8];
-        u_up=new Scalar[8];
-        u_dw=new Scalar[8];
-        v_up=new Scalar[8];
-        v_dw=new Scalar[8];
         
         t_up[0]=t0_up;t_up[1]= t0_up;t_up[2]= t0_up;t_up[3]= t0_up;t_up[4]= t1_up; t_up[5]=t1_up;t_up[6]= t1_up;t_up[7]= t1_up;
         t_dw[0]=t0_dw;t_dw[1]= t0_dw;t_dw[2]= t0_dw;t_dw[3]= t0_dw;t_dw[4]= t1_dw; t_dw[5]=t1_dw;t_dw[6]= t1_dw;t_dw[7]= t1_dw;
@@ -61,6 +55,7 @@ __device__ void convert_tuv_to_array(
         u_dw[0]=u0_dw;u_dw[1]= u0_dw;u_dw[2]= u1_dw;u_dw[3]= u1_dw;u_dw[4]= u0_dw; u_dw[5]=u0_dw;u_dw[6]= u1_dw;u_dw[7]= u1_dw;
         v_up[0]=v0_up;v_up[1]= v1_up;v_up[2]= v0_up;v_up[3]= v1_up;v_up[4]= v0_up; v_up[5]=v1_up;v_up[6]= v0_up;v_up[7]= v1_up;
         v_dw[0]=v0_dw;v_dw[1]= v1_dw;v_dw[2]= v0_dw;v_dw[3]= v1_dw;v_dw[4]= v0_dw; v_dw[5]=v1_dw;v_dw[6]= v0_dw;v_dw[7]= v1_dw;
+
     }
 // __device__ void test_convert_tuv_to_array(
 //         const Singleinterval* itv,

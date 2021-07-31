@@ -78,7 +78,7 @@ __global__ void test_vers(Scalar* a, Scalar* b){
 // }
 __device__ void check(Singleinterval *s, int* v){
     for(int i=0;i<8;i++){
-        v[i]=1;//s->second.second;//1
+        v[i]=s->second.first;//1
 
     }
 }
@@ -101,8 +101,9 @@ __global__ void test_cvt(Scalar* v0,Scalar* v1,Scalar* v2,Scalar* v3,Scalar* v4,
     
     // v6[0]=1;
     // v6[1]=1;
-    //check(i0,v6);
+    
     convert_tuv_to_array(i0,i1,i2,v0,v1,v2,v3,v4,v5);
+    check(i0,v6);
 }
 
 void print_vector(Scalar* v, int size){
@@ -150,7 +151,7 @@ void run_test(){
     print_vector(v4,8);
     print_vector(v5,8);
     print_vector(v6,8);
-    std::cout<<v6[0]<<" "<<v6[1]<<std::endl;
+    //std::cout<<v6[0]<<" "<<v6[1]<<std::endl;
     // Scalar a[3], b[3];
     // a[0]=1;
     // a[1]=2;
