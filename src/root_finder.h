@@ -31,6 +31,7 @@ __device__ void convert_tuv_to_array(
         Scalar* v_up,
         Scalar* v_dw);
 __device__ long power(const long a, const int b);
+__device__ VectorMax3d width(const Singleinterval* x);
 
 //__device__ 
 

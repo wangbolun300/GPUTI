@@ -6,62 +6,62 @@
 #include<climits>
 #include<gputi/root_finder.h>
 
-__device__ void get_array(MinHeap heap, int n, ptest& out){
+// __device__ void get_array(MinHeap heap, int n, ptest& out){
   
-    for(int i=0;i<n;i++){
-        out[i]=heap.extractMin().key;
-    }
-}
-__global__ void test_heap(ptest *ids, int m, int n, ptest *out){
-    int tx=threadIdx.x;
-    if (tx < m) {
-        MinHeap heap;
-       for(int i=0;i<n;i++){
-           item it(ids[tx][i]);
-           heap.insertKey(it);
-       }
-       for(int i=0;i<n;i++){
-        //    get_array(heap,n,out[tx]);
-          out[tx][i]=heap.extractMin().key;
-       }
-    }
-}
+//     for(int i=0;i<n;i++){
+//         out[i]=heap.extractMin().key;
+//     }
+// }
+// __global__ void test_heap(ptest *ids, int m, int n, ptest *out){
+//     int tx=threadIdx.x;
+//     if (tx < m) {
+//         MinHeap heap;
+//        for(int i=0;i<n;i++){
+//            item it(ids[tx][i]);
+//            heap.insertKey(it);
+//        }
+//        for(int i=0;i<n;i++){
+//         //    get_array(heap,n,out[tx]);
+//           out[tx][i]=heap.extractMin().key;
+//        }
+//     }
+// }
 
 
-void test_heap(){
-    const int m=1024;// nbr of heaps
-    const int n=5;// size of each heap
-    ptest a[m];
-    ptest out[m];
-    srand(5);
-    for(int i=0;i<m;i++){
-        for(int j=0;j<n;j++){
-            a[i][j]=rand();
-        }
-    }
-    ptest *d_a,*d_out;
-    int size = m*sizeof(ptest);
-    cudaMalloc(&d_a,size);
-    cudaMalloc(&d_out,size);
-    cudaMemcpy(d_a,a,size,cudaMemcpyHostToDevice);
+// void test_heap(){
+//     const int m=1024;// nbr of heaps
+//     const int n=5;// size of each heap
+//     ptest a[m];
+//     ptest out[m];
+//     srand(5);
+//     for(int i=0;i<m;i++){
+//         for(int j=0;j<n;j++){
+//             a[i][j]=rand();
+//         }
+//     }
+//     ptest *d_a,*d_out;
+//     int size = m*sizeof(ptest);
+//     cudaMalloc(&d_a,size);
+//     cudaMalloc(&d_out,size);
+//     cudaMemcpy(d_a,a,size,cudaMemcpyHostToDevice);
 
-    test_heap<<<1,m>>>(d_a,m,n,d_out);
-    cudaMemcpy(out,d_out,size,cudaMemcpyDeviceToHost);
-    // for(int i=0;i<m;i++){
-    //     for(int j=0;j<n;j++){
-    //         std::cout<<a[i][j]<<", ";
-    //     }
-    //     std::cout<<std::endl;
-    // }
-    for(int i=0;i<m;i++){
-        for(int j=0;j<n;j++){
-            std::cout<<out[i][j]<<", ";
-        }
-        std::cout<<std::endl;
-    }
-    std::cout<<"the total size is "<<size<<" the size of int is "<<sizeof(int)<<std::endl;
+//     test_heap<<<1,m>>>(d_a,m,n,d_out);
+//     cudaMemcpy(out,d_out,size,cudaMemcpyDeviceToHost);
+//     // for(int i=0;i<m;i++){
+//     //     for(int j=0;j<n;j++){
+//     //         std::cout<<a[i][j]<<", ";
+//     //     }
+//     //     std::cout<<std::endl;
+//     // }
+//     for(int i=0;i<m;i++){
+//         for(int j=0;j<n;j++){
+//             std::cout<<out[i][j]<<", ";
+//         }
+//         std::cout<<std::endl;
+//     }
+//     std::cout<<"the total size is "<<size<<" the size of int is "<<sizeof(int)<<std::endl;
 
-}
+// }
 
 __device__ void test_vector(const Scalar* v1, Scalar* v2){
     v2[0]=v1[0];
@@ -82,17 +82,66 @@ __device__ void check(Singleinterval *s, int* v){
 
     }
 }
+__device__ void check_width(Singleinterval *s, Scalar* v, int dim){
+    VectorMax3d w=width(s);
+    for(int i=0;i<8;i++){
+        
+        v[i]=w.v[dim];
+    }
+}
+__device__ Scalar* pter(){
+    Scalar *p=new Scalar[8];
+    for(int i=0;i<8;i++){
+        
+        p[i]=i*0.5;
+    }
+    return p;
+}
+__device__ void check_return_pointer(Scalar *v){
+    //v=pter();
+    Scalar* tem=pter();
+    //*v=*tem=;
+    // for(int i=0;i<8;i++){
+        
+    //     v[i]=tem[i];
+    // }
+}   
+__device__ void ptr_to_ptr(Singleinterval* p1, int* v){
+    Singleinterval *tmp=&p1[1];
+    for(int i=0;i<8;i++){
+        v[i]=tmp->second.first;//2
+    }
+}
+__device__ void test_bool(bool in, bool &out){
+    out=in;
+}
+__device__ void test_bool_1(bool input, int* v){
+    bool tmp;
+    test_bool(input,tmp);
+    for(int i=0;i<8;i++){
+        v[i]=tmp;
+    }
+}
+
+//__device__ void ptr_and_
+
 __global__ void test_cvt(Scalar* v0,Scalar* v1,Scalar* v2,Scalar* v3,Scalar* v4,Scalar* v5 , int *v6){
     Singleinterval itv[3];
-    Numccd zero, one;
+    Numccd zero, one, two, half;
     zero.first=0;zero.second=0;
     one.first=1;one.second=0;
-    Singleinterval s;
+    two.first=2;two.second=0;
+    half.first=1; half.second=1;
+    Singleinterval s,s1,s2;//[0,1], [0,2],[0,0.5]
     s.first=zero;
     s.second=one;
+    s1.first=zero;
+    s1.second=two;
+    s2.first=zero;
+    s2.second=half;
     itv[0]=s;
-    itv[1]=s;
-    itv[2]=s;
+    itv[1]=s1;
+    itv[2]=s2;
     Singleinterval *i0, *i1, *i2;
     i0=new Singleinterval(zero,one);
     i1=new Singleinterval(zero,one);
@@ -101,9 +150,15 @@ __global__ void test_cvt(Scalar* v0,Scalar* v1,Scalar* v2,Scalar* v3,Scalar* v4,
     
     // v6[0]=1;
     // v6[1]=1;
+    // check_width(itv,v0,0);
+    // check_width(itv,v1,1);
+    // check_width(itv,v2,2);
+    //convert_tuv_to_array(i0,i1,i2,v0,v1,v2,v3,v4,v5);
+    //check(i0,v6);
+    //check_return_pointer(v0);
+    //ptr_to_ptr(itv,v6);
+    test_bool_1(0,v6);
     
-    convert_tuv_to_array(i0,i1,i2,v0,v1,v2,v3,v4,v5);
-    check(i0,v6);
 }
 
 void print_vector(Scalar* v, int size){

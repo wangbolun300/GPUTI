@@ -3,9 +3,12 @@
 
 using namespace std;
   
-
-__device__ item::item(int i) {
-	key = i;
+// contains 
+__device__ item::item(Singleinterval* si, int lv) {
+	level = lv;
+	itv[0]=si[0];
+	itv[1]=si[1];
+	itv[2]=si[2];
 }
 __device__ item::item() {
 
@@ -13,25 +16,52 @@ __device__ item::item() {
 
 __device__ item item_max() {
 	item it;
-	it.key = INT_MAX;
+	it.level = INT_MAX;
 	return it;
 }
 __device__ item item_min() {
 	item it;
-	it.key = INT_MIN;
+	it.level = INT_MIN;
 	return it;
 }
-__device__ bool custom_compare_no_larger(const item &a, const item &b) {
-	if (a.key <= b.key) {
-		return true;
+
+// i1==i2?
+__device__ bool custom_compare_equal(const item &i1, const item &i2) {
+	if (i1.level == i2.level){
+		if(i1.itv[0].first == i2.itv[0].first){
+			return true;
+		}
 	}
 	return false;
 }
-__device__ bool custom_compare_less(const item &a, const item &b) {
-	if (a.key < b.key) {
-		return true;
+
+
+// i1<i2?
+__device__ bool custom_compare_less(const item &i1, const item &i2) {
+	if (i1.level != i2.level)
+    { 
+        if(i1.level < i2.level){
+			return true;
+		}
+		else{
+			return false;
+		}
+    }
+	else{
+		
+        if(less_than(i1.itv[0].first, i2.itv[0].first){
+			return true;
+		}
+		else{
+			return false;
+		}
 	}
-	return false;
+}
+
+// i1<=i2?
+__device__ bool custom_compare_no_larger(const item &i1, const item &i2) {
+	bool ir=custom_compare_less(i2,i1);
+	return !ir;
 }
 
 // Prototype of a utility function to swap two integers

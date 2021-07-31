@@ -24,7 +24,7 @@ Numccd second;
 //typedef Singleinterval Interval3[3]; // 3 dimesional interval
 class VectorMax3d{
 public:
-    __device__ VectorMax3d();
+    __device__ VectorMax3d(){};
     Scalar v[3];
 };
 //typedef Scalar Vector3d[3];
