@@ -1,4 +1,4 @@
-#pragma once
+
 #include<gputi/queue.h>
 #include<iostream>
 
@@ -238,7 +238,10 @@ __device__ void vf_test_wrapper(CCDdata* vfdata, bool &result){
    result= vertexFaceCCD_double(vfdata,err,ms,toi,tolerance,
     t_max,max_itr,output_tolerance,no_zero_toi,overflow_flag);
 }
-__global__ void run_parallel_vf(CCDdata* data, bool* res, int size){
+__global__ void run_parallel_vf(CCDdata* data, bool* res, int size, Scalar* debug){
+    debug[0]=0;
+    debug[1]=1;
+    debug[2]=2;
     int tx=threadIdx.x;
     if(tx<size){
         CCDdata* input=&data[tx];
@@ -258,12 +261,13 @@ CCDdata array_to_ccd(std::array<std::array<Scalar,3>,8> a){
         data.v2e[i]=a[6][i];
         data.v3e[i]=a[7][i];
     }
+    return data;
 }
 void test_single_ccd(){
     int dnbr=1;
     
     std::array<std::array<Scalar,3>,8> adata;
-    adata[0]={{-1,-1,1}};
+    adata[0]={{0,0,0}};
     adata[1]={{0,0,0}};
     adata[2]={{1,0,0}};
     adata[3]={{0,1,0}};
@@ -274,16 +278,24 @@ void test_single_ccd(){
     CCDdata converted=array_to_ccd(adata);
     CCDdata* vfdata=&converted;
     CCDdata* d_data;
-    bool *results, *d_results;
+    Scalar* debug=new Scalar[8];
+    Scalar* d_debug;
+    bool *results=new bool[dnbr], *d_results;
     int data_size=sizeof(CCDdata)*dnbr;
     int result_size=sizeof(bool)*dnbr;
     cudaMalloc(&d_data,data_size);
     cudaMalloc(&d_results,result_size);
+    cudaMalloc(&d_debug,int(8*sizeof(Scalar)));
     cudaMemcpy(d_data,vfdata,data_size,cudaMemcpyHostToDevice);
-    run_parallel_vf<<<1,1>>>(d_data, d_results,dnbr);
+    std::cout<<"before calling"<<std::endl;
+    run_parallel_vf<<<1,1>>>(d_data, d_results,dnbr,d_debug);
+    std::cout<<"after calling"<<std::endl;
     cudaMemcpy(results,d_results,result_size,cudaMemcpyDeviceToHost);
+    std::cout<<"copied 0"<<std::endl;
+    cudaMemcpy(debug,d_debug,int(8*sizeof(Scalar)),cudaMemcpyDeviceToHost);
+    std::cout<<"copied 1"<<std::endl;
     std::cout<<"vf result is "<<results[0]<<std::endl;
-
+    print_vector(debug,8);
 }
 
 
