@@ -1,10 +1,11 @@
 #include<gputi/queue.h>
 #include<iostream>
+#include <limits>
 
 using namespace std;
   
 // contains 
-__device__ item::item(Singleinterval* si, int lv) {
+__device__ item::item(const Singleinterval* si, int lv) {
 	level = lv;
 	itv[0]=si[0];
 	itv[1]=si[1];
@@ -49,13 +50,14 @@ __device__ bool custom_compare_less(const item &i1, const item &i2) {
     }
 	else{
 		
-        if(less_than(i1.itv[0].first, i2.itv[0].first){
+        if(less_than(i1.itv[0].first, i2.itv[0].first)){
 			return true;
 		}
 		else{
 			return false;
 		}
 	}
+	return true;
 }
 
 // i1<=i2?
@@ -84,12 +86,12 @@ __device__ MinHeap::MinHeap()
 }
 
 // Inserts a new key 'k'
-__device__ void MinHeap::insertKey(item k)
+__device__ bool MinHeap::insertKey(item k)
 {	// to avoid overflow, instead of comparing with capacity, we compare with capacity -1
 	if (heap_size == capacity-1)
 	{
 		//cout << "\nOverflow: Could not insertKey\n";
-		return;
+		return 0;
 	}
 
 	// First insert the new key at the end
@@ -103,6 +105,7 @@ __device__ void MinHeap::insertKey(item k)
 		swap(&harr[i], &harr[parent(i)]);
 		i = parent(i);
 	}
+	return 1;
 }
 
 // Decreases value of key at index 'i' to new_val. It is assumed that
@@ -162,6 +165,9 @@ __device__ void MinHeap::MinHeapify(int i)
 		swap(&harr[i], &harr[smallest]);
 		MinHeapify(smallest);
 	}
+}
+__device__ bool  MinHeap::empty(){
+	return (heap_size==0);
 }
 
 // A utility function to swap two elements

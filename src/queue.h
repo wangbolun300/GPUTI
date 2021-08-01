@@ -6,7 +6,7 @@ class item {
 public:
 	int level;
 	Singleinterval itv[3];
-	__device__ item(Singleinterval* si, int level);
+	__device__ item(const Singleinterval* si, int level);
 	__device__ item();
 };
 
@@ -22,7 +22,7 @@ public:
    __device__ MinHeap();
 	// to heapify a subtree with the root at given index
 	__device__ void MinHeapify(int);
-
+	__device__ bool empty();
 	// index
 	__device__ int parent(int i) { return (i - 1) / 2; }
 
@@ -45,5 +45,5 @@ public:
 	__device__ void deleteKey(int i);
 
 	// Inserts a new key 'k'
-	__device__ void insertKey(item k);
+	__device__ bool insertKey(item k);
 };
