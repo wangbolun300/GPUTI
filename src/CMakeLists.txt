@@ -8,6 +8,7 @@ src/body.h
 src/body.cu
 src/root_finder.h
 src/root_finder.cu
+#src/dataFormat.cpp
 
 PARENT_SCOPE
 )

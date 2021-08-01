@@ -1,3 +1,4 @@
+#pragma once
 #include<gputi/queue.h>
 #include<iostream>
 
@@ -221,11 +222,74 @@ void run_test(){
     // cudaMemcpy(b,bd,size,cudaMemcpyDeviceToHost);
     // std::cout<<"out is "<<b[0]<<" "<<b[1]<<" "<<b[2]<<std::endl;
 }
-class tclass{
 
-};
+__device__ void vf_test_wrapper(CCDdata* vfdata, bool &result){
+    
+    Scalar* err=new Scalar[3]; err[0]=-1;err[1]=-1;err[2]=-1;
+    Scalar ms=0;
+    Scalar toi;
+    Scalar tolerance=1e-6;
+    Scalar t_max=1;
+    int max_itr=1e6;
+    Scalar output_tolerance;
+    bool no_zero_toi=false;
+    int overflow_flag;
+
+   result= vertexFaceCCD_double(vfdata,err,ms,toi,tolerance,
+    t_max,max_itr,output_tolerance,no_zero_toi,overflow_flag);
+}
+__global__ void run_parallel_vf(CCDdata* data, bool* res, int size){
+    int tx=threadIdx.x;
+    if(tx<size){
+        CCDdata* input=&data[tx];
+        vf_test_wrapper(input,res[tx]);
+    }
+} 
+
+CCDdata array_to_ccd(std::array<std::array<Scalar,3>,8> a){
+    CCDdata data;
+    for(int i=0;i<3;i++){
+        data.v0s[i]=a[0][i];
+        data.v1s[i]=a[1][i];
+        data.v2s[i]=a[2][i];
+        data.v3s[i]=a[3][i];
+        data.v0e[i]=a[4][i];
+        data.v1e[i]=a[5][i];
+        data.v2e[i]=a[6][i];
+        data.v3e[i]=a[7][i];
+    }
+}
+void test_single_ccd(){
+    int dnbr=1;
+    
+    std::array<std::array<Scalar,3>,8> adata;
+    adata[0]={{-1,-1,1}};
+    adata[1]={{0,0,0}};
+    adata[2]={{1,0,0}};
+    adata[3]={{0,1,0}};
+    adata[4]={{-1,-1,-1}};
+    adata[5]={{0,0,0}};
+    adata[6]={{1,0,0}};
+    adata[7]={{0,1,0}};
+    CCDdata converted=array_to_ccd(adata);
+    CCDdata* vfdata=&converted;
+    CCDdata* d_data;
+    bool *results, *d_results;
+    int data_size=sizeof(CCDdata)*dnbr;
+    int result_size=sizeof(bool)*dnbr;
+    cudaMalloc(&d_data,data_size);
+    cudaMalloc(&d_results,result_size);
+    cudaMemcpy(d_data,vfdata,data_size,cudaMemcpyHostToDevice);
+    run_parallel_vf<<<1,1>>>(d_data, d_results,dnbr);
+    cudaMemcpy(results,d_results,result_size,cudaMemcpyDeviceToHost);
+    std::cout<<"vf result is "<<results[0]<<std::endl;
+
+}
+
+
 int main(int argc, char ** argv){
-    run_test();
+    test_single_ccd();
+    //run_test();
     //test_heap();
     // MinHeap h;
     //MinHeap h;

@@ -3,7 +3,7 @@
 #include <limits>
 
 using namespace std;
-  
+
 // contains 
 __device__ item::item(const Singleinterval* si, int lv) {
 	level = lv;

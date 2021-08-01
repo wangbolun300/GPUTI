@@ -1,6 +1,13 @@
 #include <gputi/root_finder.h>
 #include <gputi/queue.h>
 
+__device__ VectorMax3d::VectorMax3d(Scalar a, Scalar b, Scalar c)
+{
+    v[0] = a;
+    v[1] = b;
+    v[2] = c;
+}
+
 __device__ long reduction(const long n, long &result)
 {
     int t = 0;
@@ -798,7 +805,8 @@ __device__ bool interval_root_finder_double_horizontal_tree(
             }
         }
     }
-    if (overflow_flag>0){
+    if (overflow_flag > 0)
+    {
         return true;
     }
     if (use_skip)
@@ -811,51 +819,298 @@ __device__ bool interval_root_finder_double_horizontal_tree(
 }
 
 __device__ bool interval_root_finder_double_horizontal_tree(
-        const Scalar *tol,
-        const Scalar co_domain_tolerance,
-        Scalar &toi,
-        const bool check_vf,
-        const Scalar *err, // this is the maximum error on each axis when calculating the vertices, err, aka, filter
-        const Scalar ms,
-        const Scalar* a0s,
-        const Scalar* a1s,
-        const Scalar* b0s,
-        const Scalar* b1s,
-        const Scalar* a0e,
-        const Scalar* a1e,
-        const Scalar* b0e,
-        const Scalar* b1e,
-        const Scalar max_time,
-        const int max_itr,
-        Scalar &output_tolerance,
-        int & overflow_flag)
+    const Scalar *tol,
+    const Scalar co_domain_tolerance,
+    Scalar &toi,
+    const bool check_vf,
+    const Scalar *err, // this is the maximum error on each axis when calculating the vertices, err, aka, filter
+    const Scalar ms,
+    const Scalar *a0s,
+    const Scalar *a1s,
+    const Scalar *b0s,
+    const Scalar *b1s,
+    const Scalar *a0e,
+    const Scalar *a1e,
+    const Scalar *b0e,
+    const Scalar *b1e,
+    const Scalar max_time,
+    const int max_itr,
+    Scalar &output_tolerance,
+    int &overflow_flag)
+{
+
+    bool check_t_overlap =
+        max_time == 1
+            ? false
+            : true; // if input max_time = 1, then no need to check overlap
+
+    Numccd low_number;
+    low_number.first = 0;
+    low_number.second = 0; // low_number=0;
+    Numccd up_number;
+    up_number.first = 1;
+    up_number.second = 0; // up_number=1;
+    // initial interval [0,1]
+    Singleinterval init_interval;
+    init_interval.first = low_number;
+    init_interval.second = up_number;
+    //build interval set [0,1]x[0,1]x[0,1]
+    Singleinterval *iset = new Singleinterval[3];
+    iset[0] = init_interval;
+    iset[1] = init_interval;
+    iset[2] = init_interval;
+
+    bool result = interval_root_finder_double_horizontal_tree(
+        tol, co_domain_tolerance, iset, check_t_overlap, max_time, toi,
+        check_vf, err, ms, a0s, a1s, b0s, b1s, a0e, a1e, b0e, b1e, max_itr,
+        output_tolerance, overflow_flag);
+
+    return result;
+}
+
+__device__ Scalar max_linf_dist(const VectorMax3d &p1, const VectorMax3d &p2)
+{
+    Scalar r = 0;
+    for (int i = 0; i < 3; i++)
     {
-
-        bool check_t_overlap =
-            max_time == 1
-                ? false
-                : true; // if input max_time = 1, then no need to check overlap
-
-        Numccd low_number;
-        low_number.first = 0;
-        low_number.second = 0; // low_number=0;
-        Numccd up_number;
-        up_number.first = 1;
-        up_number.second = 0; // up_number=1;
-        // initial interval [0,1]
-        Singleinterval init_interval;
-        init_interval.first = low_number;
-        init_interval.second = up_number;
-        //build interval set [0,1]x[0,1]x[0,1]
-        Singleinterval *iset= new Singleinterval[3];
-        iset[0] = init_interval;
-        iset[1] = init_interval;
-        iset[2] = init_interval;
-
-        bool result = interval_root_finder_double_horizontal_tree(
-            tol, co_domain_tolerance, iset, check_t_overlap, max_time, toi,
-            check_vf, err, ms, a0s, a1s, b0s, b1s, a0e, a1e, b0e, b1e, max_itr,
-            output_tolerance,overflow_flag);
-
-        return result;
+        if (r < fabs(p1.v[i] - p2.v[i]))
+        {
+            r = fabs(p1.v[i] - p2.v[i]);
+        }
     }
+    return r;
+}
+
+__device__ Scalar max_linf_4(
+    const VectorMax3d &p1,
+    const VectorMax3d &p2,
+    const VectorMax3d &p3,
+    const VectorMax3d &p4,
+    const VectorMax3d &p1e,
+    const VectorMax3d &p2e,
+    const VectorMax3d &p3e,
+    const VectorMax3d &p4e)
+{
+    Scalar r = 0, temp = 0;
+    temp = max_linf_dist(p1e, p1);
+    if (r < temp)
+        r = temp;
+    temp = max_linf_dist(p2e, p2);
+    if (r < temp)
+        r = temp;
+    temp = max_linf_dist(p3e, p3);
+    if (r < temp)
+        r = temp;
+    temp = max_linf_dist(p4e, p4);
+    if (r < temp)
+        r = temp;
+    return r;
+}
+__device__ VectorMax3d compute_face_vertex_tolerance_3d_new(
+    const CCDdata *data_in,
+    const Scalar tolerance)
+{
+    VectorMax3d vs(data_in->v0s[0],data_in->v0s[1],data_in->v0s[2]);
+    VectorMax3d f0s(data_in->v1s[0],data_in->v1s[1],data_in->v1s[2]);
+    VectorMax3d f1s(data_in->v2s[0],data_in->v2s[1],data_in->v2s[2]);
+    VectorMax3d f2s(data_in->v3s[0],data_in->v3s[1],data_in->v3s[2]);
+    VectorMax3d ve(data_in->v0e[0],data_in->v0e[1],data_in->v0e[2]);
+    VectorMax3d f0e(data_in->v1e[0],data_in->v1e[1],data_in->v1e[2]);
+    VectorMax3d f1e(data_in->v2e[0],data_in->v2e[1],data_in->v2e[2]);
+    VectorMax3d f2e(data_in->v3e[0],data_in->v3e[1],data_in->v3e[2]);
+    VectorMax3d p000 = vs - f0s, p001 = vs - f2s,
+             p011 = vs - (f1s + f2s - f0s), p010 = vs - f1s;
+    VectorMax3d p100 = ve - f0e, p101 = ve - f2e,
+             p111 = ve - (f1e + f2e - f0e), p110 = ve - f1e;
+    Scalar dl = 0;
+    Scalar edge0_length = 0;
+    Scalar edge1_length = 0;
+    dl = 3 * max_linf_4(p000, p001, p011, p010, p100, p101, p111, p110);
+    edge0_length =
+        3 * max_linf_4(p000, p100, p101, p001, p010, p110, p111, p011);
+    edge1_length =
+        3 * max_linf_4(p000, p100, p110, p010, p001, p101, p111, p011);
+    return VectorMax3d(
+        tolerance / dl, tolerance / edge0_length, tolerance / edge1_length);
+    
+}
+__device__ void get_numerical_error(
+        const VectorMax3d* vertices, const int vsize,
+        const bool &check_vf,
+        const bool using_minimum_separation,
+        Scalar* error
+        )
+    {
+        Scalar eefilter;
+        Scalar vffilter;
+        if (!using_minimum_separation)
+        {
+#ifdef GPUTI_USE_DOUBLE_PRECISION
+            eefilter = 6.217248937900877e-15;
+            vffilter = 6.661338147750939e-15;
+#else
+            eefilter = 3.337861e-06;
+			vffilter = 3.576279e-06;
+#endif
+        }
+        else // using minimum separation
+        {
+#ifdef GPUTI_USE_DOUBLE_PRECISION
+            eefilter = 7.105427357601002e-15;
+            vffilter = 7.549516567451064e-15;
+#else
+            eefilter = 3.814698e-06; 
+            vffilter = 4.053116e-06;
+#endif
+        }
+
+        Scalar xmax = fabs(vertices[0].v[0]);
+        Scalar ymax = fabs(vertices[0].v[1]);
+        Scalar zmax = fabs(vertices[0].v[2]);
+        for (int i = 0; i < vsize; i++)
+        {
+            if (xmax < fabs(vertices[i].v[0]))
+            {
+                xmax = fabs(vertices[i].v[0]);
+            }
+            if (ymax < fabs(vertices[i].v[1]))
+            {
+                ymax = fabs(vertices[i].v[1]);
+            }
+            if (zmax < fabs(vertices[i].v[2]))
+            {
+                zmax = fabs(vertices[i].v[2]);
+            }
+        }
+        Scalar delta_x = xmax > 1 ? xmax : 1;
+        Scalar delta_y = ymax > 1 ? ymax : 1;
+        Scalar delta_z = zmax > 1 ? zmax : 1;
+        if (!check_vf)
+        {
+            error[0] = delta_x * delta_x * delta_x * eefilter;
+            error[1] = delta_y * delta_y * delta_y * eefilter;
+            error[2] = delta_z * delta_z * delta_z * eefilter;
+        }
+        else
+        {
+            error[0] = delta_x * delta_x * delta_x * vffilter;
+            error[1] = delta_y * delta_y * delta_y * vffilter;
+            error[2] = delta_z * delta_z * delta_z * vffilter;
+        }
+        return;
+    }
+
+__device__ bool vertexFaceCCD_double(
+    CCDdata* data_in,
+    const Scalar* err,
+    const Scalar ms,
+    Scalar &toi,
+    Scalar tolerance,
+    Scalar t_max,
+    const int max_itr,
+    Scalar &output_tolerance,
+    bool no_zero_toi,
+    int &overflow_flag)
+{
+    overflow_flag=0;
+    Scalar* vertex_start=(data_in->v0s);
+    Scalar* face_vertex0_start=(data_in->v1s);
+    Scalar* face_vertex1_start=(data_in->v2s);
+    Scalar* face_vertex2_start=(data_in->v3s);
+    Scalar* vertex_end=(data_in->v0e);
+    Scalar* face_vertex0_end=(data_in->v1e);
+    Scalar* face_vertex1_end=(data_in->v2e);
+    Scalar* face_vertex2_end=(data_in->v3e);
+    const int MAX_NO_ZERO_TOI_ITER = SCALAR_LIMIT;
+    // unsigned so can be larger than MAX_NO_ZERO_TOI_ITER
+    unsigned int no_zero_toi_iter = 0;
+    bool is_impacting, tmp_is_impacting;
+	Scalar tolerance_in = tolerance;
+	Scalar ms_in = ms;
+    do
+    {
+        VectorMax3d tol_v = compute_face_vertex_tolerance_3d_new(
+            data_in, tolerance_in);
+        Scalar* tol=new Scalar[3];
+        tol[0]=tol_v.v[0];
+        tol[1]=tol_v.v[1];
+        tol[2]=tol_v.v[2];
+        //////////////////////////////////////////////////////////
+        // this is the error of the whole mesh
+        Scalar* err1= new Scalar[3];
+        if (err[0] < 0)
+        { // if error[0]<0, means we need to calculate error here
+            VectorMax3d* vlist=new VectorMax3d[8];
+            for(int i=0;i<3;i++){
+                vlist[0].v[i]=vertex_start[i];
+                vlist[1].v[i]=face_vertex0_start[i];
+                vlist[2].v[i]=face_vertex1_start[i];
+                vlist[3].v[i]=face_vertex2_start[i];
+                vlist[4].v[i]=vertex_end[i];
+                vlist[5].v[i]=face_vertex0_end[i];
+                vlist[6].v[i]=face_vertex1_end[i];
+                vlist[7].v[i]=face_vertex2_end[i];
+            }
+            
+            bool use_ms = ms > 0;
+            get_numerical_error(vlist,8, false, use_ms,err1);
+        }
+        else
+        {
+            err1[0] = err[0];
+            err1[1] = err[1];
+            err1[2] = err[2];
+        }
+        //////////////////////////////////////////////////////////
+
+        tmp_is_impacting = interval_root_finder_double_horizontal_tree(
+                tol, tolerance_in, toi, true, err1, ms_in, vertex_start,
+                face_vertex0_start, face_vertex1_start, face_vertex2_start,
+                vertex_end, face_vertex0_end, face_vertex1_end,
+                face_vertex2_end, t_max, max_itr, output_tolerance,overflow_flag);
+        
+        if (overflow_flag){
+            return true;
+        }
+        if (no_zero_toi_iter == 0)
+        {
+            // This will be the final output because we might need to
+            // perform CCD again if the toi is zero. In which case we will
+            // use a smaller t_max for more time resolution.
+            is_impacting = tmp_is_impacting;
+        }
+        else
+        {
+            toi = tmp_is_impacting ? toi : t_max;
+        }
+
+		// This modification is for CCD-filtered line-search (e.g., IPC)
+		// strategies for dealing with toi = 0:
+		// 1. shrink t_max (when reaches max_itr),
+		// 2. shrink tolerance (when not reach max_itr and tolerance is big) or
+		// ms (when tolerance is too small comparing with ms)
+		if (tmp_is_impacting && toi == 0&& no_zero_toi) {
+
+			// meaning reaches max_itr, need to shrink the t_max to return a more accurate result to reach target tolerance.
+			if (output_tolerance > tolerance_in) {
+				t_max *= 0.9;
+			}
+			else {// meaning the given tolerance or ms is too large. need to shrink them,
+				if (10 * tolerance_in < ms_in) {// ms is too large, shrink it
+					ms_in *= 0.5;
+				}
+				else {// tolerance is too large, shrink it
+					tolerance_in *= 0.5;
+				}
+			}
+		}
+
+        no_zero_toi_iter++;
+
+        // Only perform a second iteration if toi == 0.
+        // WARNING: This option assumes the initial distance is not zero.
+    } while (no_zero_toi && no_zero_toi_iter < MAX_NO_ZERO_TOI_ITER
+             && tmp_is_impacting && toi == 0);
+
+    return is_impacting;
+}

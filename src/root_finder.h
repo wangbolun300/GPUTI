@@ -32,7 +32,17 @@ __device__ void convert_tuv_to_array(
         Scalar* v_dw);
 __device__ long power(const long a, const int b);
 __device__ VectorMax3d width(const Singleinterval* x);
-
+__device__ bool vertexFaceCCD_double(
+    CCDdata* data_in,
+    const Scalar* err,
+    const Scalar ms,
+    Scalar &toi,
+    Scalar tolerance,
+    Scalar t_max,
+    const int max_itr,
+    Scalar &output_tolerance,
+    bool no_zero_toi,
+    int &overflow_flag);
 //__device__ 
 
 

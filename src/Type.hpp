@@ -43,7 +43,25 @@ Numccd second;
 class VectorMax3d{
 public:
     __device__ VectorMax3d(){};
+    __device__ VectorMax3d(Scalar a, Scalar b, Scalar c);
+   
     Scalar v[3];
+__device__    friend VectorMax3d operator+(const VectorMax3d &x, const VectorMax3d &y)
+        {
+            VectorMax3d out;
+            out.v[0]=x.v[0]+y.v[0];
+            out.v[1]=x.v[1]+y.v[1];
+            out.v[2]=x.v[2]+y.v[2];
+            return out;
+        }
+__device__    friend VectorMax3d operator-(const VectorMax3d &x, const VectorMax3d &y)
+        {
+            VectorMax3d out;
+            out.v[0]=x.v[0]-y.v[0];
+            out.v[1]=x.v[1]-y.v[1];
+            out.v[2]=x.v[2]-y.v[2];
+            return out;
+        }
 };
 
 class interval_pair{
@@ -58,3 +76,29 @@ class interval_pair{
 
 static const int HEAP_SIZE=1000;
 typedef int ptest[5];
+
+class CCDdata{
+public:
+    __host__ __device__ CCDdata(){};
+    //CCDdata(const std::array<std::array<Scalar,3>,8>&input);
+    Scalar v0s[3];
+    Scalar v1s[3];
+    Scalar v2s[3];
+    Scalar v3s[3];
+    Scalar v0e[3];
+    Scalar v1e[3];
+    Scalar v2e[3];
+    Scalar v3e[3];
+};
+// CCDdata::CCDdata(const std::array<std::array<Scalar,3>,8>& input){
+//     for(int i=0;i<3;i++){
+//         v0s[i]=input[0][i];
+//         v1s[i]=input[1][i];
+//         v2s[i]=input[2][i];
+//         v3s[i]=input[3][i];
+//         v0e[i]=input[4][i];
+//         v1e[i]=input[5][i];
+//         v2e[i]=input[6][i];
+//         v3e[i]=input[7][i];
+//     }
+// }
