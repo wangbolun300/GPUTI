@@ -42,11 +42,11 @@ Numccd second;
 //typedef Singleinterval Interval3[3]; // 3 dimesional interval
 class VectorMax3d{
 public:
-    __device__ VectorMax3d(){};
-    __device__ VectorMax3d(Scalar a, Scalar b, Scalar c);
+    __device__ __host__ VectorMax3d(){};
+    __device__ __host__ VectorMax3d(Scalar a, Scalar b, Scalar c);
    
     Scalar v[3];
-__device__    friend VectorMax3d operator+(const VectorMax3d &x, const VectorMax3d &y)
+__device__  __host__  friend VectorMax3d operator+(const VectorMax3d &x, const VectorMax3d &y)
         {
             VectorMax3d out;
             out.v[0]=x.v[0]+y.v[0];
@@ -54,7 +54,7 @@ __device__    friend VectorMax3d operator+(const VectorMax3d &x, const VectorMax
             out.v[2]=x.v[2]+y.v[2];
             return out;
         }
-__device__    friend VectorMax3d operator-(const VectorMax3d &x, const VectorMax3d &y)
+__device__  __host__  friend VectorMax3d operator-(const VectorMax3d &x, const VectorMax3d &y)
         {
             VectorMax3d out;
             out.v[0]=x.v[0]-y.v[0];

@@ -277,6 +277,13 @@ void test_single_ccd(){
     adata[7]={{0,1,0}};
     CCDdata converted=array_to_ccd(adata);
     CCDdata* vfdata=&converted;
+    {
+        // just for test
+        CCDdata* temp=&vfdata[0];
+        std::cout<<"testing "<<vfdata->v0e[0]<<std::endl;
+    }
+
+
     CCDdata* d_data;
     Scalar* debug=new Scalar[8];
     Scalar* d_debug;
