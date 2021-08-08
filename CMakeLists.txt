@@ -6,6 +6,8 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 else()
   set(GPUTI_TOPLEVEL_PROJECT OFF)
 endif()
+OPTION(GPUTI_WITH_BENCHMARK          "run benchmark for testing"   ON)
+
 
 ### Configuration
 set(GPUTI_EXTERNAL "${CMAKE_CURRENT_SOURCE_DIR}/external")
@@ -51,5 +53,30 @@ set_property(TARGET gputi_bin PROPERTY BUILD_RPATH ${CMAKE_CUDA_IMPLICIT_LINK_DI
 endif()
 
 
+# executable 2
+if (GPUTI_WITH_BENCHMARK)
+set(Boost_USE_MULTITHREADED TRUE)
+find_package(Boost COMPONENTS filesystem REQUIRED)
 
+
+add_executable(test_bin app/test.cu app/read_rational_csv.cpp)
+set_target_properties(test_bin PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+target_link_libraries(test_bin PRIVATE gputi)
+target_link_libraries(test_bin PUBLIC Boost::filesystem)
+
+# gmp
+find_package(GMP)
+IF(NOT ${GMP_FOUND})
+        MESSAGE(FATAL_ERROR "Cannot find GMP")
+ENDIF()
+target_include_directories(test_bin PUBLIC ${GMP_INCLUDE_DIRS})
+target_link_libraries(test_bin PUBLIC ${GMP_LIBRARIES})
+                  
+if(APPLE)
+# We need to add the default path to the driver (libcuda.dylib) as an rpath,
+# so that the static cuda runtime can find it at runtime.
+set_property(TARGET test_bin PROPERTY BUILD_RPATH ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+endif()
+
+endif()
 ###############################################################################
