@@ -63,7 +63,7 @@ add_executable(test_bin app/test.cu app/read_rational_csv.cpp)
 set_target_properties(test_bin PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 target_link_libraries(test_bin PRIVATE gputi)
 target_link_libraries(test_bin PUBLIC Boost::filesystem)
-
+# target_compile_features(test_bin PUBLIC cxx_std_14)
 # gmp
 find_package(GMP)
 IF(NOT ${GMP_FOUND})

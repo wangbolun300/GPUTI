@@ -21,8 +21,8 @@ read_rational_csv(const std::string& inputFileName, std::vector<bool>& results)
     infile.open(inputFileName);
     std::array<Scalar, 3> v;
     if (!infile.is_open()) {
-        std::cout << "Path Wrong!!!!" << std::endl;
-        std::cout << "path, " << inputFileName << std::endl;
+        // std::cout << "Path Wrong!!!!" << std::endl;
+        // std::cout << "path, " << inputFileName << std::endl;
         std::vector<std::array<Scalar,3>> tmp;
         return tmp;
     }
