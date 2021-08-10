@@ -4,7 +4,10 @@
 #include <limits>
 #include <gputi/CType.hpp>
 //#define GPUTI_USE_DOUBLE_PRECISION
+// #define GPUTI_SHOW_INFO 
 
+
+static const int HEAP_SIZE=1000;
 class Numccd{
 public:
 __device__ Numccd(){};
@@ -66,7 +69,7 @@ class interval_pair{
 
 //typedef Scalar Vector3d[3];
 
-static const int HEAP_SIZE=1000;
+
 typedef int ptest[5];
 
 class CCDdata{
@@ -81,7 +84,13 @@ public:
     Scalar v1e[3];
     Scalar v2e[3];
     Scalar v3e[3];
+    bool is_edge;
 };
+
+CCDdata array_to_ccd(std::array<std::array<Scalar,3>,8> a, bool is_edge);
+__device__ void single_test_wrapper(CCDdata* vfdata, bool &result);
+void print_vector(Scalar* v, int size);
+void print_vector(int* v, int size);
 // CCDdata::CCDdata(const std::array<std::array<Scalar,3>,8>& input){
 //     for(int i=0;i<3;i++){
 //         v0s[i]=input[0][i];

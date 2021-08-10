@@ -1,6 +1,36 @@
 #include <gputi/root_finder.h>
 #include <gputi/queue.h>
+#include <iostream>
+void print_vector(Scalar* v, int size){
+    for(int i=0;i<size;i++){
+        std::cout<<v[i]<<",";
+    }
+    std::cout<<std::endl;
+}
+void print_vector(int* v, int size){
+    for(int i=0;i<size;i++){
+        std::cout<<v[i]<<",";
+    }
+    std::cout<<std::endl;
+}
 
+CCDdata array_to_ccd(std::array<std::array<Scalar, 3>, 8> a, bool is_edge)
+{
+    CCDdata data;
+    for (int i = 0; i < 3; i++)
+    {
+        data.v0s[i] = a[0][i];
+        data.v1s[i] = a[1][i];
+        data.v2s[i] = a[2][i];
+        data.v3s[i] = a[3][i];
+        data.v0e[i] = a[4][i];
+        data.v1e[i] = a[5][i];
+        data.v2e[i] = a[6][i];
+        data.v3e[i] = a[7][i];
+    }
+    data.is_edge = is_edge;
+    return data;
+}
 __device__ __host__ VectorMax3d::VectorMax3d(Scalar a, Scalar b, Scalar c)
 {
     v[0] = a;
@@ -207,7 +237,7 @@ __device__ void function_vf(
     const Scalar *v_dw,
     Scalar *rst)
 {
-    //Scalar *rst=new Scalar[8];
+    
     for (int i = 0; i < 8; i++)
     {
         Scalar v = (ve - vs) * t_up[i] / t_dw[i] + vs;
@@ -312,6 +342,7 @@ __device__ bool evaluate_bbox_one_dimension_vector_return_tolerance(
             maxv = vs[i];
         }
     }
+    delete vs;
     tol = maxv - minv; // this is the real tolerance
     if (minv - ms > eps || maxv + ms < -eps)
         return false;
@@ -532,6 +563,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
             // continue;
             toi = Numccd2double(TOI) * impact_ratio;
             //std::cout << "return 1" << std::endl;
+            delete current;
             return true;
             // we don't need to compare with TOI_SKIP because we already continue
             // when t>=TOI_SKIP
@@ -572,6 +604,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                 output_tolerance = temp_output_tolerance;
 
                 // std::cout<<"return from refine"<<std::endl;
+                delete current;
                 return true;
             }
             // get the time of impact down here
@@ -661,6 +694,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
             // std::cout << "OVERFLOW HAPPENS WHEN SPLITTING INTERVALS"
             //           << std::endl;
             overflow_flag = 1;
+            delete current;
             return true;
         }
         if (!less_than(halves.second.first, halves.second.second))
@@ -668,6 +702,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
             // std::cout << "OVERFLOW HAPPENS WHEN SPLITTING INTERVALS"
             //           << std::endl;
             overflow_flag = 1;
+            delete current;
             return true;
         }
         if (check_vf)
@@ -807,14 +842,16 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     }
     if (overflow_flag > 0)
     {
+        delete current;
         return true;
     }
     if (use_skip)
     {
         toi = Numccd2double(TOI_SKIP) * impact_ratio;
+        delete current;
         return true;
     }
-
+    delete current;
     return false;
 }
 
@@ -865,6 +902,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         check_vf, err, ms, a0s, a1s, b0s, b1s, a0e, a1e, b0e, b1e, max_itr,
         output_tolerance, overflow_flag);
 
+    delete iset;
     return result;
 }
 
@@ -946,13 +984,13 @@ __device__ VectorMax3d compute_edge_edge_tolerance_new(
     VectorMax3d edge1_vertex0_end(data_in->v2e[0], data_in->v2e[1], data_in->v2e[2]);
     VectorMax3d edge1_vertex1_end(data_in->v3e[0], data_in->v3e[1], data_in->v3e[2]);
     VectorMax3d p000 = edge0_vertex0_start - edge1_vertex0_start,
-             p001 = edge0_vertex0_start - edge1_vertex1_start,
-             p011 = edge0_vertex1_start - edge1_vertex1_start,
-             p010 = edge0_vertex1_start - edge1_vertex0_start;
+                p001 = edge0_vertex0_start - edge1_vertex1_start,
+                p011 = edge0_vertex1_start - edge1_vertex1_start,
+                p010 = edge0_vertex1_start - edge1_vertex0_start;
     VectorMax3d p100 = edge0_vertex0_end - edge1_vertex0_end,
-             p101 = edge0_vertex0_end - edge1_vertex1_end,
-             p111 = edge0_vertex1_end - edge1_vertex1_end,
-             p110 = edge0_vertex1_end - edge1_vertex0_end;
+                p101 = edge0_vertex0_end - edge1_vertex1_end,
+                p111 = edge0_vertex1_end - edge1_vertex1_end,
+                p110 = edge0_vertex1_end - edge1_vertex0_end;
     Scalar dl = 0;
     Scalar edge0_length = 0;
     Scalar edge1_length = 0;
@@ -1061,8 +1099,7 @@ __device__ bool CCD_Solver(
     Scalar ms_in = ms;
     do
     {
-        VectorMax3d tol_v =is_vf? 
-        compute_face_vertex_tolerance_3d_new(data_in, tolerance_in):compute_edge_edge_tolerance_new(data_in, tolerance_in);
+        VectorMax3d tol_v = is_vf ? compute_face_vertex_tolerance_3d_new(data_in, tolerance_in) : compute_edge_edge_tolerance_new(data_in, tolerance_in);
         Scalar *tol = new Scalar[3];
         tol[0] = tol_v.v[0];
         tol[1] = tol_v.v[1];
@@ -1087,6 +1124,7 @@ __device__ bool CCD_Solver(
 
             bool use_ms = ms > 0;
             get_numerical_error(vlist, 8, is_vf, use_ms, err1);
+            delete vlist;
         }
         else
         {
@@ -1101,7 +1139,8 @@ __device__ bool CCD_Solver(
             v1s, v2s, v3s,
             v0e, v1e, v2e,
             v3e, t_max, max_itr, output_tolerance, overflow_flag);
-
+        delete err1;
+        delete tol;
         if (overflow_flag)
         {
             return true;
@@ -1154,8 +1193,8 @@ __device__ bool CCD_Solver(
 }
 
 __device__ bool vertexFaceCCD_double(
-    CCDdata* data_in,
-    const Scalar* err,
+    CCDdata *data_in,
+    const Scalar *err,
     const Scalar ms,
     Scalar &toi,
     Scalar tolerance,
@@ -1163,14 +1202,15 @@ __device__ bool vertexFaceCCD_double(
     const int max_itr,
     Scalar &output_tolerance,
     bool no_zero_toi,
-    int &overflow_flag){
-        bool res=CCD_Solver(data_in,err,ms,toi,tolerance, t_max, max_itr,output_tolerance, no_zero_toi,overflow_flag,true);
-        return res;
-    }
+    int &overflow_flag)
+{
+    bool res = CCD_Solver(data_in, err, ms, toi, tolerance, t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag, true);
+    return res;
+}
 
-    __device__ bool edgeEdgeCCD_double(
-    CCDdata* data_in,
-    const Scalar* err,
+__device__ bool edgeEdgeCCD_double(
+    CCDdata *data_in,
+    const Scalar *err,
     const Scalar ms,
     Scalar &toi,
     Scalar tolerance,
@@ -1178,7 +1218,8 @@ __device__ bool vertexFaceCCD_double(
     const int max_itr,
     Scalar &output_tolerance,
     bool no_zero_toi,
-    int &overflow_flag){
-        bool res= CCD_Solver(data_in,err,ms,toi,tolerance, t_max, max_itr,output_tolerance, no_zero_toi,overflow_flag,false);
-        return res;
-    }
+    int &overflow_flag)
+{
+    bool res = CCD_Solver(data_in, err, ms, toi, tolerance, t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag, false);
+    return res;
+}

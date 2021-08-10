@@ -162,18 +162,7 @@ __global__ void test_cvt(Scalar* v0,Scalar* v1,Scalar* v2,Scalar* v3,Scalar* v4,
     
 }
 
-void print_vector(Scalar* v, int size){
-    for(int i=0;i<size;i++){
-        std::cout<<v[i]<<",";
-    }
-    std::cout<<std::endl;
-}
-void print_vector(int* v, int size){
-    for(int i=0;i<size;i++){
-        std::cout<<v[i]<<",";
-    }
-    std::cout<<std::endl;
-}
+
 void run_test(){
     Singleinterval itv[3];
     
@@ -249,20 +238,7 @@ __global__ void run_parallel_vf(CCDdata* data, bool* res, int size, Scalar* debu
     }
 } 
 
-CCDdata array_to_ccd(std::array<std::array<Scalar,3>,8> a){
-    CCDdata data;
-    for(int i=0;i<3;i++){
-        data.v0s[i]=a[0][i];
-        data.v1s[i]=a[1][i];
-        data.v2s[i]=a[2][i];
-        data.v3s[i]=a[3][i];
-        data.v0e[i]=a[4][i];
-        data.v1e[i]=a[5][i];
-        data.v2e[i]=a[6][i];
-        data.v3e[i]=a[7][i];
-    }
-    return data;
-}
+
 void test_single_ccd(){
     int dnbr=1;
     
@@ -271,11 +247,12 @@ void test_single_ccd(){
     adata[1]={{0,0,0}};
     adata[2]={{1,0,0}};
     adata[3]={{0,1,0}};
+    
     adata[4]={{-1,-1,-1}};
     adata[5]={{0,0,0}};
     adata[6]={{1,0,0}};
     adata[7]={{0,1,0}};
-    CCDdata converted=array_to_ccd(adata);
+    CCDdata converted=array_to_ccd(adata, false);
     CCDdata* vfdata=&converted;
     {
         // just for test
@@ -302,6 +279,7 @@ void test_single_ccd(){
     cudaMemcpy(debug,d_debug,int(8*sizeof(Scalar)),cudaMemcpyDeviceToHost);
     std::cout<<"copied 1"<<std::endl;
     std::cout<<"vf result is "<<results[0]<<std::endl;
+    std::cout<<"\ndebug info "<<std::endl;
     print_vector(debug,8);
 }
 
