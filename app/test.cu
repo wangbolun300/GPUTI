@@ -8,7 +8,7 @@
 // #include <experimental/filesystem>
 // namespace fs = std::filesystem;
 // // namespace fs = std::experimental::filesystem;
-int global_counter=0;
+int global_counter = 0;
 
 std::vector<std::string> simulation_folders = {{"chain", "cow-heads", "golf-ball", "mat-twist"}};
 std::vector<std::string> handcrafted_folders = {{"erleben-sliding-spike", "erleben-spike-wedge",
@@ -109,6 +109,7 @@ std::vector<std::string> file_path_base()
 __device__ void single_test_wrapper(CCDdata *data, bool &result, Scalar *debug)
 {
     // TODO write these parameters into CCDdata class
+
     Scalar *err = new Scalar[3];
     err[0] = -1;
     err[1] = -1;
@@ -124,7 +125,7 @@ __device__ void single_test_wrapper(CCDdata *data, bool &result, Scalar *debug)
     //debug[7]=1;
     bool is_edge = data->is_edge;
     debug[6] = is_edge;
-
+    
     if (is_edge)
     {
         debug[7] = 1;
@@ -139,10 +140,11 @@ __device__ void single_test_wrapper(CCDdata *data, bool &result, Scalar *debug)
     }
     debug[0] = result;
     debug[3] = overflow_flag;
-    delete err;
+    delete[] err;
 }
 __global__ void run_parallel_ccd(CCDdata *data, bool *res, int size, Scalar *debug)
 {
+    
     for (int i = 0; i < 8; i++)
     {
         debug[i] = 1e-1;
@@ -151,11 +153,14 @@ __global__ void run_parallel_ccd(CCDdata *data, bool *res, int size, Scalar *deb
     // debug[1]=1;
     // debug[2]=2;
     int tx = threadIdx.x;
+    
     if (tx < size)
     {
         CCDdata *input = &data[tx];
         bool result;
+        
         single_test_wrapper(input, result, debug);
+        return;
         res[tx] = result;
         debug[1] = 100 + res[tx];
     }
@@ -184,13 +189,14 @@ bool single_ccd_run(const std::array<std::array<Scalar, 3>, 8> &V, bool is_edge)
     int data_size = sizeof(CCDdata) * dnbr;
     int result_size = sizeof(bool) * dnbr;
     // std::cout<<"result size "<<result_size<<std::endl;
+    
     cudaMalloc(&d_data, data_size);
     cudaMalloc(&d_results, result_size);
     cudaMalloc(&d_debug, int(8 * sizeof(Scalar)));
     cudaMemcpy(d_data, data, data_size, cudaMemcpyHostToDevice);
-
+    
     run_parallel_ccd<<<1, 1>>>(d_data, d_results, dnbr, d_debug);
-
+    return true;
     cudaMemcpy(results, d_results, result_size, cudaMemcpyDeviceToHost);
     cudaMemcpy(debug, d_debug, int(8 * sizeof(Scalar)), cudaMemcpyDeviceToHost);
     bool res = results[0];
@@ -203,9 +209,9 @@ bool single_ccd_run(const std::array<std::array<Scalar, 3>, 8> &V, bool is_edge)
     std::cout << "\ndebug info " << std::endl;
     print_vector(debug, 8);
 #endif
-    delete results;
+    delete[] results;
     //delete data;
-    delete debug;
+    delete[] debug;
     // delete d_results;
     // delete d_data;
     // delete d_debug;
@@ -247,9 +253,9 @@ bool single_ccd_run_info(const std::array<std::array<Scalar, 3>, 8> &V, bool is_
     std::cout << "in func, result " << res << std::endl;
     std::cout << "\ndebug info " << std::endl;
     print_vector(debug, 8);
-    delete results;
+    delete[] results;
     //delete data;
-    delete debug;
+    delete[] debug;
     // delete d_results;
     // delete d_data;
     // delete d_debug;
@@ -259,6 +265,7 @@ bool single_ccd_run_info(const std::array<std::array<Scalar, 3>, 8> &V, bool is_
 }
 bool WRITE_STATISTIC = true;
 bool DEBUG_FLAG = false;
+bool DEBUG_FLAG2 = false;
 void run_rational_data_single_method(
     const Args &args,
     const bool is_edge_edge,
@@ -329,6 +336,12 @@ void run_rational_data_single_method(
                     continue;
                 }
             }
+            if(DEBUG_FLAG2){
+                if (filename != "/home/gameandwatch/bolun/float_with_gt/chain/vertex-face/vertex-face-0010.csv")
+                {
+                    continue;
+                }
+            }
             // std::cout<<"filename "<<filename<<std::endl;
             // exit(0);
             all_V = ccd::read_rational_csv(filename, results);
@@ -371,6 +384,10 @@ void run_rational_data_single_method(
                     const double t_max = 1;
                     double output_tolerance = args.tight_inclusion_tolerance;
                     result = single_ccd_run(V, is_edge_edge);
+
+                    if(total_number>100){
+                        exit(0);
+                    }
                     if (DEBUG_FLAG)
                     {
                         std::cout << "checking " << filename << ", id " << i << std::endl;
@@ -430,6 +447,20 @@ void run_rational_data_single_method(
                 // }
                 if (expected_result)
                 {
+                    if (DEBUG_FLAG2)
+                        {
+                            global_counter++;
+                            std::cout<<filename<<std::endl;
+                            std::cout<<"nbr "<<i<<std::endl;
+                            std::cout << "\nfp reproduce" << std::endl;
+                            bool tmp_res = single_ccd_run_info(V, is_edge_edge);
+                            std::cout << "tmp result= " << tmp_res<<", gt "<< expected_result<< std::endl;
+                            
+                            if (global_counter > 0)
+                            {
+                                exit(0);
+                            }
+                        }
                     total_positives++;
                 }
                 if (result != expected_result)
@@ -437,13 +468,20 @@ void run_rational_data_single_method(
                     if (result)
                     {
                         num_false_positives++;
-                        global_counter++;
-                        std::cout<<"\nfp reproduce"<<std::endl;
-                        bool tmp_res=single_ccd_run_info(V, is_edge_edge);
-                        std::cout<<"tmp result= "<<tmp_res<<std::endl;
-                        if(global_counter>1000){
-                            exit(0);
+                        if (DEBUG_FLAG2)
+                        {
+                            global_counter++;
+                            std::cout<<filename<<std::endl;
+                            std::cout << "\nfp reproduce" << std::endl;
+                            bool tmp_res = single_ccd_run_info(V, is_edge_edge);
+                            std::cout << "tmp result= " << tmp_res << std::endl;
+                            
+                            if (global_counter > 1)
+                            {
+                                exit(0);
+                            }
                         }
+
                         tois.push_back(toi); // we care about FPs' toi
                         // for(int row=0;row<8;row++){
                         //     fout<<std::setprecision(17)<<V(row,0)<<","<<V(row,1)<<","<<V(row,2)<<","<<tois.size()-1<<","<<toi<<std::endl;
@@ -466,9 +504,9 @@ void run_rational_data_single_method(
                         std::cout << "total nbr, p and fp " << total_number << " " << total_positives
                                   << " " << num_false_positives << std::endl;
                         print_V(V);
-                        std::cout<<"\nreproduce"<<std::endl;
-                        bool tmp_res=single_ccd_run_info(V, is_edge_edge);
-                        std::cout<<"tmp result= "<<tmp_res<<std::endl;
+                        std::cout << "\nreproduce" << std::endl;
+                        bool tmp_res = single_ccd_run_info(V, is_edge_edge);
+                        std::cout << "tmp result= " << tmp_res << std::endl;
                         exit(0);
                     }
                 }

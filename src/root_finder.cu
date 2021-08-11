@@ -342,7 +342,7 @@ __device__ bool evaluate_bbox_one_dimension_vector_return_tolerance(
             maxv = vs[i];
         }
     }
-    delete vs;
+    delete[] vs;
     tol = maxv - minv; // this is the real tolerance
     if (minv - ms > eps || maxv + ms < -eps)
         return false;
@@ -471,6 +471,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     Scalar &output_tolerance,
     int &overflow_flag)
 {
+    return true;
     overflow_flag = 0;
     // if max_itr <0, output_tolerance= co_domain_tolerance;
     // else, output_tolearancewill be the precision after iteration time > max_itr
@@ -486,6 +487,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
 
     // current intervals
     Singleinterval *current = new Singleinterval[3];
+    Scalar *true_tol = new Scalar[3];
     int refine = 0;
     Scalar impact_ratio = 1;
 
@@ -528,7 +530,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         refine++;
         bool zero_in;
         bool box_in;
-        Scalar *true_tol = new Scalar[3];
+        
         zero_in =
             Origin_in_function_bounding_box_double_vector_return_tolerance(
                 current, a0s, a1s, b0s, b1s, a0e, a1e, b0e, b1e, check_vf,
@@ -563,7 +565,8 @@ __device__ bool interval_root_finder_double_horizontal_tree(
             // continue;
             toi = Numccd2double(TOI) * impact_ratio;
             //std::cout << "return 1" << std::endl;
-            delete current;
+            delete[] current;
+            delete[] true_tol;
             return true;
             // we don't need to compare with TOI_SKIP because we already continue
             // when t>=TOI_SKIP
@@ -595,6 +598,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                     max(
                         max(true_tol[0], true_tol[1]), true_tol[2]),
                     co_domain_tolerance);
+                
                 find_level_root =
                     true; // this ensures always find the earlist root
             }
@@ -604,7 +608,8 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                 output_tolerance = temp_output_tolerance;
 
                 // std::cout<<"return from refine"<<std::endl;
-                delete current;
+                delete[] true_tol;
+                delete[] current;
                 return true;
             }
             // get the time of impact down here
@@ -694,7 +699,8 @@ __device__ bool interval_root_finder_double_horizontal_tree(
             // std::cout << "OVERFLOW HAPPENS WHEN SPLITTING INTERVALS"
             //           << std::endl;
             overflow_flag = 1;
-            delete current;
+            delete[] current;
+            delete[] true_tol;
             return true;
         }
         if (!less_than(halves.second.first, halves.second.second))
@@ -702,7 +708,8 @@ __device__ bool interval_root_finder_double_horizontal_tree(
             // std::cout << "OVERFLOW HAPPENS WHEN SPLITTING INTERVALS"
             //           << std::endl;
             overflow_flag = 1;
-            delete current;
+            delete[] true_tol;
+            delete[] current;
             return true;
         }
         if (check_vf)
@@ -842,16 +849,19 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     }
     if (overflow_flag > 0)
     {
-        delete current;
+        delete[] current;
+        delete[] true_tol;
         return true;
     }
     if (use_skip)
     {
         toi = Numccd2double(TOI_SKIP) * impact_ratio;
-        delete current;
+        delete[] current;
+        delete[] true_tol;
         return true;
     }
-    delete current;
+    delete[] current;
+    delete[] true_tol;
     return false;
 }
 
@@ -902,7 +912,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         check_vf, err, ms, a0s, a1s, b0s, b1s, a0e, a1e, b0e, b1e, max_itr,
         output_tolerance, overflow_flag);
 
-    delete iset;
+    delete[] iset;
     return result;
 }
 
@@ -1082,6 +1092,7 @@ __device__ bool CCD_Solver(
     int &overflow_flag,
     bool is_vf)
 {
+    
     overflow_flag = 0;
     Scalar *v0s = (data_in->v0s);
     Scalar *v1s = (data_in->v1s);
@@ -1091,22 +1102,25 @@ __device__ bool CCD_Solver(
     Scalar *v1e = (data_in->v1e);
     Scalar *v2e = (data_in->v2e);
     Scalar *v3e = (data_in->v3e);
+    
     const int MAX_NO_ZERO_TOI_ITER = SCALAR_LIMIT;
     // unsigned so can be larger than MAX_NO_ZERO_TOI_ITER
     unsigned int no_zero_toi_iter = 0;
     bool is_impacting, tmp_is_impacting;
     Scalar tolerance_in = tolerance;
     Scalar ms_in = ms;
+    Scalar *tol = new Scalar[3];
+    // this is the error of the whole mesh
+    Scalar *err1 = new Scalar[3];
     do
     {
         VectorMax3d tol_v = is_vf ? compute_face_vertex_tolerance_3d_new(data_in, tolerance_in) : compute_edge_edge_tolerance_new(data_in, tolerance_in);
-        Scalar *tol = new Scalar[3];
+        
         tol[0] = tol_v.v[0];
         tol[1] = tol_v.v[1];
         tol[2] = tol_v.v[2];
         //////////////////////////////////////////////////////////
-        // this is the error of the whole mesh
-        Scalar *err1 = new Scalar[3];
+        
         if (err[0] < 0)
         { // if error[0]<0, means we need to calculate error here
             VectorMax3d *vlist = new VectorMax3d[8];
@@ -1124,7 +1138,7 @@ __device__ bool CCD_Solver(
 
             bool use_ms = ms > 0;
             get_numerical_error(vlist, 8, is_vf, use_ms, err1);
-            delete vlist;
+            delete[] vlist;
         }
         else
         {
@@ -1139,8 +1153,8 @@ __device__ bool CCD_Solver(
             v1s, v2s, v3s,
             v0e, v1e, v2e,
             v3e, t_max, max_itr, output_tolerance, overflow_flag);
-        delete err1;
-        delete tol;
+        delete[] err1;
+        delete[] tol;
         if (overflow_flag)
         {
             return true;
