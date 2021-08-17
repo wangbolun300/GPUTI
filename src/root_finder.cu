@@ -58,6 +58,8 @@ __device__ Singleinterval::Singleinterval(Numccd f, Numccd s)
 }
 __device__ interval_pair::interval_pair(const Singleinterval &a, const Singleinterval &b)
 {
+    // interval_cp(a,first);
+    // interval_cp(b,second);
     first = a;
     second = b;
 }
@@ -444,6 +446,8 @@ __device__ void bisect(const Singleinterval *inter, interval_pair &out)
     // assert(
     //     Numccd2double(newnum) > Numccd2double(low)
     //     && Numccd2double(newnum) < Numccd2double(up));
+    // interval_cp(i1,out.first);
+    // interval_cp(i2,out.second);
     out.first = i1;
     out.second = i2;
 }
@@ -471,7 +475,8 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     Scalar &output_tolerance,
     int &overflow_flag)
 {
-    return true;
+    
+    //return true;
     overflow_flag = 0;
     // if max_itr <0, output_tolerance= co_domain_tolerance;
     // else, output_tolearancewill be the precision after iteration time > max_itr
@@ -480,11 +485,8 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     // this is used to catch the tolerance for each level
     Scalar temp_output_tolerance = co_domain_tolerance;
 
-    MinHeap istack;
-
-    //item init_item();
-    istack.insertKey(item(iset, -1));
-
+    
+    
     // current intervals
     Singleinterval *current = new Singleinterval[3];
     Scalar *true_tol = new Scalar[3];
@@ -509,12 +511,29 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     bool find_level_root = false;
     // Scalar current_tolerance=std::numeric_limits<Scalar>::infinity(); // set returned tolerance as infinite
     Scalar t_upper_bound = max_t; // 2*tol make it more conservative
+    
+    MinHeap istack;
+    
+    // Singleinterval test0=iset[0];
+    // Singleinterval test1=iset[1];
+    // Singleinterval test2=iset[2];
+    //item init_item();
+    
+
+    istack.insertKey(item(iset, -1));
+    
     while (!istack.empty())
     {
-        item current_item = istack.extractMin();
-        current = current_item.itv;
+        
+        item current_item;
+        
+        current_item= istack.extractMin();
+        
+        current[0] = current_item.itv[0];
+        current[1] = current_item.itv[1];
+        current[2] = current_item.itv[2];
         int level = current_item.level;
-
+        
         // if this box is later than TOI_SKIP in time, we can skip this one.
         // TOI_SKIP is only updated when the box is small enough or totally contained in eps-box
         if (!less_than(current[0].first, TOI_SKIP))
@@ -537,7 +556,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                 err, ms, box_in, true_tol);
         if (!zero_in)
             continue;
-
+        
         VectorMax3d widths = width(current);
 
         bool tol_condition = true_tol[0] <= co_domain_tolerance && true_tol[1] <= co_domain_tolerance && true_tol[2] <= co_domain_tolerance;
@@ -554,7 +573,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
             // this level has at least one box whose size > tolerance, thus we
             // cannot directly return if find one box whose size < tolerance or box-in
         }
-
+        
         // Condition 3, in this level, we find a box that zero-in and size < tolerance.
         // and no other boxes whose zero-in is true in this level before this one is larger than tolerance, can return
         bool condition3 = this_level_less_tol;
@@ -626,7 +645,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
             use_skip = true;
             continue;
         }
-
+        
         bool check[3];
         VectorMax3d widthratio;
 
@@ -641,6 +660,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         }
 
         int split_i = -1;
+        
         for (int i = 0; i < 3; i++)
         {
             if (check[i])
@@ -691,8 +711,10 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         //         break;
         //     }
         // }
+        
         interval_pair halves;
-        Singleinterval *bisect_inter = &current[split_i];
+        Singleinterval *bisect_inter = &(current[split_i]);
+        
         bisect(bisect_inter, halves);
         if (!less_than(halves.first.first, halves.first.second))
         {
@@ -722,6 +744,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
 
                 if (sum_no_larger_1(halves.second.first, current[2].first))
                 {
+
                     current[split_i] = halves.second;
                     bool inserted = istack.insertKey(item(current, level + 1));
                     if (inserted == false)
@@ -847,12 +870,14 @@ __device__ bool interval_root_finder_double_horizontal_tree(
             }
         }
     }
+    
     if (overflow_flag > 0)
     {
         delete[] current;
         delete[] true_tol;
         return true;
     }
+    
     if (use_skip)
     {
         toi = Numccd2double(TOI_SKIP) * impact_ratio;
@@ -860,8 +885,11 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         delete[] true_tol;
         return true;
     }
+    //return true;
     delete[] current;
+    //return true;
     delete[] true_tol;
+    
     return false;
 }
 
@@ -906,12 +934,12 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     iset[0] = init_interval;
     iset[1] = init_interval;
     iset[2] = init_interval;
-
+    
     bool result = interval_root_finder_double_horizontal_tree(
         tol, co_domain_tolerance, iset, check_t_overlap, max_time, toi,
         check_vf, err, ms, a0s, a1s, b0s, b1s, a0e, a1e, b0e, b1e, max_itr,
         output_tolerance, overflow_flag);
-
+    //return true;
     delete[] iset;
     return result;
 }
@@ -1092,7 +1120,7 @@ __device__ bool CCD_Solver(
     int &overflow_flag,
     bool is_vf)
 {
-    
+    // return true;
     overflow_flag = 0;
     Scalar *v0s = (data_in->v0s);
     Scalar *v1s = (data_in->v1s);
@@ -1147,16 +1175,18 @@ __device__ bool CCD_Solver(
             err1[2] = err[2];
         }
         //////////////////////////////////////////////////////////
-
+        
         tmp_is_impacting = interval_root_finder_double_horizontal_tree(
             tol, tolerance_in, toi, is_vf, err1, ms_in, v0s,
             v1s, v2s, v3s,
             v0e, v1e, v2e,
             v3e, t_max, max_itr, output_tolerance, overflow_flag);
-        delete[] err1;
-        delete[] tol;
+        
+        
         if (overflow_flag)
         {
+            delete[] tol;
+            delete[] err1;
             return true;
         }
         if (no_zero_toi_iter == 0)
@@ -1202,7 +1232,8 @@ __device__ bool CCD_Solver(
         // Only perform a second iteration if toi == 0.
         // WARNING: This option assumes the initial distance is not zero.
     } while (no_zero_toi && no_zero_toi_iter < MAX_NO_ZERO_TOI_ITER && tmp_is_impacting && toi == 0);
-
+    delete[] err1;
+    delete[] tol;
     return is_impacting;
 }
 
@@ -1218,6 +1249,7 @@ __device__ bool vertexFaceCCD_double(
     bool no_zero_toi,
     int &overflow_flag)
 {
+    
     bool res = CCD_Solver(data_in, err, ms, toi, tolerance, t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag, true);
     return res;
 }

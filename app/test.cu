@@ -160,7 +160,7 @@ __global__ void run_parallel_ccd(CCDdata *data, bool *res, int size, Scalar *deb
         bool result;
         
         single_test_wrapper(input, result, debug);
-        return;
+        
         res[tx] = result;
         debug[1] = 100 + res[tx];
     }
@@ -194,9 +194,9 @@ bool single_ccd_run(const std::array<std::array<Scalar, 3>, 8> &V, bool is_edge)
     cudaMalloc(&d_results, result_size);
     cudaMalloc(&d_debug, int(8 * sizeof(Scalar)));
     cudaMemcpy(d_data, data, data_size, cudaMemcpyHostToDevice);
-    
+    //return true;
     run_parallel_ccd<<<1, 1>>>(d_data, d_results, dnbr, d_debug);
-    return true;
+    
     cudaMemcpy(results, d_results, result_size, cudaMemcpyDeviceToHost);
     cudaMemcpy(debug, d_debug, int(8 * sizeof(Scalar)), cudaMemcpyDeviceToHost);
     bool res = results[0];
@@ -327,7 +327,7 @@ void run_rational_data_single_method(
             //           << std::endl;
             std::string filename = scene_path + sub_name + "-" + entry + ".csv";
 
-            std::string debug_file = "/home/gameandwatch/bolun/float_with_gt/chain/vertex-face/vertex-face-0010.csv";
+            std::string debug_file = "/home/bolun/bolun/float_with_gt/chain/vertex-face/vertex-face-0010.csv";
             int debug_id = 7459;
             if (DEBUG_FLAG)
             {
@@ -337,10 +337,11 @@ void run_rational_data_single_method(
                 }
             }
             if(DEBUG_FLAG2){
-                if (filename != "/home/gameandwatch/bolun/float_with_gt/chain/vertex-face/vertex-face-0010.csv")
+                if (filename != "/home/bolun/bolun/float_with_gt/chain/vertex-face/vertex-face-0010.csv")
                 {
                     continue;
                 }
+                std::cout<<"running this file"<<std::endl;
             }
             // std::cout<<"filename "<<filename<<std::endl;
             // exit(0);
@@ -384,10 +385,20 @@ void run_rational_data_single_method(
                     const double t_max = 1;
                     double output_tolerance = args.tight_inclusion_tolerance;
                     result = single_ccd_run(V, is_edge_edge);
-
-                    if(total_number>100){
-                        exit(0);
-                    }
+                    // if(result!=0&&result!=1){
+                        // std::cout<<"mem problem!"<<std::endl;
+                        // std::cout << "checking " << filename << ", id " << i << std::endl;
+                        // std::cout << "result " << result << ", ground " << expected_result << std::endl;
+                        // // std::cout << "\nreproduce" << std::endl;
+                        // // bool tmp_res = single_ccd_run_info(V, is_edge_edge);
+                        // // std::cout << "tmp result= " << tmp_res<<", gt "<< expected_result<< std::endl;
+                        // print_V(V);
+                        // exit(0);
+                        
+                    // }
+                    // if(total_number>100){
+                    //     exit(0);
+                    // }
                     if (DEBUG_FLAG)
                     {
                         std::cout << "checking " << filename << ", id " << i << std::endl;
@@ -447,20 +458,20 @@ void run_rational_data_single_method(
                 // }
                 if (expected_result)
                 {
-                    if (DEBUG_FLAG2)
-                        {
-                            global_counter++;
-                            std::cout<<filename<<std::endl;
-                            std::cout<<"nbr "<<i<<std::endl;
-                            std::cout << "\nfp reproduce" << std::endl;
-                            bool tmp_res = single_ccd_run_info(V, is_edge_edge);
-                            std::cout << "tmp result= " << tmp_res<<", gt "<< expected_result<< std::endl;
+                    // if (DEBUG_FLAG2)
+                    //     {
+                    //         global_counter++;
+                    //         std::cout<<filename<<std::endl;
+                    //         std::cout<<"nbr "<<i<<std::endl;
+                    //         std::cout << "\nfp reproduce" << std::endl;
+                    //         bool tmp_res = single_ccd_run_info(V, is_edge_edge);
+                    //         std::cout << "tmp result= " << tmp_res<<", gt "<< expected_result<< std::endl;
                             
-                            if (global_counter > 0)
-                            {
-                                exit(0);
-                            }
-                        }
+                    //         if (global_counter > 0)
+                    //         {
+                    //             exit(0);
+                    //         }
+                    //     }
                     total_positives++;
                 }
                 if (result != expected_result)
@@ -468,19 +479,19 @@ void run_rational_data_single_method(
                     if (result)
                     {
                         num_false_positives++;
-                        if (DEBUG_FLAG2)
-                        {
-                            global_counter++;
-                            std::cout<<filename<<std::endl;
-                            std::cout << "\nfp reproduce" << std::endl;
-                            bool tmp_res = single_ccd_run_info(V, is_edge_edge);
-                            std::cout << "tmp result= " << tmp_res << std::endl;
+                        // if (DEBUG_FLAG2)
+                        // {
+                        //     global_counter++;
+                        //     std::cout<<filename<<std::endl;
+                        //     std::cout << "\nfp reproduce" << std::endl;
+                        //     bool tmp_res = single_ccd_run_info(V, is_edge_edge);
+                        //     std::cout << "tmp result= " << tmp_res << std::endl;
                             
-                            if (global_counter > 1)
-                            {
-                                exit(0);
-                            }
-                        }
+                        //     if (global_counter > 1)
+                        //     {
+                        //         exit(0);
+                        //     }
+                        // }
 
                         tois.push_back(toi); // we care about FPs' toi
                         // for(int row=0;row<8;row++){
@@ -626,12 +637,12 @@ void run_one_method_over_all_data(const Args &args,
 }
 void run_ours_float_for_all_data()
 {
-    std::string folder = "/home/gameandwatch/bolun/data0809/"; // this is the output folder
+    std::string folder = "/home/bolun/bolun/data0809/"; // this is the output folder
     std::string tail = "";
 
     // tolerance.push_back("1");
     Args arg;
-    arg.data_dir = "/home/gameandwatch/bolun/float_with_gt/";
+    arg.data_dir = "/home/bolun/bolun/float_with_gt/";
 
     arg.minimum_separation = 0;
     arg.tight_inclusion_tolerance = 1e-6;

@@ -8,6 +8,17 @@ public:
 	Singleinterval itv[3];
 	__device__ item(const Singleinterval* si, int level);
 	__device__ item();
+	__device__ item& operator=(const item& x)
+    {
+        if (this == &x)
+            return *this;
+        itv[0]=x.itv[0];
+		itv[1]=x.itv[1];
+		itv[2]=x.itv[2];
+        
+        return *this;
+    }
+
 };
 
 // A class for Min Heap

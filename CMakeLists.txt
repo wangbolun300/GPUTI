@@ -1,4 +1,6 @@
+set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc")
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
+
 project(GPUTI LANGUAGES CXX CUDA)
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)

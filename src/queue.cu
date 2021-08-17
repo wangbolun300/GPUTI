@@ -4,12 +4,21 @@
 
 using namespace std;
 
-// contains 
+
+__device__ void interval_cp(const Singleinterval& a,Singleinterval& b){
+	b.first.first=a.first.first;
+	b.first.second=a.first.second;
+	b.second.first=a.second.first;
+	b.second.second=a.second.second;
+} 
 __device__ item::item(const Singleinterval* si, int lv) {
 	level = lv;
-	itv[0]=si[0];
-	itv[1]=si[1];
-	itv[2]=si[2];
+	interval_cp(si[0],itv[0]);
+	interval_cp(si[1],itv[1]);
+	interval_cp(si[2],itv[2]);
+	//itv[0].first.first=si[0].first.first;
+	// itv[1]=si[1];
+	// itv[2]=si[2];
 }
 __device__ item::item() {
 
@@ -123,18 +132,23 @@ __device__ void MinHeap::decreaseKey(int i, item new_val)
 // Method to remove minimum element (or root) from min heap
 __device__ item MinHeap::extractMin()
 {
+	
 	if (heap_size <= 0)
 		return item_max();
+	
 	if (heap_size == 1)
 	{
+		
 		heap_size--;
 		return harr[0];
 	}
-
+	
 	// Store the minimum value, and remove it from heap
 	item root = harr[0];
+	
 	harr[0] = harr[heap_size - 1];
 	heap_size--;
+	
 	MinHeapify(0);
 
 	return root;
@@ -151,20 +165,43 @@ __device__ void MinHeap::deleteKey(int i)
 
 // A recursive method to heapify a subtree with the root at given index
 // This method assumes that the subtrees are already heapified
+// bolun remove the recursive part and make it a iteration
 __device__ void MinHeap::MinHeapify(int i)
 {
-	int l = left(i);
-	int r = right(i);
-	int smallest = i;
-	if (l < heap_size && custom_compare_less(harr[l], harr[i]))
-		smallest = l;
-	if (r < heap_size && custom_compare_less(harr[r], harr[smallest]))
-		smallest = r;
-	if (smallest != i)
-	{
-		swap(&harr[i], &harr[smallest]);
-		MinHeapify(smallest);
+	int tmp=i;
+	
+	for(int itr=0;;itr++){
+		int l = left(tmp);
+		int r = right(tmp);
+		int smallest = tmp;
+		if (l < heap_size && custom_compare_less(harr[l], harr[tmp]))
+			smallest = l;
+		if (r < heap_size && custom_compare_less(harr[r], harr[smallest]))
+			smallest = r;
+		if(smallest==tmp){
+			return;
+		}
+		else{
+			swap(&harr[tmp], &harr[smallest]);
+			tmp=smallest;
+		}
+		
 	}
+
+
+	// int l = left(i);
+	// int r = right(i);
+	// int smallest = i;
+	// if (l < heap_size && custom_compare_less(harr[l], harr[i]))
+	// 	smallest = l;
+	// if (r < heap_size && custom_compare_less(harr[r], harr[smallest]))
+	// 	smallest = r;
+	
+	// if (smallest != i)
+	// {
+	// 	swap(&harr[i], &harr[smallest]);
+	// 	MinHeapify(smallest);
+	// }
 }
 __device__ bool  MinHeap::empty(){
 	return (heap_size==0);
