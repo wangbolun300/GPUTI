@@ -479,7 +479,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     //return true;
     overflow_flag = 0;
     // if max_itr <0, output_tolerance= co_domain_tolerance;
-    // else, output_tolearancewill be the precision after iteration time > max_itr
+    // else, output_tolearance will be the precision after iteration time > max_itr
     output_tolerance = co_domain_tolerance;
 
     // this is used to catch the tolerance for each level
@@ -524,7 +524,9 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     
     while (!istack.empty())
     {
-        
+        if(overflow_flag>0){
+            break;
+        }
         item current_item;
         
         current_item= istack.extractMin();
@@ -591,7 +593,8 @@ __device__ bool interval_root_finder_double_horizontal_tree(
             // when t>=TOI_SKIP
         }
 
-        if (max_itr > 0)
+        // it used to be if(max_itr > 0). however, since we are limiting the heap size, truncation may happens because of max_itr, or heap size.
+        if (1) 
         { // if max_itr < 0, then stop until stack empty
             if (current_level != level)
             {
@@ -623,13 +626,9 @@ __device__ bool interval_root_finder_double_horizontal_tree(
             }
             if (refine > max_itr)
             {
-                toi = temp_toi;
-                output_tolerance = temp_output_tolerance;
-
+                overflow_flag=ITERATION_OVERFLOW;
                 // std::cout<<"return from refine"<<std::endl;
-                delete[] true_tol;
-                delete[] current;
-                return true;
+                break;
             }
             // get the time of impact down here
         }
@@ -720,19 +719,15 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         {
             // std::cout << "OVERFLOW HAPPENS WHEN SPLITTING INTERVALS"
             //           << std::endl;
-            overflow_flag = 1;
-            delete[] current;
-            delete[] true_tol;
-            return true;
+            overflow_flag = BISECTION_OVERFLOW;
+            break;
         }
         if (!less_than(halves.second.first, halves.second.second))
         {
             // std::cout << "OVERFLOW HAPPENS WHEN SPLITTING INTERVALS"
             //           << std::endl;
-            overflow_flag = 1;
-            delete[] true_tol;
-            delete[] current;
-            return true;
+            overflow_flag = BISECTION_OVERFLOW;
+            break;
         }
         if (check_vf)
         {
@@ -749,7 +744,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                     bool inserted = istack.insertKey(item(current, level + 1));
                     if (inserted == false)
                     {
-                        overflow_flag = 2;
+                        overflow_flag = HEAP_OVERFLOW;
                     }
                 }
                 if (sum_no_larger_1(halves.first.first, current[2].first))
@@ -758,7 +753,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                     bool inserted = istack.insertKey(item(current, level + 1));
                     if (inserted == false)
                     {
-                        overflow_flag = 2;
+                        overflow_flag = HEAP_OVERFLOW;
                     }
                 }
             }
@@ -774,7 +769,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                     bool inserted = istack.insertKey(item(current, level + 1));
                     if (inserted == false)
                     {
-                        overflow_flag = 2;
+                        overflow_flag = HEAP_OVERFLOW;
                     }
                 }
                 if (sum_no_larger_1(halves.first.first, current[1].first))
@@ -783,7 +778,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                     bool inserted = istack.insertKey(item(current, level + 1));
                     if (inserted == false)
                     {
-                        overflow_flag = 2;
+                        overflow_flag = HEAP_OVERFLOW;
                     }
                 }
             }
@@ -798,7 +793,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                         bool inserted = istack.insertKey(item(current, level + 1));
                         if (inserted == false)
                         {
-                            overflow_flag = 2;
+                            overflow_flag = HEAP_OVERFLOW;
                         }
                     }
                     if (interval_overlap_region(
@@ -808,7 +803,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                         bool inserted = istack.insertKey(item(current, level + 1));
                         if (inserted == false)
                         {
-                            overflow_flag = 2;
+                            overflow_flag = HEAP_OVERFLOW;
                         }
                     }
                 }
@@ -818,13 +813,13 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                     bool inserted = istack.insertKey(item(current, level + 1));
                     if (inserted == false)
                     {
-                        overflow_flag = 2;
+                        overflow_flag = HEAP_OVERFLOW;
                     }
                     current[split_i] = halves.first;
                     inserted = istack.insertKey(item(current, level + 1));
                     if (inserted == false)
                     {
-                        overflow_flag = 2;
+                        overflow_flag = HEAP_OVERFLOW;
                     }
                 }
             }
@@ -840,7 +835,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                     bool inserted = istack.insertKey(item(current, level + 1));
                     if (inserted == false)
                     {
-                        overflow_flag = 2;
+                        overflow_flag = HEAP_OVERFLOW;
                     }
                 }
                 if (interval_overlap_region(halves.first, 0, t_upper_bound))
@@ -849,7 +844,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                     bool inserted = istack.insertKey(item(current, level + 1));
                     if (inserted == false)
                     {
-                        overflow_flag = 2;
+                        overflow_flag = HEAP_OVERFLOW;
                     }
                 }
             }
@@ -859,13 +854,13 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                 bool inserted = istack.insertKey(item(current, level + 1));
                 if (inserted == false)
                 {
-                    overflow_flag = 2;
+                    overflow_flag = HEAP_OVERFLOW;
                 }
                 current[split_i] = halves.first;
                 inserted = istack.insertKey(item(current, level + 1));
                 if (inserted == false)
                 {
-                    overflow_flag = 2;
+                    overflow_flag = HEAP_OVERFLOW;
                 }
             }
         }
@@ -873,6 +868,9 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     
     if (overflow_flag > 0)
     {
+        toi = temp_toi;
+        output_tolerance = temp_output_tolerance;
+
         delete[] current;
         delete[] true_tol;
         return true;

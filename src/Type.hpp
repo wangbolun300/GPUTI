@@ -7,8 +7,12 @@
 // #define GPUTI_SHOW_INFO 
 // TODO next when spliting time intervals, check if overlaps the current toi, then decide if we push it into the heap
 // the reason of considerting it is that the limited heap size.
-
+// token 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
 static const int HEAP_SIZE=1000;
+static const int NO_OVERFLOW = 0;
+static const int BISECTION_OVERFLOW = 1;
+static const int HEAP_OVERFLOW = 2;
+static const int ITERATION_OVERFLOW = 3;
 
 
 class Numccd{
