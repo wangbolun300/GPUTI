@@ -174,7 +174,8 @@ __device__ void single_test_wrapper(CCDdata *data, bool &result, Scalar *debug)
 }
 __device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scalar *debug, Scalar &time_impact)
 {
-
+    // result=true;
+    // return;
     Scalar *err = new Scalar[3];
     err[0] = -1;
     err[1] = -1;
@@ -235,13 +236,15 @@ __global__ void run_parallel_ccd_all(CCDdata *data, bool *res, int size, int sta
 
     if (tx < run_nbr)
     {
-        CCDdata *input = &data[start_id + tx];
-        bool result;
-        Scalar time_impact;
-        single_test_wrapper_return_toi(input, result, debug, time_impact);
-
-        res[start_id + tx] = result;
-        tois[start_id + tx] = time_impact;
+       // CCDdata *input = &data[start_id + tx];
+        //bool result;
+        //Scalar time_impact;
+        //debug[start_id + tx]=start_id + tx;
+        single_test_wrapper_return_toi(&data[start_id + tx], res[start_id + tx], debug, tois[start_id + tx]);
+        __syncthreads();
+        // res[start_id + tx] = result;
+        // tois[start_id + tx] = time_impact;
+        
         //debug[1] = 100 + res[tx];
     }
 }
@@ -304,8 +307,10 @@ bool single_ccd_run(const std::array<std::array<Scalar, 3>, 8> &V, bool is_edge)
 }
 
 void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, bool is_edge,
-                 std::vector<bool> &result_list, double &time_average, std::vector<Scalar> &time_impact,int parallel_nbr)
+                 std::vector<bool> &result_list, double &time_average, std::vector<Scalar> &time_impact,int parallel_nbr,
+                 std::vector<double> &time_list)
 {
+    time_list.clear();
     int nbr = V.size();
     result_list.resize(nbr);
     // host
@@ -315,7 +320,7 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
         data_list[i] = array_to_ccd(V[i], is_edge);
     }
     bool *res = new bool[nbr];
-    Scalar *debug = new Scalar[8];
+    Scalar *debug = new Scalar[nbr];
     Scalar *tois = new Scalar[nbr];
 
     // device
@@ -327,11 +332,14 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     int data_size = sizeof(CCDdata) * nbr;
     int result_size = sizeof(bool) * nbr;
     int time_size = sizeof(Scalar) * nbr;
+    int debug_size=sizeof(Scalar)*nbr;
+
     cudaMalloc(&d_data_list, data_size);
     cudaMalloc(&d_res, result_size);
     cudaMalloc(&d_tois, time_size);
+    cudaMalloc(&d_debug, debug_size);
     cudaMemcpy(d_data_list, data_list, data_size, cudaMemcpyHostToDevice);
-    cudaMalloc(&d_debug, int(8 * sizeof(Scalar)));
+    
     std::cout << "data copied" << std::endl;
     // parallel info
     int total_call_nbr = nbr / parallel_nbr + 1; // totally call times
@@ -342,7 +350,7 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     
     for (int itr = 0; itr < total_call_nbr; itr++)
     {
-        int remain = nbr - start_id - 1;
+        int remain = nbr - start_id;
         int current_nbr = parallel_nbr;
         if (remain < current_nbr)
         {
@@ -358,6 +366,7 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
         cudaDeviceSynchronize();
         double tt = timer.getElapsedTimeInMicroSec();
         time_all+=tt;
+        time_list.push_back(tt);
         std::cout<<"finished "<<start_id<<"\r";
         start_id += current_nbr;
     }
@@ -371,23 +380,41 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
 
     cudaFree(d_data_list);
     cudaFree(d_res);
+    cudaFree(d_tois);
     cudaFree(d_debug);
     for (int i = 0; i < nbr; i++)
     {
         result_list[i] = res[i];
     }
 
-    delete[] res;
-    delete data_list;
-    delete[] debug;
+    
 
     time_average = time_all / nbr;
     time_impact.resize(nbr);
+    
     for (int i = 0; i < nbr; i++)
     {
         time_impact[i] = tois[i];
     }
+    // check if every query is calculated
+    // int dmax=10;
+    // int cdbg=0;
+    // for (int i = 0; i < nbr; i++)
+    // {
+    //     if(debug[i]!=i){
+    //         std::cout<<"debug shows wrong info, i = "<<i<<" value = "<<debug[i]<<std::endl;
+    //         cdbg++;
+    //         if(cdbg>dmax){
+    //             exit(0);
+    //         }
+    //     }
 
+    // }
+
+    delete[] res;
+    delete data_list;
+    delete[] debug;
+    delete[] tois;
     return;
 }
 bool single_ccd_run_info(const std::array<std::array<Scalar, 3>, 8> &V, bool is_edge)
@@ -781,7 +808,7 @@ void run_rational_data_single_method_parallel(
 {
     std::vector<std::array<Scalar, 3>> all_V;
     std::vector<bool> results;
-    ccd::Timer timer;
+    
     //std::vector<write_format> queryinfo;
     int total_number = -1;
     double total_time = 0.0;
@@ -866,7 +893,7 @@ void run_rational_data_single_method_parallel(
                 bool expected_result = results[i * 8];
 
                 bool result;
-                // timer.start();
+                
 
                 double toi;
                 if (DEBUG_FLAG)
@@ -893,8 +920,8 @@ void run_rational_data_single_method_parallel(
     int size = queries.size();
     std::cout << "data loaded, size " << queries.size() << std::endl;
     double tavg = 0;
-    all_ccd_run(queries, is_edge_edge, result_list, tavg, tois, parallel);
-
+    all_ccd_run(queries, is_edge_edge, result_list, tavg, tois, parallel, time_list);
+    
     if (expect_list.size() != size)
     {
         std::cout << "size wrong!!!" << std::endl;
@@ -932,7 +959,11 @@ void run_rational_data_single_method_parallel(
     if (1)
     {
         std::vector<std::string> titles;
-        write_csv(folder + "method" + std::to_string(int(2021)) + "_is_edge_edge_" + std::to_string(is_edge_edge) + "_" + std::to_string(total_number) + "_tois" + tail + ".csv", titles, tois, true);
+        write_csv(folder + "method" + std::to_string(int(2021)) + "_is_edge_edge_" + std::to_string(is_edge_edge) + "_" + 
+        std::to_string(total_number) + "_tois" + tail + ".csv", titles, tois, true);
+
+        write_csv(folder + "method" + std::to_string(int(2021)) + "_is_edge_edge_" + std::to_string(is_edge_edge) + "_" + 
+        std::to_string(total_number) + "_runtime" + tail + ".csv", titles, time_list, true);
     }
 
 }
