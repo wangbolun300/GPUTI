@@ -360,8 +360,18 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
         {
             break;
         }
+        int thread_nbr=parallel_nbr;
+        int block_nbr=1;
+        if(parallel_nbr>MAX_THREAD){
+            thread_nbr=MAX_THREAD;
+            int tb=parallel_nbr/thread_nbr;
+            if(parallel_nbr>tb*thread_nbr){
+                tb+=1;
+            }
+            block_nbr=tb;
+        }
         timer.start();
-        run_parallel_ccd_all<<<1, parallel_nbr>>>(d_data_list, d_res, nbr, start_id,
+        run_parallel_ccd_all<<<block_nbr, thread_nbr>>>(d_data_list, d_res, nbr, start_id,
                                                   current_nbr, d_debug, d_tois);
         cudaDeviceSynchronize();
         double tt = timer.getElapsedTimeInMicroSec();
@@ -920,7 +930,47 @@ void run_rational_data_single_method_parallel(
     int size = queries.size();
     std::cout << "data loaded, size " << queries.size() << std::endl;
     double tavg = 0;
-    all_ccd_run(queries, is_edge_edge, result_list, tavg, tois, parallel, time_list);
+    int max_query_cp_size=1e7;
+    int start_id=0;
+
+    result_list.resize(size);
+    tois.resize(size);
+    time_list.resize(size);
+    while(1){
+        std::vector<bool> tmp_results;
+        std::vector<std::array<std::array<Scalar, 3>, 8>> tmp_queries;
+        std::vector<double> tmp_time;
+        std::vector<Scalar> tmp_tois;
+
+        int remain=size-start_id;
+        double tmp_tavg;
+
+        if(remain<=0) break;
+        
+        int tmp_nbr=min(remain,max_query_cp_size);
+        tmp_results.resize(tmp_nbr);
+        tmp_queries.resize(tmp_nbr);
+        tmp_time.resize(tmp_nbr);
+        tmp_tois.resize(tmp_nbr);
+        for(int i=0;i<tmp_nbr;i++){
+            tmp_queries[i]=queries[start_id+i];
+        }
+        all_ccd_run(tmp_queries, is_edge_edge, tmp_results, tmp_tavg, tmp_tois, parallel, tmp_time);
+        for(int i=0;i<tmp_nbr;i++){
+           result_list[start_id+i]=tmp_results[i];
+           tois[start_id+i]=tmp_tois[i];
+           time_list[start_id+i]=tmp_time[i];
+        }
+
+        start_id+=tmp_nbr;
+
+    }
+    for(int i=0;i<size;i++){
+        tavg+=time_list[i];
+    }
+    tavg/=size;
+
+    //all_ccd_run(queries, is_edge_edge, result_list, tavg, tois, parallel, time_list);
     
     if (expect_list.size() != size)
     {

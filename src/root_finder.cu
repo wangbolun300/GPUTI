@@ -477,7 +477,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
 {
     
     //return true;
-    overflow_flag = 0;
+    overflow_flag = NO_OVERFLOW;
     // if max_itr <0, output_tolerance= co_domain_tolerance;
     // else, output_tolearance will be the precision after iteration time > max_itr
     output_tolerance = co_domain_tolerance;
