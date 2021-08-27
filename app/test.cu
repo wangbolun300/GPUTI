@@ -172,7 +172,7 @@ __device__ void single_test_wrapper(CCDdata *data, bool &result, Scalar *debug)
     //debug[3] = overflow_flag;
     delete[] err;
 }
-__device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scalar *debug, Scalar &time_impact)
+__device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scalar &time_impact)
 {
     // result=true;
     // return;
@@ -225,28 +225,34 @@ __global__ void run_parallel_ccd(CCDdata *data, bool *res, int size, Scalar *deb
         debug[1] = 100 + res[tx];
     }
 }
-__global__ void run_parallel_ccd_all(CCDdata *data, bool *res, int size, int start_id, int run_nbr, Scalar *debug, Scalar *tois)
+__global__ void run_parallel_ccd_all(CCDdata *data, bool *res, int size, Scalar *tois)
 {
+    
     int tx = threadIdx.x + blockIdx.x * blockDim.x;
 
-    // for (int i = 0; i < 8; i++)
-    // {
-    //     debug[i] = 1e-1;
-    // }
-
-    if (tx < run_nbr)
+    if (tx < size)
     {
-       // CCDdata *input = &data[start_id + tx];
-        //bool result;
-        //Scalar time_impact;
-        //debug[start_id + tx]=start_id + tx;
-        single_test_wrapper_return_toi(&data[start_id + tx], res[start_id + tx], debug, tois[start_id + tx]);
-        __syncthreads();
-        // res[start_id + tx] = result;
-        // tois[start_id + tx] = time_impact;
-        
-        //debug[1] = 100 + res[tx];
+        CCDdata *input = &data[tx];
+        bool result;
+        Scalar toi;
+        single_test_wrapper_return_toi(input, result, toi);
+        res[tx]=result;
+        tois[tx]=toi;
     }
+}
+
+__global__ void size_test(int n, CCDdata *data, bool *res, Scalar *tois){
+    return;
+    // int tx = threadIdx.x + blockIdx.x * blockDim.x;
+    // if(tx<n){
+    //     size1=sizeof data;
+    //     size2=sizeof res;
+    //     size3=sizeof tois;
+    // }
+    
+}
+__global__ void naive_test(){
+    return;
 }
 bool single_ccd_run(const std::array<std::array<Scalar, 3>, 8> &V, bool is_edge)
 {
@@ -307,10 +313,8 @@ bool single_ccd_run(const std::array<std::array<Scalar, 3>, 8> &V, bool is_edge)
 }
 
 void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, bool is_edge,
-                 std::vector<bool> &result_list, double &time_average, std::vector<Scalar> &time_impact,int parallel_nbr,
-                 std::vector<double> &time_list)
+                 std::vector<bool> &result_list, double &run_time, std::vector<Scalar> &time_impact,int parallel_nbr)
 {
-    time_list.clear();
     int nbr = V.size();
     result_list.resize(nbr);
     // host
@@ -320,78 +324,55 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
         data_list[i] = array_to_ccd(V[i], is_edge);
     }
     bool *res = new bool[nbr];
-    Scalar *debug = new Scalar[nbr];
     Scalar *tois = new Scalar[nbr];
 
     // device
     CCDdata *d_data_list;
     bool *d_res;
-    Scalar *d_debug;
     Scalar *d_tois;
 
     int data_size = sizeof(CCDdata) * nbr;
     int result_size = sizeof(bool) * nbr;
     int time_size = sizeof(Scalar) * nbr;
-    int debug_size=sizeof(Scalar)*nbr;
 
+    
     cudaMalloc(&d_data_list, data_size);
     cudaMalloc(&d_res, result_size);
     cudaMalloc(&d_tois, time_size);
-    cudaMalloc(&d_debug, debug_size);
     cudaMemcpy(d_data_list, data_list, data_size, cudaMemcpyHostToDevice);
     
-    std::cout << "data copied" << std::endl;
+    // std::cout << "data copied" << std::endl;
     // parallel info
-    int total_call_nbr = nbr / parallel_nbr + 1; // totally call times
-    int start_id = 0;                            // start form data[0]
-    double time_all = 0;
-
+    
     ccd::Timer timer;
     
-    for (int itr = 0; itr < total_call_nbr; itr++)
-    {
-        int remain = nbr - start_id;
-        int current_nbr = parallel_nbr;
-        if (remain < current_nbr)
-        {
-            current_nbr = remain;
-        }
-        if (remain == 0)
-        {
-            break;
-        }
-        int thread_nbr=parallel_nbr;
-        int block_nbr=1;
-        if(parallel_nbr>MAX_THREAD){
-            thread_nbr=MAX_THREAD;
-            int tb=parallel_nbr/thread_nbr;
-            if(parallel_nbr>tb*thread_nbr){
-                tb+=1;
-            }
-            block_nbr=tb;
-        }
-        timer.start();
-        run_parallel_ccd_all<<<block_nbr, thread_nbr>>>(d_data_list, d_res, nbr, start_id,
-                                                  current_nbr, d_debug, d_tois);
-        cudaDeviceSynchronize();
-        double tt = timer.getElapsedTimeInMicroSec();
-        time_all+=tt;
-        time_list.push_back(tt);
-        std::cout<<"finished "<<start_id<<"\r";
-        start_id += current_nbr;
-    }
+    timer.start();
+    run_parallel_ccd_all<<<nbr/parallel_nbr+1, parallel_nbr>>>(d_data_list, d_res, nbr, d_tois);
+    cudaDeviceSynchronize();
+    
+    //size_test<<<nbr/parallel_nbr+1, parallel_nbr>>>(nbr, d_data_list, d_res, d_tois);
+    // naive_test<<<nbr/parallel_nbr+1, parallel_nbr>>>();
+    // cudaDeviceSynchronize();
+    double tt = timer.getElapsedTimeInMicroSec();
+    run_time=tt;
+    
 
     
-    std::cout << "finished parallization running " << std::endl;
+    // std::cout << "finished parallization running , nbr "<<nbr << std::endl;
+    // std::cout<<"parallel info, threads and grids "<<parallel_nbr<<" "<<nbr/parallel_nbr+1<<std::endl;
+    // std::cout<<"sizes "<<data_size<<" "<<result_size<<" "<<time_size<<std::endl;
+    // std::cout<<"size of Scalar "<<sizeof(Scalar)<<std::endl;
+
 
     cudaMemcpy(res, d_res, result_size, cudaMemcpyDeviceToHost);
+    
     cudaMemcpy(tois, d_tois, time_size, cudaMemcpyDeviceToHost);
-    cudaMemcpy(debug, d_debug, int(8 * sizeof(Scalar)), cudaMemcpyDeviceToHost);
+
 
     cudaFree(d_data_list);
     cudaFree(d_res);
     cudaFree(d_tois);
-    cudaFree(d_debug);
+   
     for (int i = 0; i < nbr; i++)
     {
         result_list[i] = res[i];
@@ -399,31 +380,16 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
 
     
 
-    time_average = time_all / nbr;
+    
     time_impact.resize(nbr);
     
     for (int i = 0; i < nbr; i++)
     {
         time_impact[i] = tois[i];
     }
-    // check if every query is calculated
-    // int dmax=10;
-    // int cdbg=0;
-    // for (int i = 0; i < nbr; i++)
-    // {
-    //     if(debug[i]!=i){
-    //         std::cout<<"debug shows wrong info, i = "<<i<<" value = "<<debug[i]<<std::endl;
-    //         cdbg++;
-    //         if(cdbg>dmax){
-    //             exit(0);
-    //         }
-    //     }
-
-    // }
 
     delete[] res;
-    delete data_list;
-    delete[] debug;
+    delete[] data_list;
     delete[] tois;
     return;
 }
@@ -818,7 +784,7 @@ void run_rational_data_single_method_parallel(
 {
     std::vector<std::array<Scalar, 3>> all_V;
     std::vector<bool> results;
-    
+
     //std::vector<write_format> queryinfo;
     int total_number = -1;
     double total_time = 0.0;
@@ -843,7 +809,6 @@ void run_rational_data_single_method_parallel(
     std::vector<bool> result_list;
     std::vector<bool> expect_list;
     std::vector<std::array<std::array<Scalar, 3>, 8>> queries;
-    std::vector<double> time_list;
 
     long long queue_size_total = 0;
     const std::vector<std::string> &scene_names = is_simulation_data ? simulation_folders : handcrafted_folders;
@@ -853,6 +818,7 @@ void run_rational_data_single_method_parallel(
     {
         std::string scene_path = args.data_dir + scene_name + sub_folder;
 
+        
         bool skip_folder = false;
         for (const auto &entry : bases)
         {
@@ -881,6 +847,9 @@ void run_rational_data_single_method_parallel(
             }
             // std::cout<<"filename "<<filename<<std::endl;
             // exit(0);
+            // if(queries.size()>1e6){
+            //         break;
+            //         }
             all_V = ccd::read_rational_csv(filename, results);
             if (all_V.size() == 0)
             {
@@ -897,8 +866,11 @@ void run_rational_data_single_method_parallel(
             int v_size = all_V.size() / 8;
             for (int i = 0; i < v_size; i++)
             {
-
+                // if(queries.size()>1e6){
+                //     break;
+                //     }
                 total_number += 1;
+                
                 std::array<std::array<Scalar, 3>, 8> V = substract_ccd(all_V, i);
                 bool expected_result = results[i * 8];
 
@@ -935,42 +907,38 @@ void run_rational_data_single_method_parallel(
 
     result_list.resize(size);
     tois.resize(size);
-    time_list.resize(size);
+    
     while(1){
         std::vector<bool> tmp_results;
         std::vector<std::array<std::array<Scalar, 3>, 8>> tmp_queries;
-        std::vector<double> tmp_time;
         std::vector<Scalar> tmp_tois;
 
         int remain=size-start_id;
-        double tmp_tavg;
+        double tmp_tall;
 
         if(remain<=0) break;
         
         int tmp_nbr=min(remain,max_query_cp_size);
         tmp_results.resize(tmp_nbr);
         tmp_queries.resize(tmp_nbr);
-        tmp_time.resize(tmp_nbr);
         tmp_tois.resize(tmp_nbr);
         for(int i=0;i<tmp_nbr;i++){
             tmp_queries[i]=queries[start_id+i];
         }
-        all_ccd_run(tmp_queries, is_edge_edge, tmp_results, tmp_tavg, tmp_tois, parallel, tmp_time);
+        all_ccd_run(tmp_queries, is_edge_edge, tmp_results, tmp_tall, tmp_tois, parallel);
+        
+        tavg+=tmp_tall;
         for(int i=0;i<tmp_nbr;i++){
            result_list[start_id+i]=tmp_results[i];
            tois[start_id+i]=tmp_tois[i];
-           time_list[start_id+i]=tmp_time[i];
         }
 
         start_id+=tmp_nbr;
 
     }
-    for(int i=0;i<size;i++){
-        tavg+=time_list[i];
-    }
     tavg/=size;
-
-    //all_ccd_run(queries, is_edge_edge, result_list, tavg, tois, parallel, time_list);
+    std::cout<<"avg time "<<tavg<<std::endl;
+    
     
     if (expect_list.size() != size)
     {
@@ -988,8 +956,8 @@ void run_rational_data_single_method_parallel(
             if (expect_list[i])
             {
                 num_false_negatives++;
-                std::cout << "false negative!!!, result " << result_list[i]<<" id "<<i << std::endl;
-                exit(0);
+                // std::cout << "false negative!!!, result " << result_list[i]<<" id "<<i << std::endl;
+                // exit(0);
             }
             else
             {
@@ -997,6 +965,9 @@ void run_rational_data_single_method_parallel(
             }
         }
     }
+    std::cout<<"total positives "<<total_positives<<std::endl;
+    std::cout<<"num_false_positives "<<num_false_positives<<std::endl;
+    std::cout<<"num_false_negatives "<<num_false_negatives<<std::endl;
     total_number = size;
     if (WRITE_STATISTIC)
     {
@@ -1006,14 +977,15 @@ void run_rational_data_single_method_parallel(
             num_false_positives, num_false_negatives,
             tavg, time_lower, time_upper);
     }
+    
     if (1)
     {
         std::vector<std::string> titles;
         write_csv(folder + "method" + std::to_string(int(2021)) + "_is_edge_edge_" + std::to_string(is_edge_edge) + "_" + 
         std::to_string(total_number) + "_tois" + tail + ".csv", titles, tois, true);
 
-        write_csv(folder + "method" + std::to_string(int(2021)) + "_is_edge_edge_" + std::to_string(is_edge_edge) + "_" + 
-        std::to_string(total_number) + "_runtime" + tail + ".csv", titles, time_list, true);
+        // write_csv(folder + "method" + std::to_string(int(2021)) + "_is_edge_edge_" + std::to_string(is_edge_edge) + "_" + 
+        // std::to_string(total_number) + "_runtime" + tail + ".csv", titles, time_list, true);
     }
 
 }
@@ -1066,16 +1038,35 @@ void run_ours_float_for_all_data(int parallel)
     arg.minimum_separation = 0;
     arg.tight_inclusion_tolerance = 1e-6;
     arg.tight_inclusion_max_iter = 1e6;
-    arg.run_ee_dataset = true;
+    arg.run_ee_dataset = false;
     arg.run_vf_dataset = true;
     arg.run_simulation_dataset = true;
-    arg.run_handcrafted_dataset = true;
+    arg.run_handcrafted_dataset = false;
     run_one_method_over_all_data(arg,parallel, folder, tail);
 
     // run_one_method_over_all_data(arg, CCDMethod::TIGHT_INCLUSION,folder,tail);
 }
 int main(int argc, char **argv)
 {
+// int deviceCount;
+//     cudaGetDeviceCount(&deviceCount);
+//     for(int i=0;i<deviceCount;i++)
+//     {
+//         cudaDeviceProp devProp;
+//         cudaGetDeviceProperties(&devProp, i);
+//         std::cout << "使用GPU device " << i << ": " << devProp.name << std::endl;
+//         std::cout << "设备全局内存总量： " << devProp.totalGlobalMem / 1024 / 1024 << "MB" << std::endl;
+//         std::cout << "SM的数量：" << devProp.multiProcessorCount << std::endl;
+//         std::cout << "每个线程块的共享内存大小：" << devProp.sharedMemPerBlock / 1024.0 << " KB" << std::endl;
+//         std::cout << "每个线程块的最大线程数：" << devProp.maxThreadsPerBlock << std::endl;
+//         std::cout << "设备上一个线程块（Block）种可用的32位寄存器数量： " << devProp.regsPerBlock << std::endl;
+//         std::cout << "每个EM的最大线程数：" << devProp.maxThreadsPerMultiProcessor << std::endl;
+//         std::cout << "每个EM的最大线程束数：" << devProp.maxThreadsPerMultiProcessor / 32 << std::endl;
+//         std::cout << "设备上多处理器的数量： " << devProp.multiProcessorCount << std::endl;
+//         std::cout << "======================================================" << std::endl;     
+        
+//     }
+//     return 0;
     // int alpha=5;
     // double* a = new double[alpha];
     int parallel=0;

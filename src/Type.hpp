@@ -9,7 +9,6 @@
 // the reason of considerting it is that the limited heap size.
 // token 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
 static const int HEAP_SIZE=1000;
-static const int MAX_THREAD=250;
 
 // overflow instructions
 static const int NO_OVERFLOW = 0;
