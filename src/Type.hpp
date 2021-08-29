@@ -67,7 +67,7 @@ class VectorMax3d{
 public:
     __device__ __host__ VectorMax3d(){};
     __device__ __host__ VectorMax3d(Scalar a, Scalar b, Scalar c);
-   
+   __device__ __host__ void init(Scalar a, Scalar b, Scalar c);
     Scalar v[3];
 __device__  __host__  friend VectorMax3d operator+(const VectorMax3d &x, const VectorMax3d &y)
         {
@@ -131,15 +131,62 @@ void print_vector(int* v, int size);
 
 // for interval b = a;
 __device__ void interval_cp(const Singleinterval& a,Singleinterval& b);
-// CCDdata::CCDdata(const std::array<std::array<Scalar,3>,8>& input){
-//     for(int i=0;i<3;i++){
-//         v0s[i]=input[0][i];
-//         v1s[i]=input[1][i];
-//         v2s[i]=input[2][i];
-//         v3s[i]=input[3][i];
-//         v0e[i]=input[4][i];
-//         v1e[i]=input[5][i];
-//         v2e[i]=input[6][i];
-//         v3e[i]=input[7][i];
-//     }
-// }
+
+class HPvar{
+public:
+
+
+};
+class ERRvar{
+public:
+VectorMax3d v0s;
+VectorMax3d v1s;
+VectorMax3d v2s;
+VectorMax3d v3s;
+VectorMax3d v0e;
+VectorMax3d v1e;
+VectorMax3d v2e;
+VectorMax3d v3e;
+VectorMax3d p000;
+VectorMax3d p001;
+VectorMax3d p011;
+VectorMax3d p010;
+VectorMax3d p100;
+VectorMax3d p101;
+VectorMax3d p111;
+VectorMax3d p110;
+Scalar dl;
+Scalar edge0_length;
+Scalar edge1_length;
+Scalar m_r;
+Scalar m_r1; 
+Scalar m_temp; 
+int  m_i;
+
+VectorMax3d res;
+
+Scalar eefilter;
+Scalar vffilter;
+Scalar xmax;
+Scalar ymax;
+Scalar zmax;
+Scalar delta_x;
+Scalar delta_y;
+Scalar delta_z;
+int itr_err;
+
+};
+
+class SOLVEvar{
+public:
+
+
+};
+class CCDvar{
+public:
+bool res;
+ERRvar errvar;
+SOLVEvar solvar;
+};
+
+

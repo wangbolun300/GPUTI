@@ -33,6 +33,7 @@ __device__ void convert_tuv_to_array(
 __device__ long power(const long a, const int b);
 __device__ VectorMax3d width(const Singleinterval* x);
 __device__ bool vertexFaceCCD_double(
+    CCDvar &vars,
     CCDdata* data_in,
     const Scalar* err,
     const Scalar ms,
@@ -45,6 +46,7 @@ __device__ bool vertexFaceCCD_double(
     int &overflow_flag);
 
 __device__ bool edgeEdgeCCD_double(
+    CCDvar &vars,
     CCDdata* data_in,
     const Scalar* err,
     const Scalar ms,

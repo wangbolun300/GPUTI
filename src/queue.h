@@ -27,6 +27,18 @@ class MinHeap
 	item harr[HEAP_SIZE]; // pointer to array of elements in heap
 	int capacity; // maximum possible size of min heap
 	int heap_size; // Current number of elements in min heap
+	item root;
+	int tmp;
+	int l;
+	int r;
+	int smallest;
+	item it;
+	int iki;
+	__device__ item item_max();
+	__device__ item item_min();
+	item temp;
+	// Prototype of a utility function to swap two integers
+	__device__ void swap(item *x, item *y);
 public:
 	// Constructor
 	//MinHeap(int capacity);
@@ -57,4 +69,5 @@ public:
 
 	// Inserts a new key 'k'
 	__device__ bool insertKey(item k);
+	
 };

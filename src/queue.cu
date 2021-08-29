@@ -24,13 +24,13 @@ __device__ item::item() {
 
 }
 
-__device__ item item_max() {
-	item it;
+__device__ item MinHeap::item_max() {
+	
 	it.level = INT_MAX;
 	return it;
 }
-__device__ item item_min() {
-	item it;
+__device__ item MinHeap::item_min() {
+	
 	it.level = INT_MIN;
 	return it;
 }
@@ -71,12 +71,11 @@ __device__ bool custom_compare_less(const item &i1, const item &i2) {
 
 // i1<=i2?
 __device__ bool custom_compare_no_larger(const item &i1, const item &i2) {
-	bool ir=custom_compare_less(i2,i1);
-	return !ir;
+	
+	return !custom_compare_less(i2,i1);;
 }
 
-// Prototype of a utility function to swap two integers
-__device__ void swap(item *x, item *y);
+
 
 
 
@@ -105,16 +104,16 @@ __device__ bool MinHeap::insertKey(item k)
 
 	// First insert the new key at the end
 	heap_size++;
-	int i = heap_size - 1;
-	harr[i] = k;
+	iki = heap_size - 1;
+	harr[iki] = k;
 
 	// Fix the min heap property if it is violated
-	while (i != 0 && !custom_compare_no_larger(harr[parent(i)], harr[i]))
+	while (iki != 0 && !custom_compare_no_larger(harr[parent(iki)], harr[iki]))
 	{
-		swap(&harr[i], &harr[parent(i)]);
-		i = parent(i);
+		swap(&harr[iki], &harr[parent(iki)]);
+		iki = parent(iki);
 	}
-	return 1;
+	return true;
 }
 
 // Decreases value of key at index 'i' to new_val. It is assumed that
@@ -142,9 +141,9 @@ __device__ item MinHeap::extractMin()
 		heap_size--;
 		return harr[0];
 	}
-	
+	return item_max();
 	// Store the minimum value, and remove it from heap
-	item root = harr[0];
+	root = harr[0];
 	
 	harr[0] = harr[heap_size - 1];
 	heap_size--;
@@ -168,12 +167,13 @@ __device__ void MinHeap::deleteKey(int i)
 // bolun remove the recursive part and make it a iteration
 __device__ void MinHeap::MinHeapify(int i)
 {
-	int tmp=i;
 	
-	for(int itr=0;;itr++){
-		int l = left(tmp);
-		int r = right(tmp);
-		int smallest = tmp;
+	tmp=i;
+	
+	while(1){
+		l = left(tmp);
+		r = right(tmp);
+		smallest = tmp;
 		if (l < heap_size && custom_compare_less(harr[l], harr[tmp]))
 			smallest = l;
 		if (r < heap_size && custom_compare_less(harr[r], harr[smallest]))
@@ -208,9 +208,9 @@ __device__ bool  MinHeap::empty(){
 }
 
 // A utility function to swap two elements
-__device__ void swap(item *x, item *y)
+__device__ void MinHeap::swap(item *x, item *y)
 {
-	item temp = *x;
+	temp = *x;
 	*x = *y;
 	*y = temp;
 }
