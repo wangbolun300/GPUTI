@@ -331,7 +331,7 @@ void run_rational_data_single_method_parallel(
             }
             std::string filename = scene_path + sub_name + "-" + entry + ".csv";
 
-            if(queries.size()>1e6){
+            if(queries.size()>0){
                     break;
                     }
             all_V = ccd::read_rational_csv(filename, results);
@@ -350,7 +350,7 @@ void run_rational_data_single_method_parallel(
             int v_size = all_V.size() / 8;
             for (int i = 0; i < v_size; i++)
             {
-                if(queries.size()>1e6){
+                if(queries.size()>0){
                     break;
                     }
                 total_number += 1;

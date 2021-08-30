@@ -59,10 +59,10 @@ __device__ bool edgeEdgeCCD_double(
     int &overflow_flag);
 
 __device__ __host__ void get_numerical_error(
-    const VectorMax3d *vertices, const int vsize,
+    const VectorMax3d vertices[8],
     const bool &check_vf,
     const bool using_minimum_separation,
-    Scalar *error);
+    Scalar error[3]);
 //__device__ 
 
 

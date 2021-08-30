@@ -1,6 +1,26 @@
 #include <gputi/root_finder.h>
 #include <gputi/queue.h>
 #include <iostream>
+
+__device__ __host__ void fabs(const Scalar& a, Scalar&result){
+    if(a>=0){
+        result=a;
+    }
+    else{
+        result=-a;
+    }
+}
+__device__ void VecSum(VectorMax3d& a, VectorMax3d& b, VectorMax3d& res){
+    res.v[0]=a.v[0]+b.v[0];
+    res.v[1]=a.v[1]+b.v[1];
+    res.v[2]=a.v[2]+b.v[2];
+}
+
+__device__ void VecMinus( VectorMax3d& a,  VectorMax3d& b,  VectorMax3d& res){
+    res.v[0]=a.v[0]-b.v[0];
+    res.v[1]=a.v[1]-b.v[1];
+    res.v[2]=a.v[2]-b.v[2];
+}
 void print_vector(Scalar* v, int size){
     for(int i=0;i<size;i++){
         std::cout<<v[i]<<",";
@@ -31,13 +51,13 @@ CCDdata array_to_ccd(std::array<std::array<Scalar, 3>, 8> a, bool is_edge)
     data.is_edge = is_edge;
     return data;
 }
-__device__ __host__ void VectorMax3d::init(Scalar a, Scalar b, Scalar c)
+__device__ __host__ void VectorMax3d::init(const Scalar &a, const Scalar &b, const Scalar &c)
 {
     v[0] = a;
     v[1] = b;
     v[2] = c;
 }
-__device__ __host__ VectorMax3d::VectorMax3d(Scalar a, Scalar b, Scalar c)
+__device__ __host__ VectorMax3d::VectorMax3d(const Scalar &a, const Scalar &b, const Scalar &c)
 {
     v[0] = a;
     v[1] = b;
@@ -458,7 +478,7 @@ __device__ void bisect(const Singleinterval inter, interval_pair &out)
     out.second = i2;
 }
 
-__device__ bool interval_root_finder_double_horizontal_tree(
+__device__ bool RFclass::interval_root_finder_double_horizontal_tree(
     const Scalar tol[3],
     const Scalar co_domain_tolerance,
     const Singleinterval iset[3],
@@ -481,36 +501,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     Scalar &output_tolerance,
     int &overflow_flag)
 {
-    Scalar temp_output_tolerance;
-    // current intervals
-    Singleinterval current[3];
-    Scalar true_tol[3];
-    int refine;
-    Scalar impact_ratio;
-    Scalar temp_toi;
-    Numccd TOI_SKIP;
-    Numccd TOI;
-    bool use_skip;
-    int current_level;
-    bool zero_in;
-    bool box_in;
-    int level;
-    item current_item;
-    VectorMax3d widths;
-    bool tol_condition;
-    bool condition1;
-    bool condition2;
-    bool condition3;
-    bool check[3];
-    VectorMax3d widthratio;
-    Scalar t_upper_bound;
-    bool this_level_less_tol;
-    int box_in_level;
-    bool find_level_root;
-    int split_i;
-    MinHeap istack;
-    interval_pair halves;
-    bool inserted;
+    
 
 
     overflow_flag = NO_OVERFLOW;
@@ -556,7 +547,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     // Singleinterval test2=iset[2];
     //item init_item();
     
-
+    
     istack.insertKey(item(iset, -1));
     
     while (!istack.empty())
@@ -566,7 +557,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
             break;
         }
         
-        return true;
+        
         current_item= istack.extractMin();
         
         current[0] = current_item.itv[0];
@@ -903,6 +894,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
 }
 
 __device__ bool interval_root_finder_double_horizontal_tree(
+    RFvar & var,
     const Scalar tol[3],
     const Scalar co_domain_tolerance,
     Scalar &toi,
@@ -922,34 +914,34 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     Scalar &output_tolerance,
     int &overflow_flag)
 {
-
-    bool check_t_overlap =
+    return true;
+    var.check_t_overlap =
         max_time == 1
             ? false
             : true; // if input max_time = 1, then no need to check overlap
 
-    Numccd low_number;
-    low_number.first = 0;
-    low_number.second = 0; // low_number=0;
-    Numccd up_number;
-    up_number.first = 1;
-    up_number.second = 0; // up_number=1;
-    // initial interval [0,1]
-    Singleinterval init_interval;
-    init_interval.first = low_number;
-    init_interval.second = up_number;
-    //build interval set [0,1]x[0,1]x[0,1]
-    Singleinterval iset[3];
-    iset[0] = init_interval;
-    iset[1] = init_interval;
-    iset[2] = init_interval;
     
-    bool result = interval_root_finder_double_horizontal_tree(
-        tol, co_domain_tolerance, iset, check_t_overlap, max_time, toi,
+    var.low_number.first = 0;
+    var.low_number.second = 0; // low_number=0;
+    
+    var.up_number.first = 1;
+    var.up_number.second = 0; // up_number=1;
+    // initial interval [0,1]
+    
+    var.init_interval.first = var.low_number;
+    var.init_interval.second = var.up_number;
+    //build interval set [0,1]x[0,1]x[0,1]
+    
+    var.iset[0] = var.init_interval;
+    var.iset[1] = var.init_interval;
+    var.iset[2] = var.init_interval;
+    
+    var.result = var.rf.interval_root_finder_double_horizontal_tree(
+        tol, co_domain_tolerance, var.iset, var.check_t_overlap, max_time, toi,
         check_vf, err, ms, a0s, a1s, b0s, b1s, a0e, a1e, b0e, b1e, max_itr,
         output_tolerance, overflow_flag);
 
-    return result;
+    return var.result;
 }
 
 __device__ Scalar max_linf_dist(const VectorMax3d &p1, const VectorMax3d &p2, Scalar& r, int &i)
@@ -957,6 +949,7 @@ __device__ Scalar max_linf_dist(const VectorMax3d &p1, const VectorMax3d &p2, Sc
     r = 0;
     for (i = 0; i < 3; i++)
     {
+        
         if (r < fabs(p1.v[i] - p2.v[i]))
         {
             r = fabs(p1.v[i] - p2.v[i]);
@@ -995,22 +988,31 @@ __device__ VectorMax3d compute_face_vertex_tolerance_3d_new(
     ERRvar& var, const CCDdata *data_in,
     const Scalar tolerance)
 {
-    var.v0s.init(data_in->v0s[0], data_in->v0s[1], data_in->v0s[2]);
-    var.v1s.init(data_in->v1s[0], data_in->v1s[1], data_in->v1s[2]);
-    var.v2s.init(data_in->v2s[0], data_in->v2s[1], data_in->v2s[2]);
-    var.v3s.init(data_in->v3s[0], data_in->v3s[1], data_in->v3s[2]);
-    var.v0e.init(data_in->v0e[0], data_in->v0e[1], data_in->v0e[2]);
-    var.v1e.init(data_in->v1e[0], data_in->v1e[1], data_in->v1e[2]);
-    var.v2e.init(data_in->v2e[0], data_in->v2e[1], data_in->v2e[2]);
-    var.v3e.init(data_in->v3e[0], data_in->v3e[1], data_in->v3e[2]);
-    var.p000 = var.v0s - var.v1s; 
-    var.p001 = var.v0s - var.v3s;
-    var.p011 = var.v0s - (var.v2s + var.v3s - var.v1s);
-    var.p010 = var.v0s - var.v2s;
-    var.p100 = var.v0e - var.v1e; 
-    var.p101 = var.v0e - var.v3e;
-    var.p111 = var.v0e - (var.v2e + var.v3e - var.v1e);
-    var.p110 = var.v0e - var.v2e;
+    
+    var.v0s.v[0]=data_in->v0s[0]; var.v0s.v[1]=data_in->v0s[1]; var.v0s.v[2]=data_in->v0s[2];
+    var.v0s.v[0]=data_in->v1s[0]; var.v0s.v[1]=data_in->v1s[1]; var.v0s.v[2]=data_in->v1s[2];
+    var.v0s.v[0]=data_in->v2s[0]; var.v0s.v[1]=data_in->v2s[1]; var.v0s.v[2]=data_in->v2s[2];
+    var.v0s.v[0]=data_in->v3s[0]; var.v0s.v[1]=data_in->v3s[1]; var.v0s.v[2]=data_in->v3s[2];
+    var.v0s.v[0]=data_in->v0e[0]; var.v0s.v[1]=data_in->v0e[1]; var.v0s.v[2]=data_in->v0e[2];
+    var.v0s.v[0]=data_in->v1e[0]; var.v0s.v[1]=data_in->v1e[1]; var.v0s.v[2]=data_in->v1e[2];
+    var.v0s.v[0]=data_in->v2e[0]; var.v0s.v[1]=data_in->v2e[1]; var.v0s.v[2]=data_in->v2e[2];
+    var.v0s.v[0]=data_in->v3e[0]; var.v0s.v[1]=data_in->v3e[1]; var.v0s.v[2]=data_in->v3e[2];
+    
+    VecMinus(var.v0s, var.v1s,var.p000); 
+    VecMinus(var.v0s , var.v3s,var.p001);
+    VecSum(var.v2s,var.v3s,var.p011);
+    VecMinus(var.p011,var.v1s,var.p011);
+    VecMinus(var.v0s,var.p011,var.p011);
+    VecMinus(var.v0s , var.v2s, var.p010);
+    VecMinus(var.v0e , var.v1e, var.p100);
+    VecMinus(var.v0e , var.v3e, var.p101);
+    VecSum(var.v2e , var.v3e, var.p111);
+    VecMinus(var.p111 , var.v1e, var.p111);
+    VecMinus(var.v0e , var.p111, var.p111);
+    VecMinus(var.v0e , var.v2e, var.p110);
+    //
+    
+
     var.dl = 0;
     var.edge0_length = 0;
     var.edge1_length = 0;
@@ -1023,29 +1025,41 @@ __device__ VectorMax3d compute_face_vertex_tolerance_3d_new(
     var.edge1_length =
         3 * max_linf_4(var.p000, var.p100, var.p110, var.p010, var.p001, var.p101, var.p111, var.p011,
         var.m_r,var.m_r1,var.m_temp,var.m_i);
-    var.res.init(tolerance / var.dl, tolerance / var.edge0_length, tolerance / var.edge1_length);
+    
+    var.res.v[0]=tolerance / var.dl;
+    var.res.v[1]=tolerance / var.edge0_length;
+    var.res.v[2]=tolerance / var.edge1_length;
     return var.res;
 }
 __device__ VectorMax3d compute_edge_edge_tolerance_new(
     ERRvar& var, const CCDdata *data_in,
     const Scalar tolerance)
 {
-    var.v0s.init(data_in->v0s[0], data_in->v0s[1], data_in->v0s[2]); // a0s
-    var.v1s.init(data_in->v1s[0], data_in->v1s[1], data_in->v1s[2]); // a1s
-    var.v2s.init(data_in->v2s[0], data_in->v2s[1], data_in->v2s[2]); // b0s
-    var.v3s.init(data_in->v3s[0], data_in->v3s[1], data_in->v3s[2]); // b1s
-    var.v0e.init(data_in->v0e[0], data_in->v0e[1], data_in->v0e[2]);
-    var.v1e.init(data_in->v1e[0], data_in->v1e[1], data_in->v1e[2]);
-    var.v2e.init(data_in->v2e[0], data_in->v2e[1], data_in->v2e[2]);
-    var.v3e.init(data_in->v3e[0], data_in->v3e[1], data_in->v3e[2]);
-    var.p000 = var.v0s - var.v2s;
-    var.p001 = var.v0s - var.v3s;
-    var.p011 = var.v1s - var.v3s;
-    var.p010 = var.v1s - var.v2s;
-    var.p100 = var.v0e - var.v2e;
-    var.p101 = var.v0e - var.v3e;
-    var.p111 = var.v1e - var.v3e;
-    var.p110 = var.v1e - var.v2e;
+    //return VectorMax3d(0,0,0);
+    var.v0s.v[0]=data_in->v0s[0]; var.v0s.v[1]=data_in->v0s[1]; var.v0s.v[2]=data_in->v0s[2];
+    var.v0s.v[0]=data_in->v1s[0]; var.v0s.v[1]=data_in->v1s[1]; var.v0s.v[2]=data_in->v1s[2];
+    var.v0s.v[0]=data_in->v2s[0]; var.v0s.v[1]=data_in->v2s[1]; var.v0s.v[2]=data_in->v2s[2];
+    var.v0s.v[0]=data_in->v3s[0]; var.v0s.v[1]=data_in->v3s[1]; var.v0s.v[2]=data_in->v3s[2];
+    var.v0s.v[0]=data_in->v0e[0]; var.v0s.v[1]=data_in->v0e[1]; var.v0s.v[2]=data_in->v0e[2];
+    var.v0s.v[0]=data_in->v1e[0]; var.v0s.v[1]=data_in->v1e[1]; var.v0s.v[2]=data_in->v1e[2];
+    var.v0s.v[0]=data_in->v2e[0]; var.v0s.v[1]=data_in->v2e[1]; var.v0s.v[2]=data_in->v2e[2];
+    var.v0s.v[0]=data_in->v3e[0]; var.v0s.v[1]=data_in->v3e[1]; var.v0s.v[2]=data_in->v3e[2];
+    VecMinus(var.v0s , var.v2s, var.p000);
+    VecMinus(var.v0s , var.v3s, var.p001);
+    VecMinus(var.v1s , var.v3s, var.p011);
+    VecMinus(var.v1s , var.v2s, var.p010);
+    VecMinus(var.v0e , var.v2e, var.p100);
+    VecMinus(var.v0e , var.v3e, var.p101);
+    VecMinus(var.v1e , var.v3e, var.p111);
+    VecMinus(var.v1e , var.v2e, var.p110);
+    // var.p000 = var.v0s - var.v2s;
+    // var.p001 = var.v0s - var.v3s;
+    // var.p011 = var.v1s - var.v3s;
+    // var.p010 = var.v1s - var.v2s;
+    // var.p100 = var.v0e - var.v2e;
+    // var.p101 = var.v0e - var.v3e;
+    // var.p111 = var.v1e - var.v3e;
+    // var.p110 = var.v1e - var.v2e;
     var.dl = 0;
     var.edge0_length = 0;
     var.edge1_length = 0;
@@ -1058,17 +1072,18 @@ __device__ VectorMax3d compute_edge_edge_tolerance_new(
     var.edge1_length =
         3 * max_linf_4(var.p000, var.p100, var.p110, var.p010, var.p001, var.p101, var.p111, var.p011, 
         var.m_r,var.m_r1,var.m_temp,var.m_i);
-    var.res.init(
-        tolerance / var.dl, tolerance / var.edge0_length, tolerance / var.edge1_length);
+    var.res.v[0]=tolerance / var.dl;
+    var.res.v[1]=tolerance / var.edge0_length;
+    var.res.v[2]=tolerance / var.edge1_length;
     return var.res;
 }
 
 __device__ __host__ void get_numerical_error(
     ERRvar &var,
-    const VectorMax3d *vertices, const int vsize,
+    const VectorMax3d vertices[8], 
     const bool &check_vf,
     const bool using_minimum_separation,
-    Scalar *error)
+    Scalar error[3])
 {
     
     
@@ -1092,25 +1107,37 @@ __device__ __host__ void get_numerical_error(
         var.vffilter = 4.053116e-06;
 #endif
     }
-
-    var.xmax = fabs(vertices[0].v[0]);
-    var.ymax = fabs(vertices[0].v[1]);
-    var.zmax = fabs(vertices[0].v[2]);
-    for (var.itr_err = 0; var.itr_err < vsize; var.itr_err++)
-    {
-        if (var.xmax < fabs(vertices[var.itr_err].v[0]))
-        {
-            var.xmax = fabs(vertices[var.itr_err].v[0]);
-        }
-        if (var.ymax < fabs(vertices[var.itr_err].v[1]))
-        {
-            var.ymax = fabs(vertices[var.itr_err].v[1]);
-        }
-        if (var.zmax < fabs(vertices[var.itr_err].v[2]))
-        {
-            var.zmax = fabs(vertices[var.itr_err].v[2]);
-        }
-    }
+    
+    fabs(vertices[0].v[0],var.xmax);
+    fabs(vertices[0].v[1],var.ymax);
+    fabs(vertices[0].v[2],var.zmax);
+    
+    // find the biggest
+    fabs(vertices[0].v[0],var.dl);if (var.xmax < var.dl){var.xmax = var.dl;}//
+    fabs(vertices[0].v[1],var.dl);if (var.ymax < var.dl){var.ymax = var.dl;}
+    fabs(vertices[0].v[2],var.dl);if (var.zmax < var.dl){var.zmax = var.dl;}
+    fabs(vertices[1].v[0],var.dl);if (var.xmax < var.dl){var.xmax = var.dl;}//
+    fabs(vertices[1].v[1],var.dl);if (var.ymax < var.dl){var.ymax = var.dl;}
+    fabs(vertices[1].v[2],var.dl);if (var.zmax < var.dl){var.zmax = var.dl;}
+    fabs(vertices[2].v[0],var.dl);if (var.xmax < var.dl){var.xmax = var.dl;}//
+    fabs(vertices[2].v[1],var.dl);if (var.ymax < var.dl){var.ymax = var.dl;}
+    fabs(vertices[2].v[2],var.dl);if (var.zmax < var.dl){var.zmax = var.dl;}
+    fabs(vertices[3].v[0],var.dl);if (var.xmax < var.dl){var.xmax = var.dl;}//
+    fabs(vertices[3].v[1],var.dl);if (var.ymax < var.dl){var.ymax = var.dl;}
+    fabs(vertices[3].v[2],var.dl);if (var.zmax < var.dl){var.zmax = var.dl;}
+    fabs(vertices[4].v[0],var.dl);if (var.xmax < var.dl){var.xmax = var.dl;}//
+    fabs(vertices[4].v[1],var.dl);if (var.ymax < var.dl){var.ymax = var.dl;}
+    fabs(vertices[4].v[2],var.dl);if (var.zmax < var.dl){var.zmax = var.dl;}
+    fabs(vertices[5].v[0],var.dl);if (var.xmax < var.dl){var.xmax = var.dl;}//
+    fabs(vertices[5].v[1],var.dl);if (var.ymax < var.dl){var.ymax = var.dl;}
+    fabs(vertices[5].v[2],var.dl);if (var.zmax < var.dl){var.zmax = var.dl;}
+    fabs(vertices[6].v[0],var.dl);if (var.xmax < var.dl){var.xmax = var.dl;}//
+    fabs(vertices[6].v[1],var.dl);if (var.ymax < var.dl){var.ymax = var.dl;}
+    fabs(vertices[6].v[2],var.dl);if (var.zmax < var.dl){var.zmax = var.dl;}
+    fabs(vertices[7].v[0],var.dl);if (var.xmax < var.dl){var.xmax = var.dl;}//
+    fabs(vertices[7].v[1],var.dl);if (var.ymax < var.dl){var.ymax = var.dl;}
+    fabs(vertices[7].v[2],var.dl);if (var.zmax < var.dl){var.zmax = var.dl;}    
+    
     var.delta_x = var.xmax > 1 ? var.xmax : 1;
     var.delta_y = var.ymax > 1 ? var.ymax : 1;
     var.delta_z = var.zmax > 1 ? var.zmax : 1;
@@ -1146,58 +1173,56 @@ __device__ bool CCD_Solver(
     
     overflow_flag = 0;
     
-    const int MAX_NO_ZERO_TOI_ITER = SCALAR_LIMIT;
-    // unsigned so can be larger than MAX_NO_ZERO_TOI_ITER
-    unsigned int no_zero_toi_iter = 0;
-    bool is_impacting, tmp_is_impacting;
-    Scalar tolerance_in = tolerance;
-    Scalar ms_in = ms;
-    Scalar tol[3];
-    // this is the error of the whole mesh
-    Scalar err1[3];
-    VectorMax3d tol_v;
-    VectorMax3d vlist[8];
-    bool use_ms;
+    
+   
+    vars.no_zero_toi_iter = 0;
+    
+    vars.tolerance_in = tolerance;
+    vars.ms_in = ms;
+    
     do
     {
-        tol_v = is_vf ? 
-        compute_face_vertex_tolerance_3d_new(vars.errvar, data_in, tolerance_in) : 
-        compute_edge_edge_tolerance_new(vars.errvar, data_in, tolerance_in);
-        
-        tol[0] = tol_v.v[0];
-        tol[1] = tol_v.v[1];
-        tol[2] = tol_v.v[2];
-        //////////////////////////////////////////////////////////
-        
-        if (err[0] < 0)
-        { // if error[0]<0, means we need to calculate error here
+        if(is_vf){
+           vars.tol_v= compute_face_vertex_tolerance_3d_new(vars.errvar, data_in, vars.tolerance_in);
+        }
+        else{
             
-            for (int i = 0; i < 3; i++)
-            {
-                vlist[0].v[i] = data_in->v0s[i];
-                vlist[1].v[i] = data_in->v1s[i];
-                vlist[2].v[i] = data_in->v2s[i];
-                vlist[3].v[i] = data_in->v3s[i];
-                vlist[4].v[i] = data_in->v0e[i];
-                vlist[5].v[i] = data_in->v1e[i];
-                vlist[6].v[i] = data_in->v2e[i];
-                vlist[7].v[i] = data_in->v3e[i];
-            }
-
-            use_ms = ms > 0;
-            get_numerical_error(vars.errvar, vlist, 8, is_vf, use_ms, err1);
-
+            vars.tol_v=
+            compute_edge_edge_tolerance_new(vars.errvar, data_in, vars.tolerance_in);
         }
-        else
-        {
-            err1[0] = err[0];
-            err1[1] = err[1];
-            err1[2] = err[2];
-        }
+        
+        
+        vars.tol[0] = vars.tol_v.v[0];
+        vars.tol[1] = vars.tol_v.v[1];
+        vars.tol[2] = vars.tol_v.v[2];
         //////////////////////////////////////////////////////////
         
-        tmp_is_impacting = interval_root_finder_double_horizontal_tree(
-            tol, tolerance_in, toi, is_vf, err1, ms_in, data_in->v0s,
+        if(err[0] < 0){
+            for (vars.itr = 0; vars.itr < 3; vars.itr++)
+            {
+                vars.vlist[0].v[vars.itr] = data_in->v0s[vars.itr];
+                vars.vlist[1].v[vars.itr] = data_in->v1s[vars.itr];
+                vars.vlist[2].v[vars.itr] = data_in->v2s[vars.itr];
+                vars.vlist[3].v[vars.itr] = data_in->v3s[vars.itr];
+                vars.vlist[4].v[vars.itr] = data_in->v0e[vars.itr];
+                vars.vlist[5].v[vars.itr] = data_in->v1e[vars.itr];
+                vars.vlist[6].v[vars.itr] = data_in->v2e[vars.itr];
+                vars.vlist[7].v[vars.itr] = data_in->v3e[vars.itr];
+            }
+            vars.use_ms = ms > 0;
+            get_numerical_error(vars.errvar, vars.vlist, is_vf, vars.use_ms, vars.err1);
+        }
+        else{
+            vars.err1[0] = err[0];
+            vars.err1[1] = err[1];
+            vars.err1[2] = err[2];
+        }
+        
+        //////////////////////////////////////////////////////////
+        //return true;
+        vars.tmp_is_impacting = interval_root_finder_double_horizontal_tree(
+            vars.rfvar,
+            vars.tol, vars.tolerance_in, toi, is_vf, vars.err1, vars.ms_in, data_in->v0s,
             data_in->v1s, data_in->v2s, data_in->v3s,
             data_in->v0e, data_in->v1e, data_in->v2e,
             data_in->v3e, t_max, max_itr, output_tolerance, overflow_flag);
@@ -1208,16 +1233,16 @@ __device__ bool CCD_Solver(
 
             return true;
         }
-        if (no_zero_toi_iter == 0)
+        if (vars.no_zero_toi_iter == 0)
         {
             // This will be the final output because we might need to
             // perform CCD again if the toi is zero. In which case we will
             // use a smaller t_max for more time resolution.
-            is_impacting = tmp_is_impacting;
+            vars.is_impacting = vars.tmp_is_impacting;
         }
         else
         {
-            toi = tmp_is_impacting ? toi : t_max;
+            toi = vars.tmp_is_impacting ? toi : t_max;
         }
 
         // This modification is for CCD-filtered line-search (e.g., IPC)
@@ -1225,33 +1250,33 @@ __device__ bool CCD_Solver(
         // 1. shrink t_max (when reaches max_itr),
         // 2. shrink tolerance (when not reach max_itr and tolerance is big) or
         // ms (when tolerance is too small comparing with ms)
-        if (tmp_is_impacting && toi == 0 && no_zero_toi)
+        if (vars.tmp_is_impacting && toi == 0 && no_zero_toi)
         {
 
             // meaning reaches max_itr, need to shrink the t_max to return a more accurate result to reach target tolerance.
-            if (output_tolerance > tolerance_in)
+            if (output_tolerance > vars.tolerance_in)
             {
                 t_max *= 0.9;
             }
             else
             { // meaning the given tolerance or ms is too large. need to shrink them,
-                if (10 * tolerance_in < ms_in)
+                if (10 * vars.tolerance_in < vars.ms_in)
                 { // ms is too large, shrink it
-                    ms_in *= 0.5;
+                    vars.ms_in *= 0.5;
                 }
                 else
                 { // tolerance is too large, shrink it
-                    tolerance_in *= 0.5;
+                    vars.tolerance_in *= 0.5;
                 }
             }
         }
 
-        no_zero_toi_iter++;
+        vars.no_zero_toi_iter++;
 
         // Only perform a second iteration if toi == 0.
         // WARNING: This option assumes the initial distance is not zero.
-    } while (no_zero_toi && no_zero_toi_iter < MAX_NO_ZERO_TOI_ITER && tmp_is_impacting && toi == 0);
-    return is_impacting;
+    } while (no_zero_toi && vars.no_zero_toi_iter < vars.MAX_NO_ZERO_TOI_ITER && vars.tmp_is_impacting && toi == 0);
+    return vars.is_impacting;
 }
 
 __device__ bool vertexFaceCCD_double(
