@@ -16,7 +16,7 @@
 // TODO next when spliting time intervals, check if overlaps the current toi, then decide if we push it into the heap
 // the reason of considerting it is that the limited heap size.
 // token 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
-static const int HEAP_SIZE=100;
+static const int HEAP_SIZE=1000;
 
 // overflow instructions
 static const int NO_OVERFLOW = 0;

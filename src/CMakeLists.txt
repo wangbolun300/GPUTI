@@ -10,7 +10,7 @@ src/body.cu
 src/root_finder.h
 src/root_finder.cu
 #src/dataFormat.cpp
-
+src/book.h
 PARENT_SCOPE
 )
 ################################################################################

@@ -354,19 +354,34 @@ __device__ void evaluate_bbox_one_dimension_vector_return_tolerance(
         t_up, t_dw, u_up, u_dw, v_up, v_dw, vs);
 #endif
 
-    Scalar minv = vs[0], maxv = vs[0];
-#pragma unroll
-    for (int i = 1; i < 8; i++)
-    {
-        if (minv > vs[i])
-        {
-            minv = vs[i];
-        }
-        if (maxv < vs[i])
-        {
-            maxv = vs[i];
-        }
-    }
+    Scalar minv = vs[0];
+    Scalar maxv = vs[0];
+    minv=fminf(vs[1],minv);
+    maxv=fmaxf(vs[1],maxv);
+    minv=fminf(vs[2],minv);
+    maxv=fmaxf(vs[2],maxv);
+    minv=fminf(vs[3],minv);
+    maxv=fmaxf(vs[3],maxv);
+    minv=fminf(vs[4],minv);
+    maxv=fmaxf(vs[4],maxv);
+    minv=fminf(vs[5],minv);
+    maxv=fmaxf(vs[5],maxv);
+    minv=fminf(vs[6],minv);
+    maxv=fmaxf(vs[6],maxv);
+    minv=fminf(vs[7],minv);
+    maxv=fmaxf(vs[7],maxv);
+// #pragma unroll
+//     for (int i = 1; i < 8; i++)
+//     {
+//         if (minv > vs[i])
+//         {
+//             minv = vs[i];
+//         }
+//         if (maxv < vs[i])
+//         {
+//             maxv = vs[i];
+//         }
+//     }
 
     tol = maxv - minv; // this is the real tolerance
     
@@ -374,7 +389,7 @@ __device__ void evaluate_bbox_one_dimension_vector_return_tolerance(
         result= false;
         return;
     }
-        
+       
     if (minv + ms >= -eps && maxv - ms <= eps)
     {
         bbox_in_eps = true;
@@ -509,15 +524,15 @@ __device__ void bisect(const Singleinterval &inter, interval_pair &out)
 
 __device__ bool interval_root_finder_double_horizontal_tree(
     const Scalar tol[3],
-    const Scalar co_domain_tolerance,
+    const Scalar &co_domain_tolerance,
     const Singleinterval iset[3],
-    const bool check_t_overlap,
+    const bool &check_t_overlap,
     const Scalar
-        max_t, // check interval [0, max_t] when check_t_overlap is set as TRUE
+        &max_t, // check interval [0, max_t] when check_t_overlap is set as TRUE
     Scalar &toi,
-    const bool check_vf,
+    const bool &check_vf,
     const Scalar err[3],
-    const Scalar ms,
+    const Scalar &ms,
     const Scalar a0s[3],
     const Scalar a1s[3],
     const Scalar b0s[3],
@@ -526,7 +541,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     const Scalar a1e[3],
     const Scalar b0e[3],
     const Scalar b1e[3],
-    const int max_itr,
+    const int &max_itr,
     Scalar &output_tolerance,
     int &overflow_flag)
 {
@@ -543,7 +558,6 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     Singleinterval current[3];
     Scalar true_tol[3];
     int refine = 0;
-    Scalar impact_ratio = 1;
 
     toi = SCALAR_LIMIT; //set toi as infinate
     // temp_toi is to catch the toi of each level
@@ -555,7 +569,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         TOI;               // this is to record the element that already small enough or contained in eps-box
     bool use_skip = false; // this is to record if TOI_SKIP is used.
 
-    int rnbr = 0;
+    
     int current_level = -2; // in the begining, current_level != level
     int box_in_level = -2;  // this checks if all the boxes before this
     // level < tolerance. only true, we can return when we find one overlaps eps box and smaller than tolerance or eps-box
@@ -573,19 +587,18 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     // Singleinterval test0=iset[0];
     // Singleinterval test1=iset[1];
     // Singleinterval test2=iset[2];
-    item init_item(iset, -1);
-
-    istack.insertKey(init_item);
-
+ 
+    istack.insertKey(item(iset, -1));
+    item current_item;
     while (!istack.empty())
     {
-        // if(overflow_flag!=NO_OVERFLOW){
-        //     break;
-        // }
+        if(overflow_flag!=NO_OVERFLOW){
+            break;
+        }
     
         
     
-        item current_item;
+        
 
         current_item = istack.extractMin();
 
@@ -622,7 +635,27 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     
     //bool ck;
     bool box_in_[3];
-    bool ck0,ck1,ck2;
+    bool ck0,ck1,ck2, ck;
+// zero_in=true;
+// box_in=true;
+// box_in_[0]=false;
+// box_in_[1]=false;
+// box_in_[2]=false;
+//     #pragma unroll
+//     for (int i = 0; i < 3; i++)
+//     {
+
+// evaluate_bbox_one_dimension_vector_return_tolerance(
+//         t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
+//         a1e, b0e, b1e, i, check_vf, err[i], ms, box_in_[i],
+//         true_tol[i],ck);
+
+//         if (!ck)
+//         {
+//             zero_in=false;
+//             break;
+//         }
+//     }
     evaluate_bbox_one_dimension_vector_return_tolerance(
         t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
         a1e, b0e, b1e, 0, check_vf, err[0], ms, box_in_[0],
@@ -637,27 +670,17 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         true_tol[2],ck2);
     
     box_in = box_in_[0] && box_in_[1] && box_in_[2];
-    //int aa=int(ck0)*int(ck1)*int(ck2);
-    // return;
-    if(ck0&&ck1&&ck2){
-        zero_in=true;
-    }
+    zero_in=ck0&&ck1&&ck2;
+    
 
         
             // Origin_in_function_bounding_box_double_vector_return_tolerance(
             //     current, a0s, a1s, b0s, b1s, a0e, a1e, b0e, b1e, check_vf,
             //     err, ms, box_in, true_tol,zero_in);
-        
-        if(zero_in){
-            return true;
-        }
-        else{
-            return false;
-        }
 
         if (!zero_in)
             continue;
-        return true;
+        
         VectorMax3d widths = width(current);
 
         bool tol_condition = true_tol[0] <= co_domain_tolerance && true_tol[1] <= co_domain_tolerance && true_tol[2] <= co_domain_tolerance;
@@ -681,17 +704,15 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         if (condition1 || condition2 || condition3)
         {
             TOI = current[0].first;
-            rnbr++;
+            
             // continue;
-            toi = Numccd2double(TOI) * impact_ratio;
+            toi = Numccd2double(TOI);
 
             return true;
 
         }
 
-        // it used to be if(max_itr > 0). however, since we are limiting the heap size, truncation may happens because of max_itr, or heap size.
-        if (1)
-        { // if max_itr < 0, then stop until stack empty
+       
             if (current_level != level)
             {
                 // output_tolerance=current_tolerance;
@@ -706,9 +727,9 @@ __device__ bool interval_root_finder_double_horizontal_tree(
             {
                 TOI = current[0].first;
 
-                rnbr++;
+                
                 // continue;
-                temp_toi = Numccd2double(TOI) * impact_ratio;
+                temp_toi = Numccd2double(TOI);
 
                 // if the real tolerance is larger than input, use the real one;
                 // if the real tolerance is smaller than input, use input
@@ -726,7 +747,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                 break;
             }
             // get the time of impact down here
-        }
+        
 
         // if this box is small enough, or inside of eps-box, then just continue,
         // but we need to record the collision time
@@ -955,7 +976,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
 
     if (use_skip)
     {
-        toi = Numccd2double(TOI_SKIP) * impact_ratio;
+        toi = Numccd2double(TOI_SKIP);
 
         return true;
     }

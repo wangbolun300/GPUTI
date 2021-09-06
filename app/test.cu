@@ -1,4 +1,5 @@
 #include <gputi/root_finder.h>
+#include <gputi/book.h>
 #include "timer.hpp"
 #include <iostream>
 #include <fstream>
@@ -136,55 +137,6 @@ std::vector<std::string> file_path_base()
     return result;
 }
 
-__device__ void single_test_wrapper(CCDdata *data, bool &result, Scalar *debug)
-{
-    // TODO write these parameters into CCDdata class
-
-    Scalar *err = new Scalar[3];
-    err[0] = -1;
-    err[1] = -1;
-    err[2] = -1;
-    Scalar ms = 0;
-    Scalar toi;
-    Scalar tolerance = 1e-6;
-    Scalar t_max = 1;
-    int max_itr = 1e6;
-    Scalar output_tolerance;
-    bool no_zero_toi = false;
-    int overflow_flag;
-    //debug[7]=1;
-    bool is_edge = data->is_edge;
-    //debug[6] = is_edge;
-    CCDdata data_cp;
-    for (int i = 0; i < 3; i++)
-    {
-        data_cp.v0s[i] = data->v0s[i];
-        data_cp.v1s[i] = data->v1s[i];
-        data_cp.v2s[i] = data->v2s[i];
-        data_cp.v3s[i] = data->v3s[i];
-        data_cp.v0e[i] = data->v0e[i];
-        data_cp.v1e[i] = data->v1e[i];
-        data_cp.v2e[i] = data->v2e[i];
-        data_cp.v3e[i] = data->v3e[i];
-    }
-    data_cp.is_edge = data->is_edge;
-
-    if (is_edge)
-    {
-        //debug[7] = 1;
-        result = edgeEdgeCCD_double(data_cp, err, ms, toi, tolerance,
-                                    t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag);
-    }
-    else
-    {
-        //debug[7] = 2;
-        result = vertexFaceCCD_double(data_cp, err, ms, toi, tolerance,
-                                      t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag);
-    }
-    //debug[0] = result;
-    //debug[3] = overflow_flag;
-    delete[] err;
-}
 __device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scalar &time_impact)
 {
     
@@ -285,6 +237,7 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     // naive_test<<<nbr/parallel_nbr+1, parallel_nbr>>>();
     // cudaDeviceSynchronize();
     double tt = timer.getElapsedTimeInMicroSec();
+    HANDLE_ERROR(cudaDeviceSynchronize());
     run_time = tt;
 
     // std::cout << "finished parallization running , nbr "<<nbr << std::endl;
@@ -315,6 +268,8 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     delete[] res;
     delete[] data_list;
     delete[] tois;
+    cudaError_t ct = cudaGetLastError();
+    printf("******************\n%s\n************\n", cudaGetErrorString(ct));	
     return;
 }
 
