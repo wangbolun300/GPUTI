@@ -347,7 +347,7 @@ void run_rational_data_single_method_parallel(
             }
             // std::cout<<"filename "<<filename<<std::endl;
             // exit(0);
-            if (queries.size() > 1e6)
+            if (queries.size() > TEST_NBR_QUERIES)
             {
                 break;
             }
@@ -367,7 +367,7 @@ void run_rational_data_single_method_parallel(
             int v_size = all_V.size() / 8;
             for (int i = 0; i < v_size; i++)
             {
-                if (queries.size() > 1e6)
+                if (queries.size() > TEST_NBR_QUERIES)
                 {
                     break;
                 }
@@ -541,10 +541,15 @@ void run_ours_float_for_all_data(int parallel)
     arg.minimum_separation = 0;
     arg.tight_inclusion_tolerance = 1e-6;
     arg.tight_inclusion_max_iter = 1e6;
+    #ifdef CHECK_EE
+    arg.run_ee_dataset = true;
+    arg.run_vf_dataset = false;
+    #else
     arg.run_ee_dataset = false;
     arg.run_vf_dataset = true;
-    arg.run_simulation_dataset = true;
-    arg.run_handcrafted_dataset = false;
+    #endif
+    arg.run_simulation_dataset = false;
+    arg.run_handcrafted_dataset = true;
     run_one_method_over_all_data(arg, parallel, folder, tail);
 
     // run_one_method_over_all_data(arg, CCDMethod::TIGHT_INCLUSION,folder,tail);

@@ -171,13 +171,13 @@ __device__ VectorMax3d width(const Singleinterval *x)
 }
 
 __device__ void convert_tuv_to_array(
-    const Singleinterval itv0, Singleinterval itv1, Singleinterval itv2,
-    Scalar t_up[7],
-    Scalar t_dw[7],
-    Scalar u_up[7],
-    Scalar u_dw[7],
-    Scalar v_up[7],
-    Scalar v_dw[7])
+    const Singleinterval &itv0, const Singleinterval &itv1, Singleinterval &itv2,
+    Scalar t_up[8],
+    Scalar t_dw[8],
+    Scalar u_up[8],
+    Scalar u_dw[8],
+    Scalar v_up[8],
+    Scalar v_dw[8])
 {
     // t order: 0,0,0,0,1,1,1,1
     // u order: 0,0,1,1,0,0,1,1
@@ -256,22 +256,27 @@ __device__ void function_vf(
     const Scalar &t0e,
     const Scalar &t1e,
     const Scalar &t2e,
-    const Scalar *t_up,
-    const Scalar *t_dw,
-    const Scalar *u_up,
-    const Scalar *u_dw,
-    const Scalar *v_up,
-    const Scalar *v_dw,
-    Scalar *rst)
+    const Scalar t_up[8],
+    const Scalar t_dw[8],
+    const Scalar u_up[8],
+    const Scalar u_dw[8],
+    const Scalar v_up[8],
+    const Scalar v_dw[8],
+    Scalar rst[8])
 {
+    Scalar v ;
+Scalar t0;
+Scalar t1;
+Scalar t2;
+Scalar pt;
 #pragma unroll
     for (int i = 0; i < 8; i++)
     {
-        Scalar v = (ve - vs) * t_up[i] / t_dw[i] + vs;
-        Scalar t0 = (t0e - t0s) * t_up[i] / t_dw[i] + t0s;
-        Scalar t1 = (t1e - t1s) * t_up[i] / t_dw[i] + t1s;
-        Scalar t2 = (t2e - t2s) * t_up[i] / t_dw[i] + t2s;
-        Scalar pt = (t1 - t0) * u_up[i] / u_dw[i] + (t2 - t0) * v_up[i] / v_dw[i] + t0;
+         v = (ve - vs) * t_up[i] / t_dw[i] + vs;
+         t0 = (t0e - t0s) * t_up[i] / t_dw[i] + t0s;
+         t1 = (t1e - t1s) * t_up[i] / t_dw[i] + t1s;
+         t2 = (t2e - t2s) * t_up[i] / t_dw[i] + t2s;
+         pt = (t1 - t0) * u_up[i] / u_dw[i] + (t2 - t0) * v_up[i] / v_dw[i] + t0;
         rst[i] = v - pt;
     }
 }
@@ -285,13 +290,13 @@ __device__ void function_ee(
     const Scalar &a1e,
     const Scalar &b0e,
     const Scalar &b1e,
-    const Scalar *t_up,
-    const Scalar *t_dw,
-    const Scalar *u_up,
-    const Scalar *u_dw,
-    const Scalar *v_up,
-    const Scalar *v_dw,
-    Scalar *rst)
+    const Scalar t_up[8],
+    const Scalar t_dw[8],
+    const Scalar u_up[8],
+    const Scalar u_dw[8],
+    const Scalar v_up[8],
+    const Scalar v_dw[8],
+    Scalar rst[8])
 {
 #pragma unroll
     for (int i = 0; i < 8; i++)
@@ -315,24 +320,24 @@ __device__ void function_ee(
 // bbox_in_eps tell us if the box is totally in eps box
 // ms is the minimum seperation
 __device__ void evaluate_bbox_one_dimension_vector_return_tolerance(
-    Scalar *t_up,
-    Scalar *t_dw,
-    Scalar *u_up,
-    Scalar *u_dw,
-    Scalar *v_up,
-    Scalar *v_dw,
-    const Scalar *a0s,
-    const Scalar *a1s,
-    const Scalar *b0s,
-    const Scalar *b1s,
-    const Scalar *a0e,
-    const Scalar *a1e,
-    const Scalar *b0e,
-    const Scalar *b1e,
-    const int dimension,
-    const bool check_vf,
-    const Scalar eps,
-    const Scalar ms,
+    Scalar t_up[8],
+    Scalar t_dw[8],
+    Scalar u_up[8],
+    Scalar u_dw[8],
+    Scalar v_up[8],
+    Scalar v_dw[8],
+    const Scalar a0s[3],
+    const Scalar a1s[3],
+    const Scalar b0s[3],
+    const Scalar b1s[3],
+    const Scalar a0e[3],
+    const Scalar a1e[3],
+    const Scalar b0e[3],
+    const Scalar b1e[3],
+    const int &dimension,
+    const bool &check_vf,
+    const Scalar &eps,
+    const Scalar &ms,
     bool &bbox_in_eps,
     Scalar &tol,
     bool &result)
@@ -583,7 +588,16 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     
     bool zero_in;
     bool box_in;
-
+    Scalar t_up[8];
+    Scalar t_dw[8];
+    Scalar u_up[8];
+    Scalar u_dw[8];
+    Scalar v_up[8];
+    Scalar v_dw[8];
+    int level;
+    bool box_in_[3];
+    bool ck0,ck1,ck2, ck;
+    Singleinterval itv0, itv1, itv2;
     // Singleinterval test0=iset[0];
     // Singleinterval test1=iset[1];
     // Singleinterval test2=iset[2];
@@ -595,17 +609,12 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         if(overflow_flag!=NO_OVERFLOW){
             break;
         }
-    
-        
-    
-        
-
         current_item = istack.extractMin();
 
         current[0] = current_item.itv[0];
         current[1] = current_item.itv[1];
         current[2] = current_item.itv[2];
-        int level = current_item.level;
+        level = current_item.level;
 
         // if this box is later than TOI_SKIP in time, we can skip this one.
         // TOI_SKIP is only updated when the box is small enough or totally contained in eps-box
@@ -623,19 +632,13 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     
     box_in = false;
     zero_in=false;
-    Scalar t_up[8];
-    Scalar t_dw[8];
-    Scalar u_up[8];
-    Scalar u_dw[8];
-    Scalar v_up[8];
-    Scalar v_dw[8];
-    Singleinterval itv0 = current[0], itv1 = current[1], itv2 = current[2];
+    
+    itv0 = current[0]; itv1 = current[1]; itv2 = current[2];
 
     convert_tuv_to_array(itv0, itv1, itv2, t_up, t_dw, u_up, u_dw, v_up, v_dw);
     
     //bool ck;
-    bool box_in_[3];
-    bool ck0,ck1,ck2, ck;
+
 // zero_in=true;
 // box_in=true;
 // box_in_[0]=false;
@@ -986,7 +989,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
 
 __device__ bool interval_root_finder_double_horizontal_tree(
     const Scalar tol[3],
-    const Scalar co_domain_tolerance,
+    const Scalar &co_domain_tolerance,
     Scalar &toi,
     const bool check_vf,
     const Scalar err[3], // this is the maximum error on each axis when calculating the vertices, err, aka, filter
