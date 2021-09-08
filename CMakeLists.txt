@@ -15,7 +15,7 @@ OPTION(GPUTI_WITH_BENCHMARK          "run benchmark for testing"   ON)
 set(GPUTI_EXTERNAL "${CMAKE_CURRENT_SOURCE_DIR}/external")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(Warnings)
-include(UseColors)
+# include(UseColors)
 include(GPUTI_Utils)
 
 include(${PROJECT_NAME}_Dependencies)
@@ -51,7 +51,7 @@ target_link_libraries(gputi_bin PRIVATE gputi)
 if(APPLE)
 # We need to add the default path to the driver (libcuda.dylib) as an rpath,
 # so that the static cuda runtime can find it at runtime.
-set_property(TARGET gputi_bin PROPERTY BUILD_RPATH ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+set_property( gputi_bin PROPERTY BUILD_RPATH ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 endif()
 
 
@@ -73,11 +73,17 @@ IF(NOT ${GMP_FOUND})
 ENDIF()
 target_include_directories(test_bin PUBLIC ${GMP_INCLUDE_DIRS})
 target_link_libraries(test_bin PUBLIC ${GMP_LIBRARIES})
-                  
+target_compile_options(test_bin PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
+                       --generate-line-info
+                       --use_fast_math
+                       --relocatable-device-code=true
+                       --ptxas-options=-v
+                       --maxrregcount=10
+                       >)                  
 if(APPLE)
 # We need to add the default path to the driver (libcuda.dylib) as an rpath,
 # so that the static cuda runtime can find it at runtime.
-set_property(TARGET test_bin PROPERTY BUILD_RPATH ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+set_property( test_bin PROPERTY BUILD_RPATH ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 endif()
 
 endif()

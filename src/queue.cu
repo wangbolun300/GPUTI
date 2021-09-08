@@ -17,9 +17,6 @@ __device__ item::item(const Singleinterval si[3], int lv)
 	interval_cp(si[0], itv[0]);
 	interval_cp(si[1], itv[1]);
 	interval_cp(si[2], itv[2]);
-	//itv[0].first.first=si[0].first.first;
-	// itv[1]=si[1];
-	// itv[2]=si[2];
 }
 __device__ item::item()
 {
@@ -41,16 +38,10 @@ __device__ item item_min()
 // i1==i2?
 __device__ bool custom_compare_equal(const item &i1, const item &i2)
 {
-	// if (i1.level == i2.level)
-	// {
-	// 	if (i1.itv[0].first == i2.itv[0].first)
-	// 	{
-	// 		return true;
-	// 	}
-	// }
+
 	bool con1=i1.level == i2.level;
 	bool con2=i1.itv[0].first == i2.itv[0].first;
-	bool res=con1*con2;
+	bool res=con1&&con2;
 	return res;
 }
 
@@ -104,7 +95,6 @@ __device__ MinHeap::MinHeap()
 {
 	heap_size = 0;
 	capacity = HEAP_SIZE;
-	//harr = new item[cap];
 }
 
 // Inserts a new key 'k'
@@ -112,7 +102,6 @@ __device__ bool MinHeap::insertKey(item k)
 { // to avoid overflow, instead of comparing with capacity, we compare with capacity -1
 	if (heap_size == capacity - 1)
 	{
-		//cout << "\nOverflow: Could not insertKey\n";
 		return false;
 	}
 
@@ -130,18 +119,6 @@ __device__ bool MinHeap::insertKey(item k)
 	return true;
 }
 
-// Decreases value of key at index 'i' to new_val. It is assumed that
-// new_val is smaller than harr[i].
-// __device__ void MinHeap::decreaseKey(int i, item new_val)
-// {
-// 	harr[i] = new_val;
-// 	while (i != 0 && !custom_compare_no_larger(harr[parent(i)], harr[i]))
-// 	{
-// 		swap(harr[i], harr[parent(i)]);
-// 		i = parent(i);
-// 	}
-// }
-
 // Method to remove minimum element (or root) from min heap
 __device__ item MinHeap::extractMin()
 {
@@ -152,13 +129,11 @@ __device__ item MinHeap::extractMin()
 	// Store the minimum value, and remove it from heap
 	item root;
 
-	// return item_max();
 	root = harr[0];
 
 	harr[0] = harr[heap_size - 1];
 	heap_size--;
-	// return root;
-	MinHeapify(0);
+	MinHeapify();
 
 	return root;
 }
@@ -174,9 +149,9 @@ __device__ item MinHeap::extractMin()
 // A recursive method to heapify a subtree with the root at given index
 // This method assumes that the subtrees are already heapified
 // bolun remove the recursive part and make it a iteration
-__device__ void MinHeap::MinHeapify(int i)
+__device__ void MinHeap::MinHeapify()
 {
-	int tmp = i;
+	int tmp = 0;
 	//return;
 	for (int itr = 0;; itr++)
 	{

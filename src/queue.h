@@ -15,7 +15,7 @@ public:
 	//MinHeap(int capacity);
    __device__ MinHeap();
 	// to heapify a subtree with the root at given index
-	__device__ void MinHeapify(int);
+	__device__ void MinHeapify();
 	__device__ bool empty();
 	// index
 	__device__ int parent(int i) { return (i - 1) / 2; }

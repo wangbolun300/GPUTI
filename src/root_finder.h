@@ -30,6 +30,8 @@ __device__ __host__ void get_numerical_error(
     const bool &check_vf,
     const bool using_minimum_separation,
     Scalar *error);
-//__device__ 
 
+
+//__device__ 
+// __device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scalar &time_impact);
 

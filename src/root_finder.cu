@@ -344,7 +344,6 @@ __device__ void evaluate_bbox_one_dimension_vector_return_tolerance(
 {
     
     Scalar vs[8];
-    int count = 0;
     bbox_in_eps = false;
 
 #ifndef CHECK_EE
@@ -403,6 +402,7 @@ __device__ void evaluate_bbox_one_dimension_vector_return_tolerance(
     return;
 }
 
+// we used to use this function, but now we directly do what this function does in the root-finder function
 __device__ void Origin_in_function_bounding_box_double_vector_return_tolerance(
     Singleinterval paras[3],
     const Scalar a0s[3],
@@ -496,9 +496,6 @@ __device__ void bisect(const Singleinterval &inter, interval_pair &out)
     long k2 = up.first;
     int n2 = up.second;
 
-    //assert(k1 >= 0 && k2 >= 0 && n1 >= 0 && n2 >= 0);
-
-    //interval_pair out;
     long k;
     int n;
     int p;
@@ -512,13 +509,11 @@ __device__ void bisect(const Singleinterval &inter, interval_pair &out)
     if (n2 > n1)
     {
         k = k1 * power(1, n2 - n1) + k2;
-        // assert(k % 2 == 1);
         n = n2 + 1;
     }
     if (n2 < n1)
     {
         k = k1 + k2 * power(1, n1 - n2);
-        // assert(k % 2 == 1);
         n = n1 + 1;
     }
     Numccd newnum(k, n);
@@ -596,11 +591,8 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     Scalar v_dw[8];
     int level;
     bool box_in_[3];
-    bool ck0,ck1,ck2, ck;
+    bool ck0,ck1,ck2;
     Singleinterval itv0, itv1, itv2;
-    // Singleinterval test0=iset[0];
-    // Singleinterval test1=iset[1];
-    // Singleinterval test2=iset[2];
  
     istack.insertKey(item(iset, -1));
     item current_item;
@@ -718,14 +710,9 @@ __device__ bool interval_root_finder_double_horizontal_tree(
        
             if (current_level != level)
             {
-                // output_tolerance=current_tolerance;
-                // current_tolerance=0;
                 current_level = level;
                 find_level_root = false;
             }
-            // current_tolerance=std::max(
-            // std::max(std::max(current_tolerance,true_tol[0]),true_tol[1]),true_tol[2]
-            // );
             if (!find_level_root)
             {
                 TOI = current[0].first;
@@ -749,7 +736,6 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                 overflow_flag = ITERATION_OVERFLOW;
                 break;
             }
-            // get the time of impact down here
         
 
         // if this box is small enough, or inside of eps-box, then just continue,
@@ -822,25 +808,18 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         bisect(bisect_inter, halves);
         if (!less_than(halves.first.first, halves.first.second))
         {
-            // std::cout << "OVERFLOW HAPPENS WHEN SPLITTING INTERVALS"
-            //           << std::endl;
             overflow_flag = BISECTION_OVERFLOW;
             break;
         }
         if (!less_than(halves.second.first, halves.second.second))
         {
-            // std::cout << "OVERFLOW HAPPENS WHEN SPLITTING INTERVALS"
-            //           << std::endl;
             overflow_flag = BISECTION_OVERFLOW;
             break;
         }
 #ifndef CHECK_EE // check vf
 
-        //std::cout<<"*** check_vf"<<std::endl;
         if (split_i == 1)
         {
-            // assert(sum_no_larger_1(halves.first.first, current[2].first)==sum_no_larger_1_Rational(halves.first.first, current[2].first));
-            // assert(sum_no_larger_1(halves.second.first, current[2].first)==sum_no_larger_1_Rational(halves.second.first, current[2].first));
 
             if (sum_no_larger_1(halves.second.first, current[2].first))
             {
@@ -865,8 +844,6 @@ __device__ bool interval_root_finder_double_horizontal_tree(
 
         if (split_i == 2)
         {
-            //assert(sum_no_larger_1(halves.first.first, current[1].first)==sum_no_larger_1_Rational(halves.first.first, current[1].first));
-            //assert(sum_no_larger_1(halves.second.first, current[1].first)==sum_no_larger_1_Rational(halves.second.first, current[1].first));
 
             if (sum_no_larger_1(halves.second.first, current[1].first))
             {
@@ -1306,3 +1283,4 @@ __device__ bool edgeEdgeCCD_double(
     bool res = CCD_Solver(data_in, err, ms, toi, tolerance, t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag, false);
     return res;
 }
+

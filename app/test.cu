@@ -4,12 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include "read_rational_csv.hpp"
-// #include <boost/filesystem.hpp>
 #include <filesystem>
-// #include <experimental/filesystem>
-// namespace fs = std::filesystem;
-// // namespace fs = std::experimental::filesystem;
-int global_counter = 0;
 
 std::vector<std::string> simulation_folders = {{"chain", "cow-heads", "golf-ball", "mat-twist"}};
 std::vector<std::string> handcrafted_folders = {{"erleben-sliding-spike", "erleben-spike-wedge",
@@ -68,13 +63,6 @@ void write_summary(
     fout << method << "," << total_number << "," << positives << ","
          << is_edge_edge << "," << fp << "," << fn << ',' << average_time << "," << time_lower << "," << time_upper
          << std::endl;
-    // fout<<"method, "<<method<<std::endl;
-    // fout<<"total nbr, "<<total_number<<std::endl;
-    // fout<<"positives, "<<positives<<std::endl;
-    // fout<<"is_edge_edge, "<<is_edge_edge<<std::endl;
-    // fout<<"fp, "<<fp<<std::endl;
-    // fout<<"fn, "<<fn<<std::endl;
-    // fout<<"average time, "<<average_time<<std::endl;
     fout.close();
 }
 template <typename T>
@@ -224,26 +212,14 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     cudaMalloc(&d_tois, time_size);
     cudaMemcpy(d_data_list, data_list, data_size, cudaMemcpyHostToDevice);
 
-    // std::cout << "data copied" << std::endl;
-    // parallel info
-
     ccd::Timer timer;
 
     timer.start();
     run_parallel_ccd_all<<<nbr / parallel_nbr + 1, parallel_nbr>>>(d_data_list, d_res, nbr, d_tois);
     cudaDeviceSynchronize();
-
-    //size_test<<<nbr/parallel_nbr+1, parallel_nbr>>>(nbr, d_data_list, d_res, d_tois);
-    // naive_test<<<nbr/parallel_nbr+1, parallel_nbr>>>();
-    // cudaDeviceSynchronize();
     double tt = timer.getElapsedTimeInMicroSec();
-    HANDLE_ERROR(cudaDeviceSynchronize());
     run_time = tt;
 
-    // std::cout << "finished parallization running , nbr "<<nbr << std::endl;
-    // std::cout<<"parallel info, threads and grids "<<parallel_nbr<<" "<<nbr/parallel_nbr+1<<std::endl;
-    // std::cout<<"sizes "<<data_size<<" "<<result_size<<" "<<time_size<<std::endl;
-    // std::cout<<"size of Scalar "<<sizeof(Scalar)<<std::endl;
 
     cudaMemcpy(res, d_res, result_size, cudaMemcpyDeviceToHost);
 
@@ -274,9 +250,6 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
 }
 
 bool WRITE_STATISTIC = true;
-bool DEBUG_FLAG = false;
-bool DEBUG_FLAG2 = false;
-
 
 void run_rational_data_single_method_parallel(
     const Args &args,
@@ -288,7 +261,6 @@ void run_rational_data_single_method_parallel(
 
     //std::vector<write_format> queryinfo;
     int total_number = -1;
-    double total_time = 0.0;
     int total_positives = 0;
     int num_false_positives = 0;
     int num_false_negatives = 0;
@@ -296,22 +268,12 @@ void run_rational_data_single_method_parallel(
     double time_upper = -1;
     std::string sub_folder = is_edge_edge ? "/edge-edge/" : "/vertex-face/";
     std::string sub_name = is_edge_edge ? "edge-edge" : "vertex-face";
-    int nbr_larger_tol = 0;
-    int nbr_diff_tol = 0;
-    double max_tol = 0;
-    double sum_tol = 0;
-    long queue_size_avg = 0;
-    long queue_size_max = 0;
-    long current_queue_size = 0;
     std::vector<long> queue_sizes;
     std::vector<Scalar> tois;
-    int fpcounter = 0;
 
     std::vector<bool> result_list;
     std::vector<bool> expect_list;
     std::vector<std::array<std::array<Scalar, 3>, 8>> queries;
-
-    long long queue_size_total = 0;
     const std::vector<std::string> &scene_names = is_simulation_data ? simulation_folders : handcrafted_folders;
     std::cout << "loading data" << std::endl;
     std::vector<std::string> bases = file_path_base();
@@ -328,23 +290,6 @@ void run_rational_data_single_method_parallel(
             }
             std::string filename = scene_path + sub_name + "-" + entry + ".csv";
 
-            std::string debug_file = "/home/bolun/bolun/float_with_gt/chain/vertex-face/vertex-face-0010.csv";
-            int debug_id = 7459;
-            if (DEBUG_FLAG)
-            {
-                if (filename != debug_file)
-                {
-                    continue;
-                }
-            }
-            if (DEBUG_FLAG2)
-            {
-                if (filename != "/home/bolun/bolun/float_with_gt/chain/vertex-face/vertex-face-0010.csv")
-                {
-                    continue;
-                }
-                std::cout << "running this file" << std::endl;
-            }
             // std::cout<<"filename "<<filename<<std::endl;
             // exit(0);
             if (queries.size() > TEST_NBR_QUERIES)
@@ -375,28 +320,8 @@ void run_rational_data_single_method_parallel(
 
                 std::array<std::array<Scalar, 3>, 8> V = substract_ccd(all_V, i);
                 bool expected_result = results[i * 8];
-
-                bool result;
-
-                double toi;
-                if (DEBUG_FLAG)
-                {
-                    if (i != debug_id)
-                    {
-                        continue;
-                    }
-                }
                 queries.push_back(V);
                 expect_list.push_back(expected_result);
-                //result = single_ccd_run(V, is_edge_edge);
-
-                if (DEBUG_FLAG)
-                {
-                    std::cout << "checking " << filename << ", id " << i << std::endl;
-                    std::cout << "result " << result << ", ground " << expected_result << std::endl;
-                    print_V(V);
-                    exit(0);
-                }
             }
         }
     }
@@ -459,8 +384,6 @@ void run_rational_data_single_method_parallel(
             if (expect_list[i])
             {
                 num_false_negatives++;
-                // std::cout << "false negative!!!, result " << result_list[i]<<" id "<<i << std::endl;
-                // exit(0);
             }
             else
             {
@@ -533,8 +456,6 @@ void run_ours_float_for_all_data(int parallel)
 {
     std::string folder = "/home/bolun/bolun/data0809/"; // this is the output folder
     std::string tail = "_prl_" + std::to_string(parallel);
-
-    // tolerance.push_back("1");
     Args arg;
     arg.data_dir = "/home/bolun/bolun/float_with_gt/";
 
@@ -552,7 +473,6 @@ void run_ours_float_for_all_data(int parallel)
     arg.run_handcrafted_dataset = true;
     run_one_method_over_all_data(arg, parallel, folder, tail);
 
-    // run_one_method_over_all_data(arg, CCDMethod::TIGHT_INCLUSION,folder,tail);
 }
 int main(int argc, char **argv)
 {
@@ -594,9 +514,5 @@ int main(int argc, char **argv)
 
     run_ours_float_for_all_data(parallel);
     std::cout << "done!" << std::endl;
-    bool a=false;
-    bool b=false;
-    bool c=a*b;
-    std::cout<<"c is "<<c<<std::endl;
     return 1;
 }
