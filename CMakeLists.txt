@@ -42,29 +42,17 @@ set_target_properties( gputi
                        PROPERTIES CUDA_SEPARABLE_COMPILATION ON
                       )
 
-# executable
-add_executable(gputi_bin app/main.cu)
-set_target_properties(gputi_bin PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-target_link_libraries(gputi_bin PRIVATE gputi)
-                  
-                  
-if(APPLE)
-# We need to add the default path to the driver (libcuda.dylib) as an rpath,
-# so that the static cuda runtime can find it at runtime.
-set_property( gputi_bin PROPERTY BUILD_RPATH ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
-endif()
-
 
 # executable 2
 if (GPUTI_WITH_BENCHMARK)
-set(Boost_USE_MULTITHREADED TRUE)
-find_package(Boost COMPONENTS filesystem REQUIRED)
+# set(Boost_USE_MULTITHREADED TRUE)
+# find_package(Boost COMPONENTS filesystem REQUIRED)
 
 
 add_executable(test_bin app/test.cu app/read_rational_csv.cpp)
 set_target_properties(test_bin PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 target_link_libraries(test_bin PRIVATE gputi)
-target_link_libraries(test_bin PUBLIC Boost::filesystem)
+# target_link_libraries(test_bin PUBLIC Boost::filesystem)
 # target_compile_features(test_bin PUBLIC cxx_std_14)
 # gmp
 find_package(GMP)
@@ -78,7 +66,7 @@ target_compile_options(test_bin PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
                        --use_fast_math
                        --relocatable-device-code=true
                        --ptxas-options=-v
-                       --maxrregcount=10
+                       --maxrregcount=60
                        >)                  
 if(APPLE)
 # We need to add the default path to the driver (libcuda.dylib) as an rpath,
