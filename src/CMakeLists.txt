@@ -11,6 +11,7 @@ src/root_finder.h
 src/root_finder.cu
 #src/dataFormat.cpp
 src/book.h
+src/timer.cuh
 PARENT_SCOPE
 )
 ################################################################################

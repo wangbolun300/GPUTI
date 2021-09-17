@@ -2,10 +2,15 @@
 #include <gputi/book.h>
 #include "timer.hpp"
 #include <iostream>
+#include <functional>
 #include <fstream>
 #include "read_rational_csv.hpp"
 #include <filesystem>
-__device__ void interval_cp(const Singleinterval &a, Singleinterval &b)
+#include <cuda/std/functional>
+
+#include <gputi/timer.cuh>
+
+__device__ void interval_cp(const Singleinterval& a, Singleinterval& b)
 {
 	b.first.first = a.first.first;
 	b.first.second = a.first.second;
@@ -15,9 +20,12 @@ __device__ void interval_cp(const Singleinterval &a, Singleinterval &b)
 __device__ item::item(const Singleinterval si[3], int lv)
 {
 	level = lv;
-	interval_cp(si[0], itv[0]);
-	interval_cp(si[1], itv[1]);
-	interval_cp(si[2], itv[2]);
+	recordLaunch<const Singleinterval &, Singleinterval &>("interval_cp_si0",  interval_cp, si[0], itv[0]);
+    recordLaunch<const Singleinterval &, Singleinterval &>("interval_cp_si1",  interval_cp, si[1], itv[1]);
+    recordLaunch<const Singleinterval &, Singleinterval &>("interval_cp_si2",  interval_cp, si[2], itv[2]);
+    // interval_cp(si[0], itv[0]);
+	// interval_cp(si[1], itv[1]);
+	// interval_cp(si[2], itv[2]);
 }
 __device__ item::item()
 {
@@ -78,7 +86,7 @@ __device__ bool custom_compare_less(const item &i1, const item &i2)
 // i1<=i2?
 __device__ bool custom_compare_no_larger(const item &i1, const item &i2)
 {
-	bool ir = custom_compare_less(i2, i1);
+	bool ir = recordLaunch<bool, const item &, const item &>("custom_compare_less", custom_compare_less, i2, i1);
 	return !ir;
 }
 
@@ -114,7 +122,7 @@ __device__ bool MinHeap::insertKey(item k)
 	// Fix the min heap property if it is violated
 	while (i != 0 && !custom_compare_no_larger(harr[parent(i)], harr[i]))
 	{
-		swap(harr[i], harr[parent(i)]);
+		recordLaunch<item&, item&>("swap", swap, harr[i], harr[parent(i)]);
 		i = parent(i);
 	}
 	return true;
@@ -125,7 +133,7 @@ __device__ item MinHeap::extractMin()
 {
 
 	if (heap_size <= 0)
-		return item_max();
+		return recordLaunch("item_max", item_max);
 
 	// Store the minimum value, and remove it from heap
 	item root;
@@ -134,7 +142,15 @@ __device__ item MinHeap::extractMin()
 
 	harr[0] = harr[heap_size - 1];
 	heap_size--;
-	MinHeapify();
+	// recordLaunch("MinHeapify", &MinHeap::MinHeapify);
+    // std::function<void()> foo = [&]__device__(){this->MinHeapify();};
+    // recordLaunch("MinHeapify", foo);
+    clock_t start = clock();
+    MinHeapify();
+    clock_t stop = clock();
+    clock_t t = stop - start;
+    if (threadIdx.x+blockIdx.x == 0)
+        printf ("%s: %d clicks (%f ms).\n", "MinHeapify", t,((float)t)/CLOCKS_PER_SEC/1000); 
 
 	return root;
 }
@@ -197,8 +213,8 @@ __device__ bool MinHeap::empty()
 __device__ void swap(item &x, item &y)
 {
 	item temp;
-	item_equal(temp, x);
-	item_equal(x, y);
+	recordLaunch<item&,const item&>("item_equal", item_equal, temp, x);
+	recordLaunch<item&,const item&>("item_equal", item_equal, x, y);
 	item_equal(y, temp);
 }
 __device__ void item_equal(item &a, const item &b)
@@ -533,10 +549,10 @@ __device__ void evaluate_bbox_one_dimension_vector_return_tolerance(
     const Scalar a1e[3],
     const Scalar b0e[3],
     const Scalar b1e[3],
-    const int &dimension,
-    const bool &check_vf,
-    const Scalar &eps,
-    const Scalar &ms,
+    int dimension,
+    const bool& check_vf,
+    const Scalar& eps,
+    const Scalar& ms,
     bool &bbox_in_eps,
     Scalar &tol,
     bool &result)
@@ -629,7 +645,13 @@ __device__ void Origin_in_function_bounding_box_double_vector_return_tolerance(
     Scalar v_dw[8];
     Singleinterval itv0 = paras[0], itv1 = paras[1], itv2 = paras[2];
 
-    convert_tuv_to_array(itv0, itv1, itv2, t_up, t_dw, u_up, u_dw, v_up, v_dw);
+    recordLaunch<const Singleinterval &, const Singleinterval &, Singleinterval &,
+    Scalar *,
+    Scalar *,
+    Scalar *,
+    Scalar *,
+    Scalar *,
+    Scalar *>("convert_tuv_to_array", convert_tuv_to_array, itv0, itv1, itv2, t_up, t_dw, u_up, u_dw, v_up, v_dw);
     
     //bool ck;
     bool box_in[3];
@@ -653,15 +675,15 @@ __device__ void Origin_in_function_bounding_box_double_vector_return_tolerance(
     //     box_in_eps = true;
     // }
     bool ck0,ck1,ck2;
-    evaluate_bbox_one_dimension_vector_return_tolerance(
+    recordLaunch<Scalar [8], Scalar [8], Scalar [8], Scalar [8], Scalar [8], Scalar [8], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], int, const bool &, const Scalar &, const Scalar &, bool &, Scalar &, bool &>("evaluate_bbox_one_dimension_vector_return_tolerance_t0", evaluate_bbox_one_dimension_vector_return_tolerance, 
         t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
         a1e, b0e, b1e, 0, check_vf, box[0], ms, box_in[0],
         tolerance[0],ck0);
-    evaluate_bbox_one_dimension_vector_return_tolerance(
+    recordLaunch<Scalar [8], Scalar [8], Scalar [8], Scalar [8], Scalar [8], Scalar [8], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], int, const bool &, const Scalar &, const Scalar &, bool &, Scalar &, bool &>("evaluate_bbox_one_dimension_vector_return_tolerance_t1", evaluate_bbox_one_dimension_vector_return_tolerance, 
         t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
         a1e, b0e, b1e, 1, check_vf, box[1], ms, box_in[1],
         tolerance[1],ck1);
-    evaluate_bbox_one_dimension_vector_return_tolerance(
+    recordLaunch<Scalar [8], Scalar [8], Scalar [8], Scalar [8], Scalar [8], Scalar [8], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], int, const bool &, const Scalar &, const Scalar &, bool &, Scalar &, bool &>("evaluate_bbox_one_dimension_vector_return_tolerance_t2", evaluate_bbox_one_dimension_vector_return_tolerance, 
         t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
         a1e, b0e, b1e, 2, check_vf, box[2], ms, box_in[2],
         tolerance[2],ck2);
@@ -800,7 +822,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         if(overflow_flag!=NO_OVERFLOW){
             break;
         }
-        current_item = istack.extractMin();
+        istack.extractMin();
 
         current[0] = current_item.itv[0];
         current[1] = current_item.itv[1];
@@ -850,15 +872,15 @@ __device__ bool interval_root_finder_double_horizontal_tree(
 //             break;
 //         }
 //     }
-    evaluate_bbox_one_dimension_vector_return_tolerance(
+    recordLaunch<Scalar [8], Scalar [8], Scalar [8], Scalar [8], Scalar [8], Scalar [8], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], int, const bool &, const Scalar &, const Scalar &, bool &, Scalar &, bool &>("evaluate_bbox_one_dimension_vector_return_tolerance_t0", evaluate_bbox_one_dimension_vector_return_tolerance, 
         t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
         a1e, b0e, b1e, 0, check_vf, err[0], ms, box_in_[0],
         true_tol[0],ck0);
-    evaluate_bbox_one_dimension_vector_return_tolerance(
+    recordLaunch<Scalar [8], Scalar [8], Scalar [8], Scalar [8], Scalar [8], Scalar [8], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], int, const bool &, const Scalar &, const Scalar &, bool &, Scalar &, bool &>("evaluate_bbox_one_dimension_vector_return_tolerance_t1", evaluate_bbox_one_dimension_vector_return_tolerance, 
         t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
         a1e, b0e, b1e, 1, check_vf, err[1], ms, box_in_[1],
         true_tol[1],ck1);
-    evaluate_bbox_one_dimension_vector_return_tolerance(
+    recordLaunch<Scalar [8], Scalar [8], Scalar [8], Scalar [8], Scalar [8], Scalar [8], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], int, const bool &, const Scalar &, const Scalar &, bool &, Scalar &, bool &>("evaluate_bbox_one_dimension_vector_return_tolerance_t2", evaluate_bbox_one_dimension_vector_return_tolerance, 
         t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
         a1e, b0e, b1e, 2, check_vf, err[2], ms, box_in_[2],
         true_tol[2],ck2);
@@ -875,7 +897,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         if (!zero_in)
             continue;
         
-        VectorMax3d widths = width(current);
+        VectorMax3d widths = recordLaunch<VectorMax3d, const Singleinterval *>("width", width, current);
 
         bool tol_condition = true_tol[0] <= co_domain_tolerance && true_tol[1] <= co_domain_tolerance && true_tol[2] <= co_domain_tolerance;
 
@@ -1020,7 +1042,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         if (split_i == 1)
         {
 
-            if (sum_no_larger_1(halves.second.first, current[2].first))
+            if (recordLaunch<bool, const Numccd &, const Numccd &>("sum_no_larger_1-halves.second", sum_no_larger_1, halves.second.first, current[2].first))
             {
 
                 current[split_i] = halves.second;
@@ -1030,7 +1052,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                     overflow_flag = HEAP_OVERFLOW;
                 }
             }
-            if (sum_no_larger_1(halves.first.first, current[2].first))
+            if (recordLaunch<bool, const Numccd &, const Numccd &>("sum_no_larger_1-halves.first", sum_no_larger_1, halves.first.first, current[2].first))
             {
                 current[split_i] = halves.first;
                 bool inserted = istack.insertKey(item(current, level + 1));
@@ -1044,7 +1066,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         if (split_i == 2)
         {
 
-            if (sum_no_larger_1(halves.second.first, current[1].first))
+            if (recordLaunch<bool, const Numccd &, const Numccd &>("sum_no_larger_1-halves.second", sum_no_larger_1, halves.second.first, current[1].first))
             {
                 current[split_i] = halves.second;
                 bool inserted = istack.insertKey(item(current, level + 1));
@@ -1053,7 +1075,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                     overflow_flag = HEAP_OVERFLOW;
                 }
             }
-            if (sum_no_larger_1(halves.first.first, current[1].first))
+            if (recordLaunch<bool, const Numccd &, const Numccd &>("sum_no_larger_1-halves.first",sum_no_larger_1, halves.first.first, current[1].first))
             {
                 current[split_i] = halves.first;
                 bool inserted = istack.insertKey(item(current, level + 1));
@@ -1067,7 +1089,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         {
             if (check_t_overlap)
             {
-                if (interval_overlap_region(
+                if (recordLaunch<bool, const Singleinterval &, Scalar, Scalar>("interval_overlap_region-halves.second", interval_overlap_region,
                         halves.second, 0, t_upper_bound))
                 {
                     current[split_i] = halves.second;
@@ -1077,7 +1099,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                         overflow_flag = HEAP_OVERFLOW;
                     }
                 }
-                if (interval_overlap_region(
+                if (recordLaunch<bool, const Singleinterval &, Scalar, Scalar>("interval_overlap_region-halves.first", interval_overlap_region,
                         halves.first, 0, t_upper_bound))
                 {
                     current[split_i] = halves.first;
@@ -1108,7 +1130,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
 #else
         if (check_t_overlap && split_i == 0)
         {
-            if (interval_overlap_region(
+            if (recordLaunch<bool, const Singleinterval &, Scalar, Scalar>("interval_overlap_region-halves.second", interval_overlap_region, 
                     halves.second, 0, t_upper_bound))
             {
                 current[split_i] = halves.second;
@@ -1118,7 +1140,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                     overflow_flag = HEAP_OVERFLOW;
                 }
             }
-            if (interval_overlap_region(halves.first, 0, t_upper_bound))
+            if (recordLaunch<bool, const Singleinterval &, Scalar, Scalar>("interval_overlap_region-halves.first", interval_overlap_region, halves.first, 0, t_upper_bound))
             {
                 current[split_i] = halves.first;
                 bool inserted = istack.insertKey(item(current, level + 1));
@@ -1197,8 +1219,9 @@ const Singleinterval init_interval= Singleinterval(low_number, up_number);
     iset[1] = init_interval;
     iset[2] = init_interval;
 
-    bool result = interval_root_finder_double_horizontal_tree(
-        tol, co_domain_tolerance, iset, check_t_overlap, max_time, toi,
+    // bool result = recordLaunch<bool, const Scalar *, const Scalar, Singleinterval [3], bool, const Scalar, Scalar, const bool, const Scalar *, const Scalar, const Scalar *, const Scalar *, const Scalar *, const Scalar *, const Scalar *, const Scalar *, const Scalar *, const Scalar *, const int, Scalar, int>("interval_root_finder_double_horizontal_tree", interval_root_finder_double_horizontal_tree,
+    bool result =   interval_root_finder_double_horizontal_tree(  
+    tol, co_domain_tolerance, iset, check_t_overlap, max_time, toi,
         check_vf, err, ms, a0s, a1s, b0s, b1s, a0e, a1e, b0e, b1e, max_itr,
         output_tolerance, overflow_flag);
 
@@ -1230,7 +1253,7 @@ __device__ Scalar max_linf_4(
     const VectorMax3d &p4e)
 {
     Scalar r = 0, temp = 0;
-    temp = max_linf_dist(p1e, p1);
+    temp = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist", max_linf_dist, p1e, p1);
     if (r < temp)
         r = temp;
     temp = max_linf_dist(p2e, p2);
@@ -1263,7 +1286,7 @@ __device__ void compute_face_vertex_tolerance_3d_new(
     Scalar dl = 0;
     Scalar edge0_length = 0;
     Scalar edge1_length = 0;
-    dl = 3 * max_linf_4(p000, p001, p011, p010, p100, p101, p111, p110);
+    dl = 3 * recordLaunch<Scalar ,const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &>("max_linf_4", max_linf_4, p000, p001, p011, p010, p100, p101, p111, p110);
     edge0_length =
         3 * max_linf_4(p000, p100, p101, p001, p010, p110, p111, p011);
     edge1_length =
@@ -1393,9 +1416,9 @@ __device__ bool CCD_Solver(
     // this is the error of the whole mesh
     Scalar err1[3];
 #ifdef CHECK_EE
-        compute_edge_edge_tolerance_new(data_in, tolerance, tol);
+        recordLaunch<const CCDdata &, Scalar, Scalar *>("compute_edge_edge_tolerance_new", compute_edge_edge_tolerance_new, data_in, tolerance, tol);
 #else
-        compute_face_vertex_tolerance_3d_new(data_in, tolerance, tol);
+        recordLaunch<const CCDdata &, Scalar, Scalar *>("compute_face_vertex_tolerance_3d_new", compute_face_vertex_tolerance_3d_new, data_in, tolerance, tol);
 #endif
 
         //////////////////////////////////////////////////////////
@@ -1416,7 +1439,7 @@ __device__ bool CCD_Solver(
         }
 
         bool use_ms = ms > 0;
-        get_numerical_error(vlist, 8, is_vf, use_ms, err1);
+        recordLaunch<const VectorMax3d *, int, const bool &, bool, Scalar *>("get_numerical_error", get_numerical_error, vlist, 8, is_vf, use_ms, err1);
 #else
         err1[0] = err[0];
         err1[1] = err[1];
@@ -1438,6 +1461,7 @@ __device__ bool CCD_Solver(
     iset[2] = init_interval;
 
     is_impacting = interval_root_finder_double_horizontal_tree(
+    // is_impacting = recordLaunch("interval_root_finder_double_horizontal_tree", interval_root_finder_double_horizontal_tree,
         tol, tolerance, iset, check_t_overlap, t_max, toi,
         is_vf, err1, ms, data_in.v0s,data_in.v1s,data_in.v2s,data_in.v3s,
         data_in.v0e,data_in.v1e,data_in.v2e,data_in.v3e, max_itr,
@@ -1463,7 +1487,7 @@ __device__ bool vertexFaceCCD_double(
     int &overflow_flag)
 {
     
-    bool res = CCD_Solver(data_in, err, ms, toi, tolerance, t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag, true);
+    bool res = recordLaunch<bool, const CCDdata &, const Scalar *, Scalar, Scalar &, Scalar, Scalar, int, Scalar &, bool, int &, bool>("CCD_Solver", CCD_Solver,data_in, err, ms, toi, tolerance, t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag, true);
     return res;
 }
 
@@ -1637,7 +1661,7 @@ __global__ void run_parallel_ccd_all(CCDdata *data, bool *res, int size, Scalar 
         CCDdata *input = &data[tx];
         bool result;
         Scalar toi;
-        single_test_wrapper_return_toi(input, result, toi);
+        recordLaunch<CCDdata *, bool &, Scalar &>("single_test_wrapper_return_toi", single_test_wrapper_return_toi, input, result, toi);
         res[tx] = result;
         tois[tx] = toi;
     }
@@ -1654,7 +1678,7 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     CCDdata *data_list = new CCDdata[nbr];
     for (int i = 0; i < nbr; i++)
     {
-        data_list[i] = array_to_ccd(V[i], is_edge);
+        data_list[i] = array_to_ccd( V[i], is_edge);
     }
     bool *res = new bool[nbr];
     Scalar *tois = new Scalar[nbr];
@@ -1676,7 +1700,8 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     ccd::Timer timer;
 
     timer.start();
-    run_parallel_ccd_all<<<nbr / parallel_nbr + 1, parallel_nbr>>>(d_data_list, d_res, nbr, d_tois);
+    // run_parallel_ccd_all<<<nbr / parallel_nbr + 1, parallel_nbr>>>(d_data_list, d_res, nbr, d_tois);
+    recordLaunch("run_parallel_ccd_all", nbr / parallel_nbr + 1, parallel_nbr, run_parallel_ccd_all,  d_data_list, d_res, nbr, d_tois);
     cudaDeviceSynchronize();
     double tt = timer.getElapsedTimeInMicroSec();
     run_time = tt;
@@ -1915,10 +1940,10 @@ void run_one_method_over_all_data(const Args &args, int parallel,
 }
 void run_ours_float_for_all_data(int parallel)
 {
-    std::string folder = "/home/bolun/bolun/data0809/"; // this is the output folder
+    std::string folder = std::string(getenv("HOME")) + "/data0809/"; // this is the output folder
     std::string tail = "_prl_" + std::to_string(parallel);
     Args arg;
-    arg.data_dir = "/home/bolun/bolun/float_with_gt/";
+    arg.data_dir = std::string(getenv("HOME")) + "/float_with_gt/";
 
     arg.minimum_separation = 0;
     arg.tight_inclusion_tolerance = 1e-6;
