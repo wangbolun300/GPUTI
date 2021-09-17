@@ -675,7 +675,7 @@ __device__ void Origin_in_function_bounding_box_double_vector_return_tolerance(
     //     box_in_eps = true;
     // }
     bool ck0,ck1,ck2;
-    recordLaunch<Scalar [8], Scalar [8], Scalar [8], Scalar [8], Scalar [8], Scalar [8], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], int, const bool &, const Scalar &, const Scalar &, bool &, Scalar &, bool &>("evaluate_bbox_one_dimension_vector_return_tolerance_t0", evaluate_bbox_one_dimension_vector_return_tolerance, 
+    recordLaunch<Scalar [8], Scalar [8], Scalar [8], Scalar [8], Scalar [8], Scalar [8], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], const Scalar [3], int, const bool &, const Scalar &, const Scalar &, bool &, Scalar &, bool &>("evaluate_bbox_one_dimension_vector_return_tolerance_t0", evaluate_bbox_one_dimension_vector_return_tolerance,
         t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
         a1e, b0e, b1e, 0, check_vf, box[0], ms, box_in[0],
         tolerance[0],ck0);
@@ -822,7 +822,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         if(overflow_flag!=NO_OVERFLOW){
             break;
         }
-        istack.extractMin();
+        current_item = istack.extractMin();
 
         current[0] = current_item.itv[0];
         current[1] = current_item.itv[1];
@@ -1253,16 +1253,16 @@ __device__ Scalar max_linf_4(
     const VectorMax3d &p4e)
 {
     Scalar r = 0, temp = 0;
-    temp = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist", max_linf_dist, p1e, p1);
+    temp = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p1", max_linf_dist, p1e, p1);
     if (r < temp)
         r = temp;
-    temp = max_linf_dist(p2e, p2);
+    temp = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p2", max_linf_dist, p2e, p2);
     if (r < temp)
         r = temp;
-    temp = max_linf_dist(p3e, p3);
+    temp = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p3", max_linf_dist, p3e, p3);
     if (r < temp)
         r = temp;
-    temp = max_linf_dist(p4e, p4);
+    temp = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p4", max_linf_dist, p4e, p4);
     if (r < temp)
         r = temp;
     return r;
@@ -1972,8 +1972,8 @@ void run_ours_float_for_all_data(int parallel)
     arg.run_ee_dataset = false;
     arg.run_vf_dataset = true;
     #endif
-    arg.run_simulation_dataset = false;
-    arg.run_handcrafted_dataset = true;
+    arg.run_simulation_dataset = true;
+    arg.run_handcrafted_dataset = false;
     run_one_method_over_all_data(arg, parallel, folder, tail);
 
 }

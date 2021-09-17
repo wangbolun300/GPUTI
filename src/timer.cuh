@@ -85,7 +85,7 @@ __device__ void recordLaunch(char* tag, void (*f)(Arguments...), Arguments... ar
     {
         stop = clock();
         clock_t t = stop - start;
-        printf ("%s: %d clicks (%f ms).\n", tag, stop - start,((float)(stop - start))/(float)CLOCKS_PER_SEC*1000.0f);
+        printf ("%s: %d clicks (%f ms).\n", tag, t,(float)t/(float)CLOCKS_PER_SEC*1000.0f);
     }     
 };
 
@@ -116,8 +116,8 @@ __device__ Fun recordLaunch(char* tag, Fun (*f)(Arguments...), Arguments... args
     if (threadIdx.x == 0 && blockIdx.x == 0)
     {
         stop = clock();
-        long long int t = (long long int)stop - start;
-        printf ("%s: %d clicks (%f ms).\n", tag, stop - start,((float)(stop - start))/(float)CLOCKS_PER_SEC*1000.0f);
+        clock_t t = stop - start;
+        printf ("%s: %d clicks (%f ms).\n", tag, t,(float)t/(float)CLOCKS_PER_SEC*1000.0f);
     }
     return res;
 };
