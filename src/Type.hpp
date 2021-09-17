@@ -4,6 +4,8 @@
 #include <limits>
 #include <gputi/CType.hpp>
 #include <assert.h>
+#include <cuda_profiler_api.h>
+#include <cudaProfiler.h>
 //#define GPUTI_USE_DOUBLE_PRECISION
 // #define GPUTI_SHOW_INFO 
 

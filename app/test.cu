@@ -148,9 +148,9 @@ __device__ item MinHeap::extractMin()
     clock_t start = clock();
     MinHeapify();
     clock_t stop = clock();
-    clock_t t = stop - start;
+    double t = (double)stop - start;
     if (threadIdx.x+blockIdx.x == 0)
-        printf ("%s: %d clicks (%f ms).\n", "MinHeapify", t,((float)t)/CLOCKS_PER_SEC/1000); 
+        printf ("%s: %d clicks (%f ms).\n", "MinHeapify", t,((float)t)/CLOCKS_PER_SEC*1000); 
 
 	return root;
 }
@@ -1491,6 +1491,22 @@ __device__ bool vertexFaceCCD_double(
     return res;
 }
 
+__device__ bool edgeEdgeCCD_double(
+    const CCDdata &data_in,
+    const Scalar *err,
+    const Scalar ms,
+    Scalar &toi,
+    Scalar tolerance,
+    Scalar t_max,
+    const int max_itr,
+    Scalar &output_tolerance,
+    bool no_zero_toi,
+    int &overflow_flag)
+{
+    bool res = CCD_Solver(data_in, err, ms, toi, tolerance, t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag, false);
+    return res;
+}
+
 std::vector<std::string> simulation_folders = {{"chain", "cow-heads", "golf-ball", "mat-twist"}};
 std::vector<std::string> handcrafted_folders = {{"erleben-sliding-spike", "erleben-spike-wedge",
                                                  "erleben-sliding-wedge", "erleben-wedge-crack", "erleben-spike-crack",
@@ -1641,10 +1657,10 @@ __device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scal
     data_cp.is_edge = is_edge;
     
 #ifdef CHECK_EE
-        result = edgeEdgeCCD_double(data_cp, err, ms, toi, tolerance,
+        result = recordLaunch("edgeEdgeCCD_double", edgeEdgeCCD_double, data_cp, err, ms, toi, tolerance,
                               t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag);
 #else
-        result = vertexFaceCCD_double(data_cp, err, ms, toi, tolerance,
+        result = recordLaunch<bool,const CCDdata &, const Scalar *, Scalar, Scalar &, Scalar, Scalar, int, Scalar &, bool, int &>("vertexFaceCCD_double", vertexFaceCCD_double,data_cp, err, ms, toi, tolerance,
                                       t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag);
 #endif
     time_impact = toi;
@@ -1699,13 +1715,13 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
 
     ccd::Timer timer;
 
+    cudaProfilerStart();
     timer.start();
-    // run_parallel_ccd_all<<<nbr / parallel_nbr + 1, parallel_nbr>>>(d_data_list, d_res, nbr, d_tois);
-    recordLaunch("run_parallel_ccd_all", nbr / parallel_nbr + 1, parallel_nbr, run_parallel_ccd_all,  d_data_list, d_res, nbr, d_tois);
+    run_parallel_ccd_all<<<nbr / parallel_nbr + 1, parallel_nbr>>>(d_data_list, d_res, nbr, d_tois);
     cudaDeviceSynchronize();
     double tt = timer.getElapsedTimeInMicroSec();
     run_time = tt;
-
+    cudaProfilerStop();
 
     cudaMemcpy(res, d_res, result_size, cudaMemcpyDeviceToHost);
 
@@ -1734,6 +1750,7 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     printf("******************\n%s\n************\n", cudaGetErrorString(ct));	
     return;
 }
+
 
 bool WRITE_STATISTIC = true;
 
