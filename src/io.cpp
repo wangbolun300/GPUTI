@@ -48,7 +48,7 @@ void read_rational_binary(
     vf.clear();
     std::ifstream infile (inputFileName, std::ios::in | std::ios::binary);
     // infile.open(inputFileName);
-    std::cout << inputFileName << std::endl;
+    // std::cout << inputFileName << std::endl;
 
     // infile.unsetf(std::ios::skipws);
 
@@ -98,7 +98,7 @@ void read_rational_binary(
     std::ifstream infile (inputFileName, std::ios::in | std::ios::binary);
     // infile.open(inputFileName);
     // std::array<Scalar, 3> v;
-    std::cout << inputFileName << std::endl;
+    // std::cout << inputFileName << std::endl;
 
     std::vector<int> tmp;
     // int r;
