@@ -9,6 +9,9 @@
 #include <cuda/std/functional>
 
 #include <gputi/timer.cuh>
+#include <gputi/io.h>
+
+extern std::vector<std::string> simulation_folders, handcrafted_folders;
 
 __device__ void interval_cp(const Singleinterval& a, Singleinterval& b)
 {
@@ -145,12 +148,17 @@ __device__ item MinHeap::extractMin()
 	// recordLaunch("MinHeapify", &MinHeap::MinHeapify);
     // std::function<void()> foo = [&]__device__(){this->MinHeapify();};
     // recordLaunch("MinHeapify", foo);
-    clock_t start = clock();
+    clock_t start, stop;
+    if (threadIdx.x == 0 && blockIdx.x == 0)
+        start = clock();
+
     MinHeapify();
-    clock_t stop = clock();
-    double t = (double)stop - start;
-    if (threadIdx.x+blockIdx.x == 0)
-        printf ("%s: %d clicks (%f ms).\n", "MinHeapify", t,((float)t)/CLOCKS_PER_SEC*1000); 
+    if (threadIdx.x == 0 && blockIdx.x == 0)
+    {
+        stop = clock();
+        clock_t t = stop - start;
+        printf ("%s: %d clicks (%f ms).\n", "MinHeapify", t,(float)t/(float)CLOCKS_PER_SEC*1000.0f);
+    }     
 
 	return root;
 }
@@ -1219,12 +1227,19 @@ const Singleinterval init_interval= Singleinterval(low_number, up_number);
     iset[1] = init_interval;
     iset[2] = init_interval;
 
-    // bool result = recordLaunch<bool, const Scalar *, const Scalar, Singleinterval [3], bool, const Scalar, Scalar, const bool, const Scalar *, const Scalar, const Scalar *, const Scalar *, const Scalar *, const Scalar *, const Scalar *, const Scalar *, const Scalar *, const Scalar *, const int, Scalar, int>("interval_root_finder_double_horizontal_tree", interval_root_finder_double_horizontal_tree,
+    clock_t start, stop;
+    if (threadIdx.x == 0 && blockIdx.x == 0)
+        start = clock();
     bool result =   interval_root_finder_double_horizontal_tree(  
     tol, co_domain_tolerance, iset, check_t_overlap, max_time, toi,
         check_vf, err, ms, a0s, a1s, b0s, b1s, a0e, a1e, b0e, b1e, max_itr,
         output_tolerance, overflow_flag);
-
+    if (threadIdx.x == 0 && blockIdx.x == 0)
+    {
+        stop = clock();
+        clock_t t = stop - start;
+        printf ("%s: %d clicks (%f ms).\n", "interval_root_finder_double_horizontal_tree", t,(float)t/(float)CLOCKS_PER_SEC*1000.0f);
+    }         
     return result;
 }
 
@@ -1232,12 +1247,11 @@ __device__ Scalar max_linf_dist(const VectorMax3d &p1, const VectorMax3d &p2)
 {
     Scalar r = 0;
 #pragma unroll
-    for (int i = 0; i < 3; i++)
+for (int i = 0; i < 3; i++)
     {
-        if (r < fabs(p1.v[i] - p2.v[i]))
-        {
-            r = fabs(p1.v[i] - p2.v[i]);
-        }
+        
+        r = max(r, fabs(p1.v[i] - p2.v[i]));
+
     }
     return r;
 }
@@ -1252,20 +1266,23 @@ __device__ Scalar max_linf_4(
     const VectorMax3d &p3e,
     const VectorMax3d &p4e)
 {
-    Scalar r = 0, temp = 0;
-    temp = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p1", max_linf_dist, p1e, p1);
-    if (r < temp)
-        r = temp;
-    temp = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p2", max_linf_dist, p2e, p2);
-    if (r < temp)
-        r = temp;
-    temp = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p3", max_linf_dist, p3e, p3);
-    if (r < temp)
-        r = temp;
-    temp = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p4", max_linf_dist, p4e, p4);
-    if (r < temp)
-        r = temp;
-    return r;
+    Scalar r = 0; //,temp = 0, temp2=0, temp3 = 0, temp4=0;
+    // temp4 = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p4", max_linf_dist, p4e, p4);
+    r = max(r, recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p4", max_linf_dist, p4e, p4));
+    // if (r < temp4) return temp4;
+    
+    // temp3 = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p3", max_linf_dist, p3e, p3);
+    // if (r < temp3) return temp3;
+    r = max(r, recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p3", max_linf_dist, p3e, p3));
+
+    // temp2 = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p2", max_linf_dist, p2e, p2);
+    // if (r < temp2) return temp2;
+    r = max(r, recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p2", max_linf_dist, p2e, p2));
+
+    // temp = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p1", max_linf_dist, p1e, p1);
+    // if (r < temp) return temp; 
+    // return tem /p4;
+    return max(r, recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p1", max_linf_dist, p1e, p1));
 }
 __device__ void compute_face_vertex_tolerance_3d_new(
     const CCDdata &data_in,
@@ -1286,11 +1303,11 @@ __device__ void compute_face_vertex_tolerance_3d_new(
     Scalar dl = 0;
     Scalar edge0_length = 0;
     Scalar edge1_length = 0;
-    dl = 3 * recordLaunch<Scalar ,const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &>("max_linf_4", max_linf_4, p000, p001, p011, p010, p100, p101, p111, p110);
+    dl = 3 * recordLaunch<Scalar ,const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &>("max_linf_4-dl", max_linf_4, p000, p001, p011, p010, p100, p101, p111, p110);
     edge0_length =
-        3 * max_linf_4(p000, p100, p101, p001, p010, p110, p111, p011);
+    3 * recordLaunch<Scalar ,const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &>("max_linf_4-edge0_length", max_linf_4, p000, p100, p101, p001, p010, p110, p111, p011);
     edge1_length =
-        3 * max_linf_4(p000, p100, p110, p010, p001, p101, p111, p011);
+    3*recordLaunch<Scalar ,const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &, const VectorMax3d &>("max_linf_4-edge1_length", max_linf_4, p000, p100, p110, p010, p001, p101, p111, p011);
 
     result[0] = tolerance / dl;
     result[1] = tolerance / edge0_length;
@@ -1459,13 +1476,22 @@ __device__ bool CCD_Solver(
     iset[0] = init_interval;
     iset[1] = init_interval;
     iset[2] = init_interval;
-
+    
+    clock_t start, stop;
+    if (threadIdx.x == 0 && blockIdx.x == 0)
+        start = clock();
     is_impacting = interval_root_finder_double_horizontal_tree(
-    // is_impacting = recordLaunch("interval_root_finder_double_horizontal_tree", interval_root_finder_double_horizontal_tree,
         tol, tolerance, iset, check_t_overlap, t_max, toi,
         is_vf, err1, ms, data_in.v0s,data_in.v1s,data_in.v2s,data_in.v3s,
         data_in.v0e,data_in.v1e,data_in.v2e,data_in.v3e, max_itr,
         output_tolerance, overflow_flag);
+    if (threadIdx.x == 0 && blockIdx.x == 0)
+    {
+        stop = clock();
+        clock_t t = stop - start;
+        printf ("%s: %d clicks (%f ms).\n", "interval_root_finder_double_horizontal_tree", t,(float)t/(float)CLOCKS_PER_SEC*1000.0f);
+    }        
+
     if (overflow_flag)
     {
         return true;
@@ -1507,22 +1533,7 @@ __device__ bool edgeEdgeCCD_double(
     return res;
 }
 
-std::vector<std::string> simulation_folders = {{"chain", "cow-heads", "golf-ball", "mat-twist"}};
-std::vector<std::string> handcrafted_folders = {{"erleben-sliding-spike", "erleben-spike-wedge",
-                                                 "erleben-sliding-wedge", "erleben-wedge-crack", "erleben-spike-crack",
-                                                 "erleben-wedges", "erleben-cube-cliff-edges", "erleben-spike-hole",
-                                                 "erleben-cube-internal-edges", "erleben-spikes", "unit-tests"}};
-struct Args
-{
-    std::string data_dir;
-    double minimum_separation = 0;
-    double tight_inclusion_tolerance = 1e-6;
-    long tight_inclusion_max_iter = 1e6;
-    bool run_ee_dataset = true;
-    bool run_vf_dataset = true;
-    bool run_simulation_dataset = true;
-    bool run_handcrafted_dataset = true;
-};
+
 void print_V(std::array<std::array<Scalar, 3>, 8> V)
 {
     for (int i = 0; i < 8; i++)
@@ -1597,34 +1608,7 @@ void write_csv(const std::string &file, const std::vector<std::string> titles, c
 
     fout.close();
 }
-std::vector<std::string> file_path_base()
-{
-    // path is in the form of "chain/edge-edge/"
-    std::vector<std::string> result;
-    result.reserve(9999);
-    for (int i = 1; i < 10000; i++)
-    {
-        std::string base;
-        if (i < 10)
-        {
-            base = "000" + std::to_string(i);
-        }
-        if (i >= 10 && i < 100)
-        {
-            base = "00" + std::to_string(i);
-        }
-        if (i >= 100 && i < 1000)
-        {
-            base = "0" + std::to_string(i);
-        }
-        if (i >= 1000 && i < 10000)
-        {
-            base = std::to_string(i);
-        }
-        result.push_back(base);
-    }
-    return result;
-}
+
 
 __device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scalar &time_impact)
 {
@@ -1672,15 +1656,15 @@ __global__ void run_parallel_ccd_all(CCDdata *data, bool *res, int size, Scalar 
 
     int tx = threadIdx.x + blockIdx.x * blockDim.x;
 
-    if (tx < size)
-    {
-        CCDdata *input = &data[tx];
-        bool result;
-        Scalar toi;
-        recordLaunch<CCDdata *, bool &, Scalar &>("single_test_wrapper_return_toi", single_test_wrapper_return_toi, input, result, toi);
-        res[tx] = result;
-        tois[tx] = toi;
-    }
+    if (tx >= size) return;
+    // {
+    CCDdata *input = &data[tx];
+    bool result;
+    Scalar toi;
+    recordLaunch<CCDdata *, bool &, Scalar &>("single_test_wrapper_return_toi", single_test_wrapper_return_toi, input, result, toi);
+    res[tx] = result;
+    tois[tx] = toi;
+    // }
 }
 
 
@@ -1717,7 +1701,7 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
 
     cudaProfilerStart();
     timer.start();
-    run_parallel_ccd_all<<<nbr / parallel_nbr + 1, parallel_nbr>>>(d_data_list, d_res, nbr, d_tois);
+    recordLaunch("run_parallel_ccd_all", nbr / parallel_nbr + 1, parallel_nbr, run_parallel_ccd_all, d_data_list, d_res, nbr, d_tois);
     cudaDeviceSynchronize();
     double tt = timer.getElapsedTimeInMicroSec();
     run_time = tt;
@@ -1952,6 +1936,7 @@ void run_one_method_over_all_data(const Args &args, int parallel,
             std::cout << "Edge-Edge:" << std::endl;
             run_rational_data_single_method_parallel(
                 args, /*is_edge_edge=*/true, /*is_simu_data=*/true, parallel, folder, tail);
+            
         }
     }
 }
