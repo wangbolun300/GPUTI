@@ -1783,7 +1783,15 @@ void run_rational_data_single_method_parallel(
             {
                 break;
             }
-            all_V = ccd::read_rational_csv(filename, results);
+            // all_V = ccd::read_rational_csv(filename, results);
+            // all_V = read_rational_csv_bin(filename, results);
+
+            std::string filename_noext =  filename.substr(0, filename.find_last_of("."));
+            
+            read_rational_binary(std::string(filename_noext + "_vertex.bin"), all_V );
+            // std::cout << "Finished vertex" << std::endl;
+            read_rational_binary(std::string(filename_noext + "_result.bin"), results );
+            
             if (all_V.size() == 0)
             {
                 std::cout << "data size " << all_V.size() << std::endl;

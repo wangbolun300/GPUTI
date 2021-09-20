@@ -2,8 +2,10 @@
 
 #include <vector>
 #include <iostream>
+#include <string>
 #include <fstream>
-#include "../../app/read_rational_csv.hpp""
+#include <iterator>
+#include "../../app/read_rational_csv.hpp"
 
 using namespace ccd;
 
@@ -22,3 +24,12 @@ struct Args
 };
 
 std::vector<std::string> file_path_base();
+
+std::vector<std::array<Scalar,3>> 
+read_rational_csv_bin(const std::string& filename, std::vector<bool>& results);
+
+void read_rational_binary(
+   const std::string& inputFileName, std::vector<bool>& results);
+
+void read_rational_binary(
+   const std::string& inputFileName, std::vector<std::array<Scalar, 3>>& vs);

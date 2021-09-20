@@ -1,5 +1,6 @@
 #include <gputi/io.h>
 
+
 std::vector<std::string> simulation_folders = {{"chain", "cow-heads", "golf-ball", "mat-twist"}};
 std::vector<std::string> handcrafted_folders = {{"erleben-sliding-spike", "erleben-spike-wedge",
                                                  "erleben-sliding-wedge", "erleben-wedge-crack", "erleben-spike-crack",
@@ -39,22 +40,93 @@ std::vector<std::string> file_path_base()
 // using namespace std;
 
 void read_rational_binary(
+   const std::string& inputFileName, std::vector<std::array<Scalar, 3>>& vf
+)
+{
+    // results.clear();
+    // std::vector<std::array<Scalar, 3>> vs;
+    vf.clear();
+    std::ifstream infile (inputFileName, std::ios::in | std::ios::binary);
+    // infile.open(inputFileName);
+    std::cout << inputFileName << std::endl;
+
+    // infile.unsetf(std::ios::skipws);
+
+    std::streampos fileSize;
+
+    infile.seekg(0, std::ios::end);
+    fileSize = infile.tellg();
+    infile.seekg(0, std::ios::beg);
+    // std::cout << "fileSize: " << fileSize << std::endl;
+    
+    
+    
+
+    // read the data:
+    std::vector<Scalar> vs;
+    vs.resize(fileSize/sizeof(Scalar));
+    infile.read(reinterpret_cast<char*>(vs.data()), fileSize);
+    // vs.insert(vs.begin(),
+    //            std::istream_iterator<Scalar>(infile),
+    //            std::istream_iterator<Scalar>());
+    // std::cout << "1st val: " << vs[0] << std::endl;
+
+    
+    for (size_t i=0; i < vs.size(); i+=3)
+    {
+        // std::cout << "vs[i]: " << vs[i] << std::endl;
+        std::array<Scalar,3> a = {vs[i],vs[i+1], vs[i+2]};
+        vf.push_back(a);
+    }
+    // infile.close();
+
+    // while (!infile.eof())
+    // {
+    //     infile.read(reinterpret_cast<char*>(&v[0]), sizeof(Scalar)*3);
+    //     vs.push_back(v);
+    //     // std::cout << "vs.size: " << vs.size() << std::endl;
+    // }
+}
+
+void read_rational_binary(
    const std::string& inputFileName, std::vector<bool>& results
 )
 {
     results.clear();
-    std::vector<std::array<Scalar, 3>> vs;
-    vs.clear();
+    // std::vector<std::array<Scalar, 3>> vs;
+    // vs.clear();
     std::ifstream infile (inputFileName, std::ios::in | std::ios::binary);
-    infile.open(inputFileName);
-    std::array<Scalar, 3> v;
+    // infile.open(inputFileName);
+    // std::array<Scalar, 3> v;
+    std::cout << inputFileName << std::endl;
 
-    while (!infile.eof())
+    std::vector<int> tmp;
+    // int r;
+
+    std::streampos fileSize;
+    infile.seekg(0, std::ios::end);
+    fileSize = infile.tellg();
+    infile.seekg(0, std::ios::beg);
+    // std::cout << "fileSize: " << fileSize << std::endl;
+
+    // tmp.resize(fileSize / sizeof(int));
+    tmp.resize( fileSize / sizeof(int) );
+    infile.read(reinterpret_cast<char*>(tmp.data()), fileSize);
+    // tmp.insert(tmp.begin(),
+    //            std::istream_iterator<int>(infile),
+    //            std::istream_iterator<int>());
+
+    for (auto t : tmp)
     {
-        infile.read(reinterpret_cast<char*>(&v[0]), sizeof(Scalar)*3);
-        vs.push_back(v);
+      results.push_back(t != 0);
     }
-}
+    // infile.close();
+    // while (!infile.eof())
+    // {
+    //     infile.read(reinterpret_cast<char*>(r), sizeof(int));
+    //     results.push_back(r != 0);
+    // }
+} 
 
 void toBinary(
     std::string filename,
@@ -63,56 +135,47 @@ void toBinary(
 {
     std::ofstream myFile (filename, std::ios::out | std::ios::binary);
     // Prefer container.data() over &container[0]
-    myFile.write (reinterpret_cast<char*>(all_V.data()), all_V.size()*sizeof(Scalar)*3);
-}
-
-
-void csv_to_binarystream(
-    const Args &args,
-    const bool is_edge_edge,
-    std::vector<std::array<Scalar, 3>>& all_V,
-    const std::string folder = "", const std::string tail = ""
-    )
-{
-    // arg.run_simulation_dataset = true;
-    // arg.run_handcrafted_dataset = false;
-    std::string sub_folder = is_edge_edge ? "/edge-edge/" : "/vertex-face/";
-    std::string sub_name = is_edge_edge ? "edge-edge" : "vertex-face";
-
-    const std::vector<std::string> &scene_names = args.run_simulation_dataset ? simulation_folders : handcrafted_folders;
-    std::cout << "loading data" << std::endl;
-    std::vector<std::string> bases = file_path_base();
-
-    for (const auto &scene_name : scene_names)
-    {
-        std::string scene_path = args.data_dir + scene_name + sub_folder;
-
-        bool skip_folder = false;
-        for (const auto &entry : bases)
+    std::vector<Scalar> vs;
+    for (auto v : all_V)
         {
-            if (skip_folder)
-            {
-                break;
-            }
-            std::string filename = scene_path + sub_name + "-" + entry + ".csv";
-
-            std::vector<bool> results;
-            all_V = ccd::read_rational_csv(filename, results);
-            if (all_V.size() == 0)
-            {
-                std::cout << "data size " << all_V.size() << std::endl;
-                std::cout << filename << std::endl;
-            }
-
-            if (all_V.size() == 0)
-            {
-                skip_folder = true;
-                continue;
-            }
-
-            std::string binaryFilename =  scene_path + sub_name + "-" + entry + ".bin";
-            toBinary(binaryFilename, all_V);
+            vs.push_back(v[0]);
+            vs.push_back(v[1]);
+            vs.push_back(v[2]);
         }
-    }
+    myFile.write (reinterpret_cast<char*>(vs.data()), vs.size()*sizeof(Scalar));
+    myFile.close();
 }
+
+void toBinary(
+    std::string filename,
+    std::vector<int>& results
+)
+{
+    std::ofstream myFile (filename, std::ofstream::out | std::ofstream::binary);
+    // Prefer container.data() over &container[0]
+    myFile.write (reinterpret_cast<char*>(results.data()), results.size()*sizeof(int));
+    myFile.close();
+}
+
+
+std::vector<std::array<Scalar,3>> 
+read_rational_csv_bin(const std::string& filename, std::vector<bool>& results)
+{
+
+    std::vector<std::array<Scalar,3>>  all_V = ccd::read_rational_csv(filename, results);
+    // std::cout<< "results: " << results.size() << std::endl;
+
+    // need to store contiguosly for bitstream
+    std::vector<int> resultsAsInt;
+    for (auto t : results)
+        resultsAsInt.push_back(int(t));
+    // std::cout << "size of results: " << resultsAsInt.size() << std::endl;
+
+    std::string filename_noext =  filename.substr(0, filename.find_last_of("."));
+    toBinary(std::string(filename_noext + "_vertex.bin"), all_V);
+    toBinary(std::string(filename_noext + "_result.bin"), resultsAsInt);
+
+    return all_V;
+}
+
 
