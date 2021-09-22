@@ -43,15 +43,9 @@ void read_rational_binary(
    const std::string& inputFileName, std::vector<std::array<Scalar, 3>>& vf
 )
 {
-    // results.clear();
-    // std::vector<std::array<Scalar, 3>> vs;
+
     vf.clear();
     std::ifstream infile (inputFileName, std::ios::in | std::ios::binary);
-    // infile.open(inputFileName);
-    // std::cout << inputFileName << std::endl;
-
-    // infile.unsetf(std::ios::skipws);
-
     std::streampos fileSize;
 
     infile.seekg(0, std::ios::end);

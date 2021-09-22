@@ -1532,21 +1532,21 @@ __device__ bool edgeEdgeCCD_double(
     return res;
 }
 
-__device__ bool edgeEdgeCCD_double(
-    const CCDdata &data_in,
-    const Scalar *err,
-    const Scalar ms,
-    Scalar &toi,
-    Scalar tolerance,
-    Scalar t_max,
-    const int max_itr,
-    Scalar &output_tolerance,
-    bool no_zero_toi,
-    int &overflow_flag)
-{
-    bool res = CCD_Solver(data_in, err, ms, toi, tolerance, t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag, false);
-    return res;
-}
+// __device__ bool edgeEdgeCCD_double(
+//     const CCDdata &data_in,
+//     const Scalar *err,
+//     const Scalar ms,
+//     Scalar &toi,
+//     Scalar tolerance,
+//     Scalar t_max,
+//     const int max_itr,
+//     Scalar &output_tolerance,
+//     bool no_zero_toi,
+//     int &overflow_flag)
+// {
+//     bool res = CCD_Solver(data_in, err, ms, toi, tolerance, t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag, false);
+//     return res;
+// }
 
 
 void print_V(std::array<std::array<Scalar, 3>, 8> V)
@@ -1873,9 +1873,19 @@ void run_rational_data_single_method_parallel(
 
             std::string filename_noext =  filename.substr(0, filename.find_last_of("."));
             
-            read_rational_binary(std::string(filename_noext + "_vertex.bin"), all_V );
-            // std::cout << "Finished vertex" << std::endl;
-            read_rational_binary(std::string(filename_noext + "_result.bin"), results );
+            std::string vertexFilename = std::string(filename_noext + "_vertex.bin");
+            std::ifstream vinfile (vertexFilename, std::ios::in | std::ios::binary);
+
+            std::string resultsFilename = std::string(filename_noext + "_result.bin");
+            std::ifstream rinfile (resultsFilename, std::ios::in | std::ios::binary);
+            
+            if (vinfile && rinfile)
+            {
+                read_rational_binary(vertexFilename, all_V );
+                read_rational_binary(resultsFilename, results );
+            }
+            else 
+                all_V = read_rational_csv_bin(filename, results);
             
             if (all_V.size() == 0)
             {
