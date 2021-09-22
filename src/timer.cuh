@@ -76,14 +76,17 @@ void recordLaunch(char* tag, int gs, int bs, void(*f)(Arguments...), Arguments..
 
 template <typename... Arguments>
 __device__ void recordLaunch(char* tag, void (*f)(Arguments...), Arguments... args) {
-    clock_t start = clock();
+    clock_t start, stop;
+    if (threadIdx.x == 0 && blockIdx.x == 0)
+        start = clock();
 
     f(args...);
-
-    clock_t stop = clock();
-    clock_t t = stop - start;
-    if (threadIdx.x+blockIdx.x == 0)
-        printf ("%s: %d clicks (%f ms).\n", tag, t,((float)t)/CLOCKS_PER_SEC/1000);       
+    if (threadIdx.x == 0 && blockIdx.x == 0)
+    {
+        stop = clock();
+        clock_t t = stop - start;
+        printf ("%s: %d clicks (%f ms).\n", tag, t,(float)t/(float)CLOCKS_PER_SEC*1000.0f);
+    }     
 };
 
 
@@ -105,13 +108,17 @@ __device__ Fun recordLaunch(char* tag, Fun (*f)(Arguments...), Arguments... args
     // int gs = 0;
     // int bs = 0;
     // recordLaunch(tag, gs, bs, f, args...);
-    clock_t start = clock();
+    clock_t start, stop;
+    if (threadIdx.x == 0 && blockIdx.x == 0)
+        start = clock();
 
     Fun res = f(args...);
-    clock_t stop = clock();
-    clock_t t = stop - start;
-    if (threadIdx.x+blockIdx.x == 0)
-        printf ("%s: %d clicks (%f ms).\n", tag, t,((float)t)/CLOCKS_PER_SEC/1000);
+    if (threadIdx.x == 0 && blockIdx.x == 0)
+    {
+        stop = clock();
+        clock_t t = stop - start;
+        printf ("%s: %d clicks (%f ms).\n", tag, t,(float)t/(float)CLOCKS_PER_SEC*1000.0f);
+    }
     return res;
 };
 
