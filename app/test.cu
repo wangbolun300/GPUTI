@@ -1940,10 +1940,10 @@ void run_one_method_over_all_data(const Args &args, int parallel,
 }
 void run_ours_float_for_all_data(int parallel)
 {
-    std::string folder = std::string(getenv("HOME")) + "/data0809/"; // this is the output folder
+    std::string folder = std::string(getenv("HOME")) + "/bolun/data0809/"; // this is the output folder
     std::string tail = "_prl_" + std::to_string(parallel);
     Args arg;
-    arg.data_dir = std::string(getenv("HOME")) + "/float_with_gt/";
+    arg.data_dir = std::string(getenv("HOME")) + "/bolun/float_with_gt/";
 
     arg.minimum_separation = 0;
     arg.tight_inclusion_tolerance = 1e-6;
