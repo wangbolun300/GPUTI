@@ -1516,6 +1516,21 @@ __device__ bool vertexFaceCCD_double(
     bool res = recordLaunch<bool, const CCDdata &, const Scalar *, Scalar, Scalar &, Scalar, Scalar, int, Scalar &, bool, int &, bool>("CCD_Solver", CCD_Solver,data_in, err, ms, toi, tolerance, t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag, true);
     return res;
 }
+__device__ bool edgeEdgeCCD_double(
+    const CCDdata &data_in,
+    const Scalar *err,
+    const Scalar ms,
+    Scalar &toi,
+    Scalar tolerance,
+    Scalar t_max,
+    const int max_itr,
+    Scalar &output_tolerance,
+    bool no_zero_toi,
+    int &overflow_flag)
+{
+    bool res = CCD_Solver(data_in, err, ms, toi, tolerance, t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag, false);
+    return res;
+}
 
 __device__ bool edgeEdgeCCD_double(
     const CCDdata &data_in,
@@ -1648,6 +1663,7 @@ __device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scal
                                       t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag);
 #endif
     time_impact = toi;
+    
     return;
 }
 
@@ -1698,10 +1714,9 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     cudaMemcpy(d_data_list, data_list, data_size, cudaMemcpyHostToDevice);
 
     ccd::Timer timer;
-
     cudaProfilerStart();
     timer.start();
-    recordLaunch("run_parallel_ccd_all", nbr / parallel_nbr + 1, parallel_nbr, run_parallel_ccd_all, d_data_list, d_res, nbr, d_tois);
+    run_parallel_ccd_all<<<nbr / parallel_nbr + 1, parallel_nbr>>>(d_data_list, d_res, nbr, d_tois);
     cudaDeviceSynchronize();
     double tt = timer.getElapsedTimeInMicroSec();
     run_time = tt;
@@ -1734,7 +1749,77 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     printf("******************\n%s\n************\n", cudaGetErrorString(ct));	
     return;
 }
+void all_ccd_run_(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, bool is_edge,
+                 std::vector<bool> &result_list, double &run_time, std::vector<Scalar> &time_impact, int parallel_nbr)
+{
+    int nbr = V.size();
+    result_list.resize(nbr);
+    // host
+    CCDdata *data_list = new CCDdata[nbr];
+    for (int i = 0; i < nbr; i++)
+    {
+        data_list[i] = array_to_ccd(V[i], is_edge);
+    }
+    bool *res = new bool[nbr];
+    Scalar *tois = new Scalar[nbr];
 
+    // device
+    CCDdata *d_data_list;
+    bool *d_res;
+    Scalar *d_tois;
+
+    int data_size = sizeof(CCDdata) * nbr;
+    int result_size = sizeof(bool) * nbr;
+    int time_size = sizeof(Scalar) * nbr;
+
+    cudaMalloc(&d_data_list, data_size);
+    cudaMalloc(&d_res, result_size);
+    cudaMalloc(&d_tois, time_size);
+    cudaMemcpy(d_data_list, data_list, data_size, cudaMemcpyHostToDevice);
+
+    ccd::Timer timer;
+    cudaEvent_t start, stop;
+cudaEventCreate(&start);
+cudaEventCreate(&stop); 
+
+
+    cudaProfilerStart();
+    timer.start();
+    recordLaunch("run_parallel_ccd_all", nbr / parallel_nbr + 1, parallel_nbr, run_parallel_ccd_all, d_data_list, d_res, nbr, d_tois);
+    cudaDeviceSynchronize();
+    double tt = timer.getElapsedTimeInMicroSec();
+    run_time = tt;
+
+    cudaProfilerStop();
+
+
+    cudaMemcpy(res, d_res, result_size, cudaMemcpyDeviceToHost);
+
+    cudaMemcpy(tois, d_tois, time_size, cudaMemcpyDeviceToHost);
+
+    cudaFree(d_data_list);
+    cudaFree(d_res);
+    cudaFree(d_tois);
+
+    for (int i = 0; i < nbr; i++)
+    {
+        result_list[i] = res[i];
+    }
+
+    time_impact.resize(nbr);
+
+    for (int i = 0; i < nbr; i++)
+    {
+        time_impact[i] = tois[i];
+    }
+
+    delete[] res;
+    delete[] data_list;
+    delete[] tois;
+    cudaError_t ct = cudaGetLastError();
+    printf("******************\n%s\n************\n", cudaGetErrorString(ct));	
+    return;
+}
 
 bool WRITE_STATISTIC = true;
 
@@ -2010,5 +2095,5 @@ int main(int argc, char **argv)
 
     run_ours_float_for_all_data(parallel);
     std::cout << "done!" << std::endl;
-    return 1;
+    return 0;
 }
