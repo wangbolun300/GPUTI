@@ -9,6 +9,8 @@
 //#define GPUTI_USE_DOUBLE_PRECISION
 // #define GPUTI_SHOW_INFO 
 #define GPUTI_GO_DEAP_HEAP
+static const int TESTING_ID = 219064;
+
 // #define CHECK_EE
 #define NO_CHECK_MS
 #define CALCULATE_ERROR_BOUND
