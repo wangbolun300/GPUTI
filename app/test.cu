@@ -1915,6 +1915,16 @@ void run_rational_data_single_method_parallel(
             }
         }
     }
+
+#ifdef GPUTI_GO_DEAP_HEAP
+    std::array<std::array<Scalar, 3>, 8> deep_one = queries[219064];
+    queries.resize(9e6);
+    expect_list.resize(queries.size());
+    for (int i = 0; i < queries.size(); i++)
+    {
+        queries[i] = deep_one;
+    }
+#endif
     int size = queries.size();
     std::cout << "data loaded, size " << queries.size() << std::endl;
     double tavg = 0;

@@ -8,7 +8,7 @@
 #include <cudaProfiler.h>
 //#define GPUTI_USE_DOUBLE_PRECISION
 // #define GPUTI_SHOW_INFO 
-
+#define GPUTI_GO_DEAP_HEAP
 // #define CHECK_EE
 #define NO_CHECK_MS
 #define CALCULATE_ERROR_BOUND
