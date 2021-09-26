@@ -48,13 +48,10 @@ __device__ Singleinterval::Singleinterval(Numccd f, Numccd s)
 }
 __device__ interval_pair::interval_pair(const Singleinterval &a, const Singleinterval &b)
 {
-    // interval_cp(a,first);
-    // interval_cp(b,second);
     first = a;
     second = b;
 }
 
-//TODO add overflow checks for these basis functions
 // calculate a*(2^b)
 __device__ long power(const long a, const int b) { return a << b; }
 __device__ Scalar Numccd2double(const Numccd &n)
@@ -340,18 +337,6 @@ __device__ void evaluate_bbox_one_dimension_vector_return_tolerance(
     maxv=fmaxf(vs[6],maxv);
     minv=fminf(vs[7],minv);
     maxv=fmaxf(vs[7],maxv);
-// #pragma unroll
-//     for (int i = 1; i < 8; i++)
-//     {
-//         if (minv > vs[i])
-//         {
-//             minv = vs[i];
-//         }
-//         if (maxv < vs[i])
-//         {
-//             maxv = vs[i];
-//         }
-//     }
 
     tol = maxv - minv; // this is the real tolerance
     
@@ -368,88 +353,7 @@ __device__ void evaluate_bbox_one_dimension_vector_return_tolerance(
     return;
 }
 
-// we used to use this function, but now we directly do what this function does in the root-finder function
-__device__ void Origin_in_function_bounding_box_double_vector_return_tolerance(
-    Singleinterval paras[3],
-    const Scalar a0s[3],
-    const Scalar a1s[3],
-    const Scalar b0s[3],
-    const Scalar b1s[3],
-    const Scalar a0e[3],
-    const Scalar a1e[3],
-    const Scalar b0e[3],
-    const Scalar b1e[3],
-    const bool check_vf,
-    const Scalar box[3],
-    const Scalar ms,
-    bool &box_in_eps,
-    Scalar tolerance[3], bool &result)
-{
-    
-    box_in_eps = false;
-    result=false;
-    Scalar t_up[8];
-    Scalar t_dw[8];
-    Scalar u_up[8];
-    Scalar u_dw[8];
-    Scalar v_up[8];
-    Scalar v_dw[8];
-    Singleinterval itv0 = paras[0], itv1 = paras[1], itv2 = paras[2];
 
-    convert_tuv_to_array(itv0, itv1, itv2, t_up, t_dw, u_up, u_dw, v_up, v_dw);
-    
-    //bool ck;
-    bool box_in[3];
-
-// #pragma unroll
-//     for (int i = 0; i < 3; i++)
-//     {
-
-//         ck = evaluate_bbox_one_dimension_vector_return_tolerance(
-//             t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
-//             a1e, b0e, b1e, i, check_vf, box[i], ms, box_in[i],
-//             tolerance[i]);
-
-//         if (!ck)
-//         {
-//             return false;
-//         }
-//     }
-    // if (box_in[0] && box_in[1] && box_in[2])
-    // {
-    //     box_in_eps = true;
-    // }
-    bool ck0,ck1,ck2;
-    evaluate_bbox_one_dimension_vector_return_tolerance(
-        t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
-        a1e, b0e, b1e, 0, check_vf, box[0], ms, box_in[0],
-        tolerance[0],ck0);
-    evaluate_bbox_one_dimension_vector_return_tolerance(
-        t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
-        a1e, b0e, b1e, 1, check_vf, box[1], ms, box_in[1],
-        tolerance[1],ck1);
-    evaluate_bbox_one_dimension_vector_return_tolerance( 
-        t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
-        a1e, b0e, b1e, 2, check_vf, box[2], ms, box_in[2],
-        tolerance[2],ck2);
-    
-    box_in_eps = box_in[0] * box_in[1] * box_in[2];
-    //int aa=int(ck0)*int(ck1)*int(ck2);
-    // return;
-    if(ck0&&ck1&&ck2){
-        result=true;
-    }
-    
-    
-    
-    // if (!ck)
-    // {
-    //     return false;
-    // }
-    
-    // return ck;
-    return;
-}
 
 __device__ void bisect(const Singleinterval &inter, interval_pair &out)
 {
@@ -595,28 +499,6 @@ __device__ bool interval_root_finder_double_horizontal_tree(
 
     convert_tuv_to_array(itv0, itv1, itv2, t_up, t_dw, u_up, u_dw, v_up, v_dw);
     
-    //bool ck;
-
-// zero_in=true;
-// box_in=true;
-// box_in_[0]=false;
-// box_in_[1]=false;
-// box_in_[2]=false;
-//     #pragma unroll
-//     for (int i = 0; i < 3; i++)
-//     {
-
-// evaluate_bbox_one_dimension_vector_return_tolerance(
-//         t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
-//         a1e, b0e, b1e, i, check_vf, err[i], ms, box_in_[i],
-//         true_tol[i],ck);
-
-//         if (!ck)
-//         {
-//             zero_in=false;
-//             break;
-//         }
-//     }
     evaluate_bbox_one_dimension_vector_return_tolerance(
         t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
         a1e, b0e, b1e, 0, check_vf, err[0], ms, box_in_[0],
@@ -633,11 +515,6 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     box_in = box_in_[0] && box_in_[1] && box_in_[2];
     zero_in=ck0&&ck1&&ck2;
     
-
-        
-            // Origin_in_function_bounding_box_double_vector_return_tolerance(
-            //     current, a0s, a1s, b0s, b1s, a0e, a1e, b0e, b1e, check_vf,
-            //     err, ms, box_in, true_tol,zero_in);
 
         if (!zero_in)
             continue;
@@ -950,26 +827,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     Scalar &output_tolerance,
     int &overflow_flag)
 {
-#ifdef TIME_UPPER_IS_ONE
-    bool check_t_overlap = false; // if input max_time = 1, then no need to check overlap
-#else
-    bool check_t_overlap = true;
-#endif
 
-const Numccd low_number= Numccd(0,0);
-const Numccd up_number=Numccd(1,0);
-const Singleinterval init_interval= Singleinterval(low_number, up_number);
-    Singleinterval iset[3];
-    iset[0] = init_interval;
-    iset[1] = init_interval;
-    iset[2] = init_interval;
-
-
-    bool result =   interval_root_finder_double_horizontal_tree(  
-    tol, co_domain_tolerance, iset, check_t_overlap, max_time, toi,
-        check_vf, err, ms, a0s, a1s, b0s, b1s, a0e, a1e, b0e, b1e, max_itr,
-        output_tolerance, overflow_flag);      
-    return result;
 }
 
 __device__ Scalar max_linf_dist(const VectorMax3d &p1, const VectorMax3d &p2)
@@ -1153,6 +1011,22 @@ __device__ bool CCD_Solver(
     bool is_vf)
 {
 
+    return true;
+}
+
+__device__ bool vertexFaceCCD_double(
+    const CCDdata &data_in,
+    const Scalar *err,
+    const Scalar ms,
+    Scalar &toi,
+    Scalar tolerance,
+    Scalar t_max,
+    const int max_itr,
+    Scalar &output_tolerance,
+    bool no_zero_toi,
+    int &overflow_flag)
+{
+    
     overflow_flag = 0;
 
     bool is_impacting;
@@ -1185,7 +1059,7 @@ __device__ bool CCD_Solver(
         }
 
         bool use_ms = ms > 0;
-        get_numerical_error(vlist, 8, is_vf, use_ms, err1);
+        get_numerical_error(vlist, 8, /*is_vf*/true, use_ms, err1);
 #else
         err1[0] = err[0];
         err1[1] = err[1];
@@ -1205,13 +1079,12 @@ __device__ bool CCD_Solver(
     iset[0] = init_interval;
     iset[1] = init_interval;
     iset[2] = init_interval;
-    
-    is_impacting = interval_root_finder_double_horizontal_tree(
-        tol, tolerance, iset, check_t_overlap, t_max, toi,
-        is_vf, err1, ms, data_in.v0s,data_in.v1s,data_in.v2s,data_in.v3s,
+
+    is_impacting =   interval_root_finder_double_horizontal_tree(  
+    tol, tolerance, iset, check_t_overlap, t_max, toi,
+        /*is_vf*/true, err1, ms, data_in.v0s,data_in.v1s,data_in.v2s,data_in.v3s,
         data_in.v0e,data_in.v1e,data_in.v2e,data_in.v3e, max_itr,
-        output_tolerance, overflow_flag);
-         
+        output_tolerance, overflow_flag);      
 
     if (overflow_flag)
     {
@@ -1219,23 +1092,6 @@ __device__ bool CCD_Solver(
     }
     
     return is_impacting;
-}
-
-__device__ bool vertexFaceCCD_double(
-    const CCDdata &data_in,
-    const Scalar *err,
-    const Scalar ms,
-    Scalar &toi,
-    Scalar tolerance,
-    Scalar t_max,
-    const int max_itr,
-    Scalar &output_tolerance,
-    bool no_zero_toi,
-    int &overflow_flag)
-{
-    
-    bool res = CCD_Solver(data_in, err, ms, toi, tolerance, t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag, true);
-    return res;
 }
 __device__ bool edgeEdgeCCD_double(
     const CCDdata &data_in,

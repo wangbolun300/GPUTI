@@ -17,9 +17,7 @@ __device__ item::item(const Singleinterval si[3], int lv)
 	interval_cp(si[0], itv[0]);
     interval_cp(si[1], itv[1]);
     interval_cp(si[2], itv[2]);
-    // interval_cp(si[0], itv[0]);
-	// interval_cp(si[1], itv[1]);
-	// interval_cp(si[2], itv[2]);
+
 }
 __device__ item::item()
 {
@@ -87,13 +85,6 @@ __device__ bool custom_compare_no_larger(const item &i1, const item &i2)
 // Prototype of a utility function to swap two integers
 __device__ void swap(item &x, item &y);
 
-// Constructor: Builds a heap from a given array a[] of given size
-// MinHeap::MinHeap(int cap)
-// {
-// 	heap_size = 0;
-// 	capacity = cap;
-// 	harr = new item[cap];
-// }
 __device__ MinHeap::MinHeap()
 {
 	heap_size = 0;
@@ -112,7 +103,6 @@ __device__ bool MinHeap::insertKey(item k)
 	heap_size++;
 	int i = heap_size - 1;
     harr[i]= k;
-	// item_equal(harr[i], k);
 
 	// Fix the min heap property if it is violated
 	while (i != 0 && !custom_compare_no_larger(harr[parent(i)], harr[i]))
@@ -145,17 +135,6 @@ __device__ item MinHeap::extractMin()
 	return root;
 }
 
-// This function deletes key at index i. It first reduced value to minus
-// infinite, then calls extractMin()
-// __device__ void MinHeap::deleteKey(int i)
-// {
-// 	decreaseKey(i, item_min());
-// 	extractMin();
-// }
-
-// A recursive method to heapify a subtree with the root at given index
-// This method assumes that the subtrees are already heapified
-// bolun remove the recursive part and make it a iteration
 __device__ void MinHeap::MinHeapify()
 {
 	int tmp = 0;
@@ -179,20 +158,6 @@ __device__ void MinHeap::MinHeapify()
 			tmp = smallest;
 		}
 	}
-
-	// int l = left(i);
-	// int r = right(i);
-	// int smallest = i;
-	// if (l < heap_size && custom_compare_less(harr[l], harr[i]))
-	// 	smallest = l;
-	// if (r < heap_size && custom_compare_less(harr[r], harr[smallest]))
-	// 	smallest = r;
-
-	// if (smallest != i)
-	// {
-	// 	swap(&harr[i], &harr[smallest]);
-	// 	MinHeapify(smallest);
-	// }
 }
 __device__ bool MinHeap::empty()
 {
@@ -207,25 +172,4 @@ __device__ void swap(item &x, item &y)
     x= y;
     y=temp;
 
-	// item_equal( temp, x);
-	// item_equal( x, y);
-	// item_equal(y, temp);
 }
-// __device__ void item_equal(item &a, const item &b)
-// {
-//     a.itv[0].first.first = b.itv[0].first.first;
-//     a.itv[0].first.second = b.itv[0].first.second;
-//     a.itv[0].second.first = b.itv[0].second.first;
-//     a.itv[0].second.second = b.itv[0].second.second;
-
-//     a.itv[1].first.first = b.itv[1].first.first;
-//     a.itv[1].first.second = b.itv[1].first.second;
-//     a.itv[1].second.first = b.itv[1].second.first;
-//     a.itv[1].second.second = b.itv[1].second.second;
-
-//     a.itv[2].first.first = b.itv[2].first.first;
-//     a.itv[2].first.second = b.itv[2].first.second;
-//     a.itv[2].second.first = b.itv[2].second.first;
-//     a.itv[2].second.second = b.itv[2].second.second;
-//     a.level = b.level;
-// }

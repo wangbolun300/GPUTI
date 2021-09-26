@@ -42,13 +42,13 @@ set_target_properties( gputi
                        PROPERTIES CUDA_SEPARABLE_COMPILATION ON
                       )
 
-target_compile_options(gputi PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
---generate-line-info
---use_fast_math
---relocatable-device-code=true
---ptxas-options=-v
---maxrregcount=60
->)  
+# target_compile_options(gputi PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
+# --generate-line-info
+# --use_fast_math
+# --relocatable-device-code=true
+# # --ptxas-options=-v
+# --maxrregcount=60
+# >)  
 # executable 2
 if (GPUTI_WITH_BENCHMARK)
 # set(Boost_USE_MULTITHREADED TRUE)
@@ -72,7 +72,7 @@ target_compile_options(test_bin PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
                        --use_fast_math
                        --relocatable-device-code=true
                        --ptxas-options=-v
-                       --maxrregcount=60
+                       --maxrregcount=40
                        >)                  
 if(APPLE)
 # We need to add the default path to the driver (libcuda.dylib) as an rpath,
