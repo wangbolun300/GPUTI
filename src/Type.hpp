@@ -194,4 +194,4 @@ public:
     }
 
 };
-__device__ void item_equal(item& a, const item& b);
+// __device__ void item_equal(item& a, const item& b);
