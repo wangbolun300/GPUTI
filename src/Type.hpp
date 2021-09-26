@@ -160,20 +160,6 @@ __device__ void single_test_wrapper(CCDdata* vfdata, bool &result);
 void print_vector(Scalar* v, int size);
 void print_vector(int* v, int size);
 
-// for interval b = a;
-__device__ void interval_cp(const Singleinterval& a,Singleinterval& b);
-// CCDdata::CCDdata(const std::array<std::array<Scalar,3>,8>& input){
-//     for(int i=0;i<3;i++){
-//         v0s[i]=input[0][i];
-//         v1s[i]=input[1][i];
-//         v2s[i]=input[2][i];
-//         v3s[i]=input[3][i];
-//         v0e[i]=input[4][i];
-//         v1e[i]=input[5][i];
-//         v2e[i]=input[6][i];
-//         v3e[i]=input[7][i];
-//     }
-// }
 
 
 class item {
@@ -186,9 +172,21 @@ public:
     {
         if (this == &x)
             return *this;
-        itv[0]=x.itv[0];
-		itv[1]=x.itv[1];
-		itv[2]=x.itv[2];
+        // itv[0]=x.itv[0];
+		// itv[1]=x.itv[1];
+		// itv[2]=x.itv[2];
+    itv[0].first.first = x.itv[0].first.first;
+    itv[0].first.second = x.itv[0].first.second;
+    itv[0].second.first = x.itv[0].second.first;
+    itv[0].second.second = x.itv[0].second.second;
+    itv[1].first.first = x.itv[1].first.first;
+    itv[1].first.second = x.itv[1].first.second;
+    itv[1].second.first = x.itv[1].second.first;
+    itv[1].second.second = x.itv[1].second.second;
+    itv[2].first.first = x.itv[2].first.first;
+    itv[2].first.second = x.itv[2].first.second;
+    itv[2].second.first = x.itv[2].second.first;
+    itv[2].second.second = x.itv[2].second.second;
         level=x.level;
         return *this;
     }

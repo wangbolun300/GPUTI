@@ -98,12 +98,16 @@ __device__ bool MinHeap::insertKey(item k)
 	{
 		return false;
 	}
-
+    
 	// First insert the new key at the end
-	heap_size++;
-	int i = heap_size - 1;
+	
+	int i = heap_size;
+    
     harr[i]= k;
-
+    //return false;
+    
+    heap_size++;
+    
 	// Fix the min heap property if it is violated
 	while (i != 0 && !custom_compare_no_larger(harr[parent(i)], harr[i]))
 	{

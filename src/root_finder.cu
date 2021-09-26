@@ -463,8 +463,9 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     bool box_in_[3];
     bool ck0,ck1,ck2;
     Singleinterval itv0, itv1, itv2;
- 
+   
     istack.insertKey(item(iset, -1));
+     //return true;
     item current_item;
     while (!istack.empty())
     {

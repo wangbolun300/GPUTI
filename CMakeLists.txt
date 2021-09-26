@@ -72,7 +72,7 @@ target_compile_options(test_bin PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
                        --use_fast_math
                        --relocatable-device-code=true
                        --ptxas-options=-v
-                       --maxrregcount=40
+                       --maxrregcount=30
                        >)                  
 if(APPLE)
 # We need to add the default path to the driver (libcuda.dylib) as an rpath,
