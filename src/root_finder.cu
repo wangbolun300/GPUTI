@@ -127,7 +127,7 @@ __device__ VectorMax3d width(const Singleinterval *x)
 #pragma unroll
     for (int i = 0; i < 3; i++)
     {
-        w.v[i] = // 0.1;
+        w.v[i] = 
             (Numccd2double(x[i].second) - Numccd2double(x[i].first));
     }
     return w;
@@ -427,6 +427,8 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     // current intervals
     Singleinterval current[3];
     Scalar true_tol[3];
+
+    // LINENBR 2
     int refine = 0;
 
     toi = SCALAR_LIMIT; //set toi as infinate
@@ -464,14 +466,19 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     bool ck0,ck1,ck2;
     Singleinterval itv0, itv1, itv2;
    
+   // LINENBR 3
     istack.insertKey(item(iset, -1));
      //return true;
     item current_item;
+
+    //LINENBR 5
     while (!istack.empty())
     {
         if(overflow_flag!=NO_OVERFLOW){
             break;
         }
+
+        //LINENBR 6
         current_item = istack.extractMin();
 
         current[0] = current_item.itv[0];
@@ -490,7 +497,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
             box_in_level = level;
             this_level_less_tol = true;
         }
-
+        // LINENBR 8
         refine++;
     
     box_in = false;
@@ -499,7 +506,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     itv0 = current[0]; itv1 = current[1]; itv2 = current[2];
 
     convert_tuv_to_array(itv0, itv1, itv2, t_up, t_dw, u_up, u_dw, v_up, v_dw);
-    
+    // LINENBR 7
     evaluate_bbox_one_dimension_vector_return_tolerance(
         t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
         a1e, b0e, b1e, 0, check_vf, err[0], ms, box_in_[0],
@@ -540,6 +547,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         // Condition 3, in this level, we find a box that zero-in and size < tolerance.
         // and no other boxes whose zero-in is true in this level before this one is larger than tolerance, can return
         bool condition3 = this_level_less_tol;
+        // LINENBR 15, 16
         if (condition1 || condition2 || condition3)
         {
             TOI = current[0].first;
@@ -551,9 +559,10 @@ __device__ bool interval_root_finder_double_horizontal_tree(
 
         }
 
-       
+       // LINENBR 10
             if (current_level != level)
             {
+                // LINENBR 22
                 current_level = level;
                 find_level_root = false;
             }
@@ -561,7 +570,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
             {
                 TOI = current[0].first;
 
-                
+                // LINENBR 11
                 // continue;
                 temp_toi = Numccd2double(TOI);
 
@@ -575,6 +584,8 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                 find_level_root =
                     true; // this ensures always find the earlist root
             }
+
+            // LINENBR 12
             if (refine > max_itr)
             {
                 overflow_flag = ITERATION_OVERFLOW;
@@ -608,7 +619,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         }
 
         int split_i = -1;
-
+        
         for (int i = 0; i < 3; i++)
         {
             if (check[i])
@@ -648,7 +659,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
 
         interval_pair halves;
         Singleinterval bisect_inter = current[split_i];
-
+        // LINENBR 19
         bisect(bisect_inter, halves);
         if (!less_than(halves.first.first, halves.first.second))
         {
@@ -669,6 +680,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
             {
 
                 current[split_i] = halves.second;
+                // LINENBR 20
                 bool inserted = istack.insertKey(item(current, level + 1));
                 if (inserted == false)
                 {
@@ -1034,13 +1046,11 @@ __device__ bool vertexFaceCCD_double(
     
 
     Scalar tol[3];
-    // this is the error of the whole mesh
+    
     Scalar err1[3];
-#ifdef CHECK_EE
-        compute_edge_edge_tolerance_new( data_in, tolerance, tol);
-#else
-        compute_face_vertex_tolerance_3d_new(data_in, tolerance, tol);
-#endif
+
+    compute_face_vertex_tolerance_3d_new(data_in, tolerance, tol);
+
 
         //////////////////////////////////////////////////////////
 
