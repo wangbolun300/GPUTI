@@ -1031,13 +1031,62 @@ __device__ bool vertexFaceCCD_double(
     bool no_zero_toi,
     int &overflow_flag)
 {
-
-    overflow_flag = 0;
+    Scalar temp_output_tolerance;
+    Scalar temp_toi;
+    Scalar t_upper_bound;
     Scalar tol[3];
     Scalar err[3];
+    Scalar true_tol[3];
+    Scalar t_up[8];
+    Scalar t_dw[8];
+    Scalar u_up[8];
+    Scalar u_dw[8];
+    Scalar v_up[8];
+    Scalar v_dw[8];
+    VectorMax3d vlist[8];
+    VectorMax3d widthratio;
+    bool box_in_[3];
+    bool check[3];
+    bool use_ms;
+    bool check_t_overlap;
+    bool use_skip;
+    bool this_level_less_tol;
+    bool find_level_root;
+    bool zero_in;
+    bool box_in;
+    bool ck0; 
+    bool ck1;
+    bool ck2;
+    bool tol_condition;
+    bool condition1;
+    bool condition2;
+    bool condition3;
+    bool inserted;
+    
+    int refine;
+    int current_level; // in the begining, current_level != level
+    int box_in_level;
+    int level;
+    int split_i;
+    Numccd low_number(0, 0);
+    Numccd up_number(1, 0);
+    Numccd TOI_SKIP;
+    Numccd TOI;
+    Singleinterval init_interval(low_number, up_number);
+    Singleinterval iset[3];
+    Singleinterval current[3];
+    Singleinterval itv0, itv1, itv2;
+    Singleinterval bisect_inter;
+    interval_pair halves;
+    MinHeap istack;
+    item current_item;
+
+
+    overflow_flag = 0;
+    
     compute_face_vertex_tolerance_3d_new(data_in, co_domain_tolerance, tol);
 #ifdef CALCULATE_ERROR_BOUND
-    VectorMax3d vlist[8];
+    
 #pragma unroll
     for (int i = 0; i < 3; i++)
     {
@@ -1050,7 +1099,7 @@ __device__ bool vertexFaceCCD_double(
         vlist[6].v[i] = data_in.v2e[i];
         vlist[7].v[i] = data_in.v3e[i];
     }
-    bool use_ms = ms > 0;
+    use_ms = ms > 0;
     get_numerical_error(vlist, 8, /*is_vf*/ true, use_ms, err);
 #else
     err[0] = err_in[0];
@@ -1059,15 +1108,12 @@ __device__ bool vertexFaceCCD_double(
 #endif
 
 #ifdef TIME_UPPER_IS_ONE
-    bool check_t_overlap = false; // if input max_time = 1, then no need to check overlap
+    check_t_overlap = false; // if input max_time = 1, then no need to check overlap
 #else
-    bool check_t_overlap = true;
+    check_t_overlap = true;
 #endif
 
-    const Numccd low_number(0, 0);
-    const Numccd up_number(1, 0);
-    const Singleinterval init_interval(low_number, up_number);
-    Singleinterval iset[3];
+    
     iset[0] = init_interval;
     iset[1] = init_interval;
     iset[2] = init_interval;
@@ -1077,63 +1123,35 @@ __device__ bool vertexFaceCCD_double(
     output_tolerance = co_domain_tolerance;
 
     // this is used to catch the tolerance for each level
-    Scalar temp_output_tolerance = co_domain_tolerance;
+    temp_output_tolerance = co_domain_tolerance;
 
     // current intervals
-    Singleinterval current[3];
-    Scalar true_tol[3];
+    
 
     // LINENBR 2
-    int refine = 0;
+    refine = 0;
 
     toi = SCALAR_LIMIT; //set toi as infinate
     // temp_toi is to catch the toi of each level
-    Scalar temp_toi = toi;
-    Numccd TOI;
+    temp_toi = toi;
+    
     TOI.first = 4;
     TOI.second = 0; // set TOI as 4. this is to record the impact time of this level
-    Numccd TOI_SKIP =
-        TOI;               // this is to record the element that already small enough or contained in eps-box
-    bool use_skip = false; // this is to record if TOI_SKIP is used.
+    TOI_SKIP = TOI;               // this is to record the element that already small enough or contained in eps-box
+    use_skip = false; // this is to record if TOI_SKIP is used.
 
-    int current_level = -2; // in the begining, current_level != level
-    int box_in_level = -2;  // this checks if all the boxes before this
+    current_level = -2; // in the begining, current_level != level
+    box_in_level = -2;  // this checks if all the boxes before this
     // level < tolerance. only true, we can return when we find one overlaps eps box and smaller than tolerance or eps-box
-    bool this_level_less_tol = true;
-    bool find_level_root = false;
+    this_level_less_tol = true;
+    find_level_root = false;
     // Scalar current_tolerance=std::numeric_limits<Scalar>::infinity(); // set returned tolerance as infinite
-    Scalar t_upper_bound = max_t; // 2*tol make it more conservative
-
-    MinHeap istack;
-
-    bool zero_in;
-    bool box_in;
-    Scalar t_up[8];
-    Scalar t_dw[8];
-    Scalar u_up[8];
-    Scalar u_dw[8];
-    Scalar v_up[8];
-    Scalar v_dw[8];
-    int level;
-    bool box_in_[3];
-    bool ck0, ck1, ck2;
-    Singleinterval itv0, itv1, itv2;
-    bool tol_condition;
-    bool condition1;
-    bool condition2;
-    bool condition3;
-    bool check[3];
-    VectorMax3d widthratio;
-    int split_i;
-    interval_pair halves;
-    Singleinterval bisect_inter;
-    bool inserted;
+    t_upper_bound = max_t; // 2*tol make it more conservative
 
     // LINENBR 3
     istack.insertKey(item(iset, -1));
     //return true;
-    item current_item;
-
+    
     //LINENBR 5
     while (!istack.empty())
     {
