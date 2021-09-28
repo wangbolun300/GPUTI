@@ -83,7 +83,7 @@ __device__ bool custom_compare_no_larger(const item &i1, const item &i2)
 }
 
 // Prototype of a utility function to swap two integers
-__device__ void swap(item &x, item &y);
+__device__ void swap(item* x, item* y);
 
 __device__ MinHeap::MinHeap()
 {
@@ -102,16 +102,33 @@ __device__ bool MinHeap::insertKey(item k)
 	// First insert the new key at the end
 	
 	int i = heap_size;
-    
-    harr[i]= k;
-    //return false;
+	{
+    harr[i].itv[0].first.first = k.itv[0].first.first;
+    harr[i].itv[0].first.second = k.itv[0].first.second;
+    harr[i].itv[0].second.first = k.itv[0].second.first;
+    harr[i].itv[0].second.second = k.itv[0].second.second;
+	}
+	{
+    harr[i].itv[1].first.first = k.itv[1].first.first;
+    harr[i].itv[1].first.second = k.itv[1].first.second;
+	}{
+    harr[i].itv[1].second.first = k.itv[1].second.first;
+    harr[i].itv[1].second.second = k.itv[1].second.second;
+	}
+    harr[i].itv[2].first.first = k.itv[2].first.first;
+    harr[i].itv[2].first.second = k.itv[2].first.second;
+    harr[i].itv[2].second.first = k.itv[2].second.first;
+    harr[i].itv[2].second.second = k.itv[2].second.second;
+    harr[i].level = k.level;
+    //harr[i]= k;
+    // return false;
     
     heap_size++;
     
 	// Fix the min heap property if it is violated
 	while (i != 0 && !custom_compare_no_larger(harr[parent(i)], harr[i]))
 	{
-		swap(harr[i], harr[parent(i)]);
+		swap(&harr[i], &harr[parent(i)]);
 		i = parent(i);
 	}
 	return true;
@@ -158,7 +175,7 @@ __device__ void MinHeap::MinHeapify()
 		}
 		else
 		{
-			swap(harr[tmp], harr[smallest]);
+			swap(&harr[tmp], &harr[smallest]);
 			tmp = smallest;
 		}
 	}
@@ -169,11 +186,10 @@ __device__ bool MinHeap::empty()
 }
 
 // A utility function to swap two elements
-__device__ void swap(item &x, item &y)
+__device__ void swap(item* x, item* y)
 {
-	item temp;
-    temp= x;
-    x= y;
-    y=temp;
-
+	item* temp;
+	temp = x;
+	x = y;
+	y = temp;
 }

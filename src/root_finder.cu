@@ -846,13 +846,9 @@ __device__ bool interval_root_finder_double_horizontal_tree(
 __device__ Scalar max_linf_dist(const VectorMax3d &p1, const VectorMax3d &p2)
 {
     Scalar r = 0;
-#pragma unroll
-for (int i = 0; i < 3; i++)
-    {
-        
-        r = max(r, fabs(p1.v[i] - p2.v[i]));
-
-    }
+    r = max(r, fabs(p1.v[0] - p2.v[0]));
+    r = max(r, fabs(p1.v[1] - p2.v[1]));
+    r = max(r, fabs(p1.v[2] - p2.v[2]));
     return r;
 }
 
@@ -1029,11 +1025,11 @@ __device__ bool CCD_Solver(
 
 __device__ bool vertexFaceCCD_double(
     const CCDdata &data_in,
-    const Scalar *err,
+    const Scalar *err_in,
     const Scalar ms,
     Scalar &toi,
-    Scalar tolerance,
-    Scalar t_max,
+    Scalar co_domain_tolerance,
+    Scalar max_t,
     const int max_itr,
     Scalar &output_tolerance,
     bool no_zero_toi,
@@ -1042,14 +1038,14 @@ __device__ bool vertexFaceCCD_double(
     
     overflow_flag = 0;
 
-    bool is_impacting;
+    //bool is_impacting;
     
 
     Scalar tol[3];
     
-    Scalar err1[3];
+    Scalar err[3];
 
-    compute_face_vertex_tolerance_3d_new(data_in, tolerance, tol);
+    compute_face_vertex_tolerance_3d_new(data_in, co_domain_tolerance, tol);
 
 
         //////////////////////////////////////////////////////////
@@ -1070,7 +1066,481 @@ __device__ bool vertexFaceCCD_double(
         }
 
         bool use_ms = ms > 0;
-        get_numerical_error(vlist, 8, /*is_vf*/true, use_ms, err1);
+        get_numerical_error(vlist, 8, /*is_vf*/true, use_ms, err);
+#else
+        err[0] = err_in[0];
+        err[1] = err_in[1];
+        err[2] = err_in[2];
+#endif
+
+#ifdef TIME_UPPER_IS_ONE
+    bool check_t_overlap = false; // if input max_time = 1, then no need to check overlap
+#else
+    bool check_t_overlap = true;
+#endif
+
+    const Numccd low_number(0, 0);
+    const Numccd up_number(1, 0);
+    const Singleinterval init_interval(low_number, up_number);
+    Singleinterval iset[3];
+    iset[0] = init_interval;
+    iset[1] = init_interval;
+    iset[2] = init_interval;
+
+    // interval_root_finder_double_horizontal_tree
+    overflow_flag = NO_OVERFLOW;
+    // if max_itr <0, output_tolerance= co_domain_tolerance;
+    // else, output_tolearance will be the precision after iteration time > max_itr
+    output_tolerance = co_domain_tolerance;
+
+    // this is used to catch the tolerance for each level
+    Scalar temp_output_tolerance = co_domain_tolerance;
+
+    // current intervals
+    Singleinterval current[3];
+    Scalar true_tol[3];
+
+    // LINENBR 2
+    int refine = 0;
+
+    toi = SCALAR_LIMIT; //set toi as infinate
+    // temp_toi is to catch the toi of each level
+    Scalar temp_toi = toi;
+    Numccd TOI;
+    TOI.first = 4;
+    TOI.second = 0; // set TOI as 4. this is to record the impact time of this level
+    Numccd TOI_SKIP =
+        TOI;               // this is to record the element that already small enough or contained in eps-box
+    bool use_skip = false; // this is to record if TOI_SKIP is used.
+
+    
+    int current_level = -2; // in the begining, current_level != level
+    int box_in_level = -2;  // this checks if all the boxes before this
+    // level < tolerance. only true, we can return when we find one overlaps eps box and smaller than tolerance or eps-box
+    bool this_level_less_tol = true;
+    bool find_level_root = false;
+    // Scalar current_tolerance=std::numeric_limits<Scalar>::infinity(); // set returned tolerance as infinite
+    Scalar t_upper_bound = max_t; // 2*tol make it more conservative
+
+    
+    MinHeap istack;
+    
+    bool zero_in;
+    bool box_in;
+    Scalar t_up[8];
+    Scalar t_dw[8];
+    Scalar u_up[8];
+    Scalar u_dw[8];
+    Scalar v_up[8];
+    Scalar v_dw[8];
+    int level;
+    bool box_in_[3];
+    bool ck0,ck1,ck2;
+    Singleinterval itv0, itv1, itv2;
+   
+   // LINENBR 3
+    istack.insertKey(item(iset, -1));
+     //return true;
+    item current_item;
+
+    //LINENBR 5
+    while (!istack.empty())
+    {
+        if(overflow_flag!=NO_OVERFLOW){
+            break;
+        }
+
+        //LINENBR 6
+        current_item = istack.extractMin();
+
+        current[0] = current_item.itv[0];
+        current[1] = current_item.itv[1];
+        current[2] = current_item.itv[2];
+        level = current_item.level;
+
+        // if this box is later than TOI_SKIP in time, we can skip this one.
+        // TOI_SKIP is only updated when the box is small enough or totally contained in eps-box
+        if (!less_than(current[0].first, TOI_SKIP))
+        {
+            continue;
+        }
+        if (box_in_level != level)
+        { // before check a new level, set this_level_less_tol=true
+            box_in_level = level;
+            this_level_less_tol = true;
+        }
+        // LINENBR 8
+        refine++;
+    
+    box_in = false;
+    zero_in=false;
+    
+    itv0 = current[0]; itv1 = current[1]; itv2 = current[2];
+    //return true;
+    convert_tuv_to_array(itv0, itv1, itv2, t_up, t_dw, u_up, u_dw, v_up, v_dw);
+    // LINENBR 7
+    evaluate_bbox_one_dimension_vector_return_tolerance(
+        t_up, t_dw, u_up, u_dw, v_up, v_dw, data_in.v0s,data_in.v1s,data_in.v2s,data_in.v3s,
+        data_in.v0e,data_in.v1e,data_in.v2e,data_in.v3e, 0, /*check_vf*/true, err[0], ms, box_in_[0],
+        true_tol[0],ck0);
+    evaluate_bbox_one_dimension_vector_return_tolerance(
+        t_up, t_dw, u_up, u_dw, v_up, v_dw, data_in.v0s,data_in.v1s,data_in.v2s,data_in.v3s,
+        data_in.v0e,data_in.v1e,data_in.v2e,data_in.v3e, 1, /*check_vf*/true, err[1], ms, box_in_[1],
+        true_tol[1],ck1);
+    evaluate_bbox_one_dimension_vector_return_tolerance( 
+        t_up, t_dw, u_up, u_dw, v_up, v_dw, data_in.v0s,data_in.v1s,data_in.v2s,data_in.v3s,
+        data_in.v0e,data_in.v1e,data_in.v2e,data_in.v3e, 2, /*check_vf*/true, err[2], ms, box_in_[2],
+        true_tol[2],ck2);
+    
+    box_in = box_in_[0] && box_in_[1] && box_in_[2];
+    zero_in=ck0&&ck1&&ck2;
+    //return zero_in;// REGSCOUNT 100
+
+        if (!zero_in)
+            continue;
+        
+        VectorMax3d widths = width(current);
+
+        bool tol_condition = true_tol[0] <= co_domain_tolerance && true_tol[1] <= co_domain_tolerance && true_tol[2] <= co_domain_tolerance;
+
+        // Condition 1, stopping condition on t, u and v is satisfied. this is useless now since we have condition 2
+        bool condition1 = widths.v[0] <= tol[0] && widths.v[1] <= tol[1] && widths.v[2] <= tol[2];
+
+        // Condition 2, zero_in = true, box inside eps-box and in this level,
+        // no box whose zero_in is true but box size larger than tolerance, can return
+        bool condition2 = box_in && this_level_less_tol;
+        if (!tol_condition)
+        {
+            this_level_less_tol = false;
+            // this level has at least one box whose size > tolerance, thus we
+            // cannot directly return if find one box whose size < tolerance or box-in
+        }
+
+        // Condition 3, in this level, we find a box that zero-in and size < tolerance.
+        // and no other boxes whose zero-in is true in this level before this one is larger than tolerance, can return
+        bool condition3 = this_level_less_tol;
+        // LINENBR 15, 16
+        if (condition1 || condition2 || condition3)
+        {
+            TOI = current[0].first;
+            
+            // continue;
+            toi = Numccd2double(TOI);
+
+            return true;
+
+        }
+
+       // LINENBR 10
+            if (current_level != level)
+            {
+                // LINENBR 22
+                current_level = level;
+                find_level_root = false;
+            }
+            if (!find_level_root)
+            {
+                TOI = current[0].first;
+
+                // LINENBR 11
+                // continue;
+                temp_toi = Numccd2double(TOI);
+
+                // if the real tolerance is larger than input, use the real one;
+                // if the real tolerance is smaller than input, use input
+                temp_output_tolerance = max(
+                    max(
+                        max(true_tol[0], true_tol[1]), true_tol[2]),
+                    co_domain_tolerance);
+
+                find_level_root =
+                    true; // this ensures always find the earlist root
+            }
+
+            // LINENBR 12
+            if (refine > max_itr)
+            {
+                overflow_flag = ITERATION_OVERFLOW;
+                break;
+            }
+        
+
+        // if this box is small enough, or inside of eps-box, then just continue,
+        // but we need to record the collision time
+        if (tol_condition || box_in)
+        {
+            if (less_than(current[0].first, TOI_SKIP))
+            {
+                TOI_SKIP = current[0].first;
+            }
+            use_skip = true;
+            continue;
+        }
+
+        bool check[3];
+        VectorMax3d widthratio;
+
+        check[0] = false;
+        check[1] = false;
+        check[2] = false;
+        for (int i = 0; i < 3; i++)
+        {
+            widthratio.v[i] = widths.v[i] / tol[i];
+            if (widths.v[i] > tol[i])
+                check[i] = true; // means this need to be checked
+        }
+
+        int split_i = -1;
+        
+        for (int i = 0; i < 3; i++)
+        {
+            if (check[i])
+            {
+                if (check[(i + 1) % 3] && check[(i + 2) % 3])
+                {
+                    if (widthratio.v[i] >= widthratio.v[(i + 1) % 3] && widthratio.v[i] >= widthratio.v[(i + 2) % 3])
+                    {
+                        split_i = i;
+                        break;
+                    }
+                }
+                if (check[(i + 1) % 3] && !check[(i + 2) % 3])
+                {
+                    if (widthratio.v[i] >= widthratio.v[(i + 1) % 3])
+                    {
+                        split_i = i;
+                        break;
+                    }
+                }
+                if (!check[(i + 1) % 3] && check[(i + 2) % 3])
+                {
+                    if (widthratio.v[i] >= widthratio.v[(i + 2) % 3])
+                    {
+                        split_i = i;
+                        break;
+                    }
+                }
+                if (!check[(i + 1) % 3] && !check[(i + 2) % 3])
+                {
+
+                    split_i = i;
+                    break;
+                }
+            }
+        }
+
+        interval_pair halves;
+        Singleinterval bisect_inter = current[split_i];
+        // LINENBR 19
+        bisect(bisect_inter, halves);
+        if (!less_than(halves.first.first, halves.first.second))
+        {
+            overflow_flag = BISECTION_OVERFLOW;
+            break;
+        }
+        if (!less_than(halves.second.first, halves.second.second))
+        {
+            overflow_flag = BISECTION_OVERFLOW;
+            break;
+        }
+#ifndef CHECK_EE // check vf
+
+        if (split_i == 1)
+        {
+
+            if (sum_no_larger_1( halves.second.first, current[2].first))
+            {
+
+                current[split_i] = halves.second;
+                // LINENBR 20
+                bool inserted = istack.insertKey(item(current, level + 1));
+                if (inserted == false)
+                {
+                    overflow_flag = HEAP_OVERFLOW;
+                }
+            }
+            if (sum_no_larger_1(halves.first.first, current[2].first))
+            {
+                current[split_i] = halves.first;
+                bool inserted = istack.insertKey(item(current, level + 1));
+                if (inserted == false)
+                {
+                    overflow_flag = HEAP_OVERFLOW;
+                }
+            }
+        }
+
+        if (split_i == 2)
+        {
+
+            if (sum_no_larger_1(halves.second.first, current[1].first))
+            {
+                current[split_i] = halves.second;
+                bool inserted = istack.insertKey(item(current, level + 1));
+                if (inserted == false)
+                {
+                    overflow_flag = HEAP_OVERFLOW;
+                }
+            }
+            if (sum_no_larger_1(halves.first.first, current[1].first))
+            {
+                current[split_i] = halves.first;
+                bool inserted = istack.insertKey(item(current, level + 1));
+                if (inserted == false)
+                {
+                    overflow_flag = HEAP_OVERFLOW;
+                }
+            }
+        }
+        if (split_i == 0)
+        {
+            if (check_t_overlap)
+            {
+                if ( interval_overlap_region(
+                        halves.second, 0, t_upper_bound))
+                {
+                    current[split_i] = halves.second;
+                    bool inserted = istack.insertKey(item(current, level + 1));
+                    if (inserted == false)
+                    {
+                        overflow_flag = HEAP_OVERFLOW;
+                    }
+                }
+                if ( interval_overlap_region(
+                        halves.first, 0, t_upper_bound))
+                {
+                    current[split_i] = halves.first;
+                    bool inserted = istack.insertKey(item(current, level + 1));
+                    if (inserted == false)
+                    {
+                        overflow_flag = HEAP_OVERFLOW;
+                    }
+                }
+            }
+            else
+            {
+                current[split_i] = halves.second;
+                bool inserted = istack.insertKey(item(current, level + 1));
+                if (inserted == false)
+                {
+                    overflow_flag = HEAP_OVERFLOW;
+                }
+                current[split_i] = halves.first;
+                inserted = istack.insertKey(item(current, level + 1));
+                if (inserted == false)
+                {
+                    overflow_flag = HEAP_OVERFLOW;
+                }
+            }
+        }
+
+#else
+        if (check_t_overlap && split_i == 0)
+        {
+            if (interval_overlap_region( 
+                    halves.second, 0, t_upper_bound))
+            {
+                current[split_i] = halves.second;
+                bool inserted = istack.insertKey(item(current, level + 1));
+                if (inserted == false)
+                {
+                    overflow_flag = HEAP_OVERFLOW;
+                }
+            }
+            if (interval_overlap_region(halves.first, 0, t_upper_bound))
+            {
+                current[split_i] = halves.first;
+                bool inserted = istack.insertKey(item(current, level + 1));
+                if (inserted == false)
+                {
+                    overflow_flag = HEAP_OVERFLOW;
+                }
+            }
+        }
+        else
+        {
+            current[split_i] = halves.second;
+            bool inserted = istack.insertKey(item(current, level + 1));
+            if (inserted == false)
+            {
+                overflow_flag = HEAP_OVERFLOW;
+            }
+            current[split_i] = halves.first;
+            inserted = istack.insertKey(item(current, level + 1));
+            if (inserted == false)
+            {
+                overflow_flag = HEAP_OVERFLOW;
+            }
+        }
+#endif
+    }
+
+    if (overflow_flag > 0)
+    {
+        toi = temp_toi;
+        output_tolerance = temp_output_tolerance;
+        return true;
+    }
+
+    if (use_skip)
+    {
+        toi = Numccd2double(TOI_SKIP);
+
+        return true;
+    }
+    return false;
+
+    // return false;
+    // if (overflow_flag)
+    // {
+    //     return true;
+    // }
+    
+    // return is_impacting;
+}
+__device__ bool edgeEdgeCCD_double(
+    const CCDdata &data_in,
+    const Scalar *err,
+    const Scalar ms,
+    Scalar &toi,
+    Scalar tolerance,
+    Scalar t_max,
+    const int max_itr,
+    Scalar &output_tolerance,
+    bool no_zero_toi,
+    int &overflow_flag)
+{
+    overflow_flag = 0;
+
+    bool is_impacting;
+    
+
+    Scalar tol[3];
+    
+    Scalar err1[3];
+
+    compute_edge_edge_tolerance_new(data_in, tolerance, tol);
+
+
+        //////////////////////////////////////////////////////////
+
+#ifdef CALCULATE_ERROR_BOUND
+        VectorMax3d vlist[8];
+#pragma unroll
+        for (int i = 0; i < 3; i++)
+        {
+            vlist[0].v[i] = data_in.v0s[i];
+            vlist[1].v[i] = data_in.v1s[i];
+            vlist[2].v[i] = data_in.v2s[i];
+            vlist[3].v[i] = data_in.v3s[i];
+            vlist[4].v[i] = data_in.v0e[i];
+            vlist[5].v[i] = data_in.v1e[i];
+            vlist[6].v[i] = data_in.v2e[i];
+            vlist[7].v[i] = data_in.v3e[i];
+        }
+
+        bool use_ms = ms > 0;
+        get_numerical_error(vlist, 8, /*is_vf*/false, use_ms, err1);
 #else
         err1[0] = err[0];
         err1[1] = err[1];
@@ -1093,7 +1563,7 @@ __device__ bool vertexFaceCCD_double(
 
     is_impacting =   interval_root_finder_double_horizontal_tree(  
     tol, tolerance, iset, check_t_overlap, t_max, toi,
-        /*is_vf*/true, err1, ms, data_in.v0s,data_in.v1s,data_in.v2s,data_in.v3s,
+        /*is_vf*/false, err1, ms, data_in.v0s,data_in.v1s,data_in.v2s,data_in.v3s,
         data_in.v0e,data_in.v1e,data_in.v2e,data_in.v3e, max_itr,
         output_tolerance, overflow_flag);      
 
@@ -1103,21 +1573,6 @@ __device__ bool vertexFaceCCD_double(
     }
     
     return is_impacting;
-}
-__device__ bool edgeEdgeCCD_double(
-    const CCDdata &data_in,
-    const Scalar *err,
-    const Scalar ms,
-    Scalar &toi,
-    Scalar tolerance,
-    Scalar t_max,
-    const int max_itr,
-    Scalar &output_tolerance,
-    bool no_zero_toi,
-    int &overflow_flag)
-{
-    bool res = CCD_Solver(data_in, err, ms, toi, tolerance, t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag, false);
-    return res;
 }
 
 
