@@ -836,6 +836,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     Scalar &output_tolerance,
     int &overflow_flag)
 {
+    return true;
 }
 
 __device__ Scalar max_linf_dist(const VectorMax3d &p1, const VectorMax3d &p2)
@@ -1073,8 +1074,6 @@ __device__ bool vertexFaceCCD_double(
 
     // interval_root_finder_double_horizontal_tree
     overflow_flag = NO_OVERFLOW;
-    // if max_itr <0, output_tolerance= co_domain_tolerance;
-    // else, output_tolearance will be the precision after iteration time > max_itr
     output_tolerance = co_domain_tolerance;
 
     // this is used to catch the tolerance for each level
@@ -1119,6 +1118,16 @@ __device__ bool vertexFaceCCD_double(
     bool box_in_[3];
     bool ck0, ck1, ck2;
     Singleinterval itv0, itv1, itv2;
+    bool tol_condition;
+    bool condition1;
+    bool condition2;
+    bool condition3;
+    bool check[3];
+    VectorMax3d widthratio;
+    int split_i;
+    interval_pair halves;
+    Singleinterval bisect_inter;
+    bool inserted;
 
     // LINENBR 3
     istack.insertKey(item(iset, -1));
@@ -1180,20 +1189,20 @@ __device__ bool vertexFaceCCD_double(
         box_in = box_in_[0] && box_in_[1] && box_in_[2];
         zero_in = ck0 && ck1 && ck2;
         //return zero_in;// REGSCOUNT 100
-
+        
         if (!zero_in)
             continue;
 
         VectorMax3d widths = width(current);
 
-        bool tol_condition = true_tol[0] <= co_domain_tolerance && true_tol[1] <= co_domain_tolerance && true_tol[2] <= co_domain_tolerance;
+        tol_condition = true_tol[0] <= co_domain_tolerance && true_tol[1] <= co_domain_tolerance && true_tol[2] <= co_domain_tolerance;
 
         // Condition 1, stopping condition on t, u and v is satisfied. this is useless now since we have condition 2
-        bool condition1 = widths.v[0] <= tol[0] && widths.v[1] <= tol[1] && widths.v[2] <= tol[2];
+        condition1 = widths.v[0] <= tol[0] && widths.v[1] <= tol[1] && widths.v[2] <= tol[2];
 
         // Condition 2, zero_in = true, box inside eps-box and in this level,
         // no box whose zero_in is true but box size larger than tolerance, can return
-        bool condition2 = box_in && this_level_less_tol;
+        condition2 = box_in && this_level_less_tol;
         if (!tol_condition)
         {
             this_level_less_tol = false;
@@ -1203,7 +1212,7 @@ __device__ bool vertexFaceCCD_double(
 
         // Condition 3, in this level, we find a box that zero-in and size < tolerance.
         // and no other boxes whose zero-in is true in this level before this one is larger than tolerance, can return
-        bool condition3 = this_level_less_tol;
+        condition3 = this_level_less_tol;
         // LINENBR 15, 16
         if (condition1 || condition2 || condition3)
         {
@@ -1260,8 +1269,7 @@ __device__ bool vertexFaceCCD_double(
             continue;
         }
 
-        bool check[3];
-        VectorMax3d widthratio;
+        
 
         check[0] = false;
         check[1] = false;
@@ -1273,7 +1281,7 @@ __device__ bool vertexFaceCCD_double(
                 check[i] = true; // means this need to be checked
         }
 
-        int split_i = -1;
+        split_i = -1;
 
         for (int i = 0; i < 3; i++)
         {
@@ -1312,8 +1320,8 @@ __device__ bool vertexFaceCCD_double(
             }
         }
 
-        interval_pair halves;
-        Singleinterval bisect_inter = current[split_i];
+        
+        bisect_inter = current[split_i];
         // LINENBR 19
         bisect(bisect_inter, halves);
         if (!less_than(halves.first.first, halves.first.second))
@@ -1336,7 +1344,7 @@ __device__ bool vertexFaceCCD_double(
 
                 current[split_i] = halves.second;
                 // LINENBR 20
-                bool inserted = istack.insertKey(item(current, level + 1));
+                inserted = istack.insertKey(item(current, level + 1));
                 if (inserted == false)
                 {
                     overflow_flag = HEAP_OVERFLOW;
@@ -1345,7 +1353,7 @@ __device__ bool vertexFaceCCD_double(
             if (sum_no_larger_1(halves.first.first, current[2].first))
             {
                 current[split_i] = halves.first;
-                bool inserted = istack.insertKey(item(current, level + 1));
+                inserted = istack.insertKey(item(current, level + 1));
                 if (inserted == false)
                 {
                     overflow_flag = HEAP_OVERFLOW;
@@ -1359,7 +1367,7 @@ __device__ bool vertexFaceCCD_double(
             if (sum_no_larger_1(halves.second.first, current[1].first))
             {
                 current[split_i] = halves.second;
-                bool inserted = istack.insertKey(item(current, level + 1));
+                inserted = istack.insertKey(item(current, level + 1));
                 if (inserted == false)
                 {
                     overflow_flag = HEAP_OVERFLOW;
@@ -1368,7 +1376,7 @@ __device__ bool vertexFaceCCD_double(
             if (sum_no_larger_1(halves.first.first, current[1].first))
             {
                 current[split_i] = halves.first;
-                bool inserted = istack.insertKey(item(current, level + 1));
+                inserted = istack.insertKey(item(current, level + 1));
                 if (inserted == false)
                 {
                     overflow_flag = HEAP_OVERFLOW;
@@ -1383,7 +1391,7 @@ __device__ bool vertexFaceCCD_double(
                         halves.second, 0, t_upper_bound))
                 {
                     current[split_i] = halves.second;
-                    bool inserted = istack.insertKey(item(current, level + 1));
+                    inserted = istack.insertKey(item(current, level + 1));
                     if (inserted == false)
                     {
                         overflow_flag = HEAP_OVERFLOW;
@@ -1393,7 +1401,7 @@ __device__ bool vertexFaceCCD_double(
                         halves.first, 0, t_upper_bound))
                 {
                     current[split_i] = halves.first;
-                    bool inserted = istack.insertKey(item(current, level + 1));
+                    inserted = istack.insertKey(item(current, level + 1));
                     if (inserted == false)
                     {
                         overflow_flag = HEAP_OVERFLOW;
@@ -1403,7 +1411,7 @@ __device__ bool vertexFaceCCD_double(
             else
             {
                 current[split_i] = halves.second;
-                bool inserted = istack.insertKey(item(current, level + 1));
+                inserted = istack.insertKey(item(current, level + 1));
                 if (inserted == false)
                 {
                     overflow_flag = HEAP_OVERFLOW;
@@ -1424,7 +1432,7 @@ __device__ bool vertexFaceCCD_double(
                     halves.second, 0, t_upper_bound))
             {
                 current[split_i] = halves.second;
-                bool inserted = istack.insertKey(item(current, level + 1));
+                inserted = istack.insertKey(item(current, level + 1));
                 if (inserted == false)
                 {
                     overflow_flag = HEAP_OVERFLOW;
@@ -1433,7 +1441,7 @@ __device__ bool vertexFaceCCD_double(
             if (interval_overlap_region(halves.first, 0, t_upper_bound))
             {
                 current[split_i] = halves.first;
-                bool inserted = istack.insertKey(item(current, level + 1));
+                inserted = istack.insertKey(item(current, level + 1));
                 if (inserted == false)
                 {
                     overflow_flag = HEAP_OVERFLOW;
@@ -1443,7 +1451,7 @@ __device__ bool vertexFaceCCD_double(
         else
         {
             current[split_i] = halves.second;
-            bool inserted = istack.insertKey(item(current, level + 1));
+            inserted = istack.insertKey(item(current, level + 1));
             if (inserted == false)
             {
                 overflow_flag = HEAP_OVERFLOW;
@@ -1472,14 +1480,6 @@ __device__ bool vertexFaceCCD_double(
         return true;
     }
     return false;
-
-    // return false;
-    // if (overflow_flag)
-    // {
-    //     return true;
-    // }
-
-    // return is_impacting;
 }
 __device__ bool edgeEdgeCCD_double(
     const CCDdata &data_in,
