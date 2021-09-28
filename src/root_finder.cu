@@ -2,7 +2,6 @@
 #include <gputi/queue.h>
 #include <iostream>
 
-
 CCDdata array_to_ccd(std::array<std::array<Scalar, 3>, 8> a, bool is_edge)
 {
     CCDdata data;
@@ -127,7 +126,7 @@ __device__ VectorMax3d width(const Singleinterval *x)
 #pragma unroll
     for (int i = 0; i < 3; i++)
     {
-        w.v[i] = 
+        w.v[i] =
             (Numccd2double(x[i].second) - Numccd2double(x[i].first));
     }
     return w;
@@ -227,19 +226,19 @@ __device__ void function_vf(
     const Scalar v_dw[8],
     Scalar rst[8])
 {
-    Scalar v ;
-Scalar t0;
-Scalar t1;
-Scalar t2;
-Scalar pt;
+    Scalar v;
+    Scalar t0;
+    Scalar t1;
+    Scalar t2;
+    Scalar pt;
 #pragma unroll
     for (int i = 0; i < 8; i++)
     {
-         v = (ve - vs) * t_up[i] / t_dw[i] + vs;
-         t0 = (t0e - t0s) * t_up[i] / t_dw[i] + t0s;
-         t1 = (t1e - t1s) * t_up[i] / t_dw[i] + t1s;
-         t2 = (t2e - t2s) * t_up[i] / t_dw[i] + t2s;
-         pt = (t1 - t0) * u_up[i] / u_dw[i] + (t2 - t0) * v_up[i] / v_dw[i] + t0;
+        v = (ve - vs) * t_up[i] / t_dw[i] + vs;
+        t0 = (t0e - t0s) * t_up[i] / t_dw[i] + t0s;
+        t1 = (t1e - t1s) * t_up[i] / t_dw[i] + t1s;
+        t2 = (t2e - t2s) * t_up[i] / t_dw[i] + t2s;
+        pt = (t1 - t0) * u_up[i] / u_dw[i] + (t2 - t0) * v_up[i] / v_dw[i] + t0;
         rst[i] = v - pt;
     }
 }
@@ -298,14 +297,14 @@ __device__ void evaluate_bbox_one_dimension_vector_return_tolerance(
     const Scalar b0e[3],
     const Scalar b1e[3],
     int dimension,
-    const bool& check_vf,
-    const Scalar& eps,
-    const Scalar& ms,
+    const bool &check_vf,
+    const Scalar &eps,
+    const Scalar &ms,
     bool &bbox_in_eps,
     Scalar &tol,
     bool &result)
 {
-    
+
     Scalar vs[8];
     bbox_in_eps = false;
 
@@ -323,37 +322,36 @@ __device__ void evaluate_bbox_one_dimension_vector_return_tolerance(
 
     Scalar minv = vs[0];
     Scalar maxv = vs[0];
-    minv=fminf(vs[1],minv);
-    maxv=fmaxf(vs[1],maxv);
-    minv=fminf(vs[2],minv);
-    maxv=fmaxf(vs[2],maxv);
-    minv=fminf(vs[3],minv);
-    maxv=fmaxf(vs[3],maxv);
-    minv=fminf(vs[4],minv);
-    maxv=fmaxf(vs[4],maxv);
-    minv=fminf(vs[5],minv);
-    maxv=fmaxf(vs[5],maxv);
-    minv=fminf(vs[6],minv);
-    maxv=fmaxf(vs[6],maxv);
-    minv=fminf(vs[7],minv);
-    maxv=fmaxf(vs[7],maxv);
+    minv = fminf(vs[1], minv);
+    maxv = fmaxf(vs[1], maxv);
+    minv = fminf(vs[2], minv);
+    maxv = fmaxf(vs[2], maxv);
+    minv = fminf(vs[3], minv);
+    maxv = fmaxf(vs[3], maxv);
+    minv = fminf(vs[4], minv);
+    maxv = fmaxf(vs[4], maxv);
+    minv = fminf(vs[5], minv);
+    maxv = fmaxf(vs[5], maxv);
+    minv = fminf(vs[6], minv);
+    maxv = fmaxf(vs[6], maxv);
+    minv = fminf(vs[7], minv);
+    maxv = fmaxf(vs[7], maxv);
 
     tol = maxv - minv; // this is the real tolerance
-    
-    if (minv - ms > eps || maxv + ms < -eps){
-        result= false;
+
+    if (minv - ms > eps || maxv + ms < -eps)
+    {
+        result = false;
         return;
     }
-       
+
     if (minv + ms >= -eps && maxv - ms <= eps)
     {
         bbox_in_eps = true;
     }
-    result= true;
+    result = true;
     return;
 }
-
-
 
 __device__ void bisect(const Singleinterval &inter, interval_pair &out)
 {
@@ -415,7 +413,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     Scalar &output_tolerance,
     int &overflow_flag)
 {
-    
+
     overflow_flag = NO_OVERFLOW;
     // if max_itr <0, output_tolerance= co_domain_tolerance;
     // else, output_tolearance will be the precision after iteration time > max_itr
@@ -441,7 +439,6 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         TOI;               // this is to record the element that already small enough or contained in eps-box
     bool use_skip = false; // this is to record if TOI_SKIP is used.
 
-    
     int current_level = -2; // in the begining, current_level != level
     int box_in_level = -2;  // this checks if all the boxes before this
     // level < tolerance. only true, we can return when we find one overlaps eps box and smaller than tolerance or eps-box
@@ -450,9 +447,8 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     // Scalar current_tolerance=std::numeric_limits<Scalar>::infinity(); // set returned tolerance as infinite
     Scalar t_upper_bound = max_t; // 2*tol make it more conservative
 
-    
     MinHeap istack;
-    
+
     bool zero_in;
     bool box_in;
     Scalar t_up[8];
@@ -463,18 +459,19 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     Scalar v_dw[8];
     int level;
     bool box_in_[3];
-    bool ck0,ck1,ck2;
+    bool ck0, ck1, ck2;
     Singleinterval itv0, itv1, itv2;
-   
-   // LINENBR 3
+
+    // LINENBR 3
     istack.insertKey(item(iset, -1));
-     //return true;
+    //return true;
     item current_item;
 
     //LINENBR 5
     while (!istack.empty())
     {
-        if(overflow_flag!=NO_OVERFLOW){
+        if (overflow_flag != NO_OVERFLOW)
+        {
             break;
         }
 
@@ -499,34 +496,35 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         }
         // LINENBR 8
         refine++;
-    
-    box_in = false;
-    zero_in=false;
-    
-    itv0 = current[0]; itv1 = current[1]; itv2 = current[2];
 
-    convert_tuv_to_array(itv0, itv1, itv2, t_up, t_dw, u_up, u_dw, v_up, v_dw);
-    // LINENBR 7
-    evaluate_bbox_one_dimension_vector_return_tolerance(
-        t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
-        a1e, b0e, b1e, 0, check_vf, err[0], ms, box_in_[0],
-        true_tol[0],ck0);
-    evaluate_bbox_one_dimension_vector_return_tolerance(
-        t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
-        a1e, b0e, b1e, 1, check_vf, err[1], ms, box_in_[1],
-        true_tol[1],ck1);
-    evaluate_bbox_one_dimension_vector_return_tolerance( 
-        t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
-        a1e, b0e, b1e, 2, check_vf, err[2], ms, box_in_[2],
-        true_tol[2],ck2);
-    
-    box_in = box_in_[0] && box_in_[1] && box_in_[2];
-    zero_in=ck0&&ck1&&ck2;
-    
+        box_in = false;
+        zero_in = false;
+
+        itv0 = current[0];
+        itv1 = current[1];
+        itv2 = current[2];
+
+        convert_tuv_to_array(itv0, itv1, itv2, t_up, t_dw, u_up, u_dw, v_up, v_dw);
+        // LINENBR 7
+        evaluate_bbox_one_dimension_vector_return_tolerance(
+            t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
+            a1e, b0e, b1e, 0, check_vf, err[0], ms, box_in_[0],
+            true_tol[0], ck0);
+        evaluate_bbox_one_dimension_vector_return_tolerance(
+            t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
+            a1e, b0e, b1e, 1, check_vf, err[1], ms, box_in_[1],
+            true_tol[1], ck1);
+        evaluate_bbox_one_dimension_vector_return_tolerance(
+            t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
+            a1e, b0e, b1e, 2, check_vf, err[2], ms, box_in_[2],
+            true_tol[2], ck2);
+
+        box_in = box_in_[0] && box_in_[1] && box_in_[2];
+        zero_in = ck0 && ck1 && ck2;
 
         if (!zero_in)
             continue;
-        
+
         VectorMax3d widths = width(current);
 
         bool tol_condition = true_tol[0] <= co_domain_tolerance && true_tol[1] <= co_domain_tolerance && true_tol[2] <= co_domain_tolerance;
@@ -551,47 +549,45 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         if (condition1 || condition2 || condition3)
         {
             TOI = current[0].first;
-            
+
             // continue;
             toi = Numccd2double(TOI);
 
             return true;
-
         }
 
-       // LINENBR 10
-            if (current_level != level)
-            {
-                // LINENBR 22
-                current_level = level;
-                find_level_root = false;
-            }
-            if (!find_level_root)
-            {
-                TOI = current[0].first;
+        // LINENBR 10
+        if (current_level != level)
+        {
+            // LINENBR 22
+            current_level = level;
+            find_level_root = false;
+        }
+        if (!find_level_root)
+        {
+            TOI = current[0].first;
 
-                // LINENBR 11
-                // continue;
-                temp_toi = Numccd2double(TOI);
+            // LINENBR 11
+            // continue;
+            temp_toi = Numccd2double(TOI);
 
-                // if the real tolerance is larger than input, use the real one;
-                // if the real tolerance is smaller than input, use input
-                temp_output_tolerance = max(
-                    max(
-                        max(true_tol[0], true_tol[1]), true_tol[2]),
-                    co_domain_tolerance);
+            // if the real tolerance is larger than input, use the real one;
+            // if the real tolerance is smaller than input, use input
+            temp_output_tolerance = max(
+                max(
+                    max(true_tol[0], true_tol[1]), true_tol[2]),
+                co_domain_tolerance);
 
-                find_level_root =
-                    true; // this ensures always find the earlist root
-            }
+            find_level_root =
+                true; // this ensures always find the earlist root
+        }
 
-            // LINENBR 12
-            if (refine > max_itr)
-            {
-                overflow_flag = ITERATION_OVERFLOW;
-                break;
-            }
-        
+        // LINENBR 12
+        if (refine > max_itr)
+        {
+            overflow_flag = ITERATION_OVERFLOW;
+            break;
+        }
 
         // if this box is small enough, or inside of eps-box, then just continue,
         // but we need to record the collision time
@@ -619,7 +615,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         }
 
         int split_i = -1;
-        
+
         for (int i = 0; i < 3; i++)
         {
             if (check[i])
@@ -676,7 +672,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         if (split_i == 1)
         {
 
-            if (sum_no_larger_1( halves.second.first, current[2].first))
+            if (sum_no_larger_1(halves.second.first, current[2].first))
             {
 
                 current[split_i] = halves.second;
@@ -724,7 +720,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
         {
             if (check_t_overlap)
             {
-                if ( interval_overlap_region(
+                if (interval_overlap_region(
                         halves.second, 0, t_upper_bound))
                 {
                     current[split_i] = halves.second;
@@ -734,7 +730,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
                         overflow_flag = HEAP_OVERFLOW;
                     }
                 }
-                if ( interval_overlap_region(
+                if (interval_overlap_region(
                         halves.first, 0, t_upper_bound))
                 {
                     current[split_i] = halves.first;
@@ -765,7 +761,7 @@ __device__ bool interval_root_finder_double_horizontal_tree(
 #else
         if (check_t_overlap && split_i == 0)
         {
-            if (interval_overlap_region( 
+            if (interval_overlap_region(
                     halves.second, 0, t_upper_bound))
             {
                 current[split_i] = halves.second;
@@ -840,7 +836,6 @@ __device__ bool interval_root_finder_double_horizontal_tree(
     Scalar &output_tolerance,
     int &overflow_flag)
 {
-
 }
 
 __device__ Scalar max_linf_dist(const VectorMax3d &p1, const VectorMax3d &p2)
@@ -864,9 +859,9 @@ __device__ Scalar max_linf_4(
 {
     Scalar r = 0; //,temp = 0, temp2=0, temp3 = 0, temp4=0;
     // temp4 = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p4", max_linf_dist, p4e, p4);
-    r = max(r, max_linf_dist( p4e, p4));
+    r = max(r, max_linf_dist(p4e, p4));
     // if (r < temp4) return temp4;
-    
+
     // temp3 = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p3", max_linf_dist, p3e, p3);
     // if (r < temp3) return temp3;
     r = max(r, max_linf_dist(p3e, p3));
@@ -876,7 +871,7 @@ __device__ Scalar max_linf_4(
     r = max(r, max_linf_dist(p2e, p2));
 
     // temp = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p1", max_linf_dist, p1e, p1);
-    // if (r < temp) return temp; 
+    // if (r < temp) return temp;
     // return tem /p4;
     return max(r, max_linf_dist(p1e, p1));
 }
@@ -899,11 +894,11 @@ __device__ void compute_face_vertex_tolerance_3d_new(
     Scalar dl = 0;
     Scalar edge0_length = 0;
     Scalar edge1_length = 0;
-    dl = 3 * max_linf_4( p000, p001, p011, p010, p100, p101, p111, p110);
+    dl = 3 * max_linf_4(p000, p001, p011, p010, p100, p101, p111, p110);
     edge0_length =
-    3 * max_linf_4( p000, p100, p101, p001, p010, p110, p111, p011);
+        3 * max_linf_4(p000, p100, p101, p001, p010, p110, p111, p011);
     edge1_length =
-    3*max_linf_4(p000, p100, p110, p010, p001, p101, p111, p011);
+        3 * max_linf_4(p000, p100, p110, p010, p001, p101, p111, p011);
 
     result[0] = tolerance / dl;
     result[1] = tolerance / edge0_length;
@@ -1035,42 +1030,31 @@ __device__ bool vertexFaceCCD_double(
     bool no_zero_toi,
     int &overflow_flag)
 {
-    
+
     overflow_flag = 0;
-
-    //bool is_impacting;
-    
-
     Scalar tol[3];
-    
     Scalar err[3];
-
     compute_face_vertex_tolerance_3d_new(data_in, co_domain_tolerance, tol);
-
-
-        //////////////////////////////////////////////////////////
-
 #ifdef CALCULATE_ERROR_BOUND
-        VectorMax3d vlist[8];
+    VectorMax3d vlist[8];
 #pragma unroll
-        for (int i = 0; i < 3; i++)
-        {
-            vlist[0].v[i] = data_in.v0s[i];
-            vlist[1].v[i] = data_in.v1s[i];
-            vlist[2].v[i] = data_in.v2s[i];
-            vlist[3].v[i] = data_in.v3s[i];
-            vlist[4].v[i] = data_in.v0e[i];
-            vlist[5].v[i] = data_in.v1e[i];
-            vlist[6].v[i] = data_in.v2e[i];
-            vlist[7].v[i] = data_in.v3e[i];
-        }
-
-        bool use_ms = ms > 0;
-        get_numerical_error(vlist, 8, /*is_vf*/true, use_ms, err);
+    for (int i = 0; i < 3; i++)
+    {
+        vlist[0].v[i] = data_in.v0s[i];
+        vlist[1].v[i] = data_in.v1s[i];
+        vlist[2].v[i] = data_in.v2s[i];
+        vlist[3].v[i] = data_in.v3s[i];
+        vlist[4].v[i] = data_in.v0e[i];
+        vlist[5].v[i] = data_in.v1e[i];
+        vlist[6].v[i] = data_in.v2e[i];
+        vlist[7].v[i] = data_in.v3e[i];
+    }
+    bool use_ms = ms > 0;
+    get_numerical_error(vlist, 8, /*is_vf*/ true, use_ms, err);
 #else
-        err[0] = err_in[0];
-        err[1] = err_in[1];
-        err[2] = err_in[2];
+    err[0] = err_in[0];
+    err[1] = err_in[1];
+    err[2] = err_in[2];
 #endif
 
 #ifdef TIME_UPPER_IS_ONE
@@ -1113,7 +1097,6 @@ __device__ bool vertexFaceCCD_double(
         TOI;               // this is to record the element that already small enough or contained in eps-box
     bool use_skip = false; // this is to record if TOI_SKIP is used.
 
-    
     int current_level = -2; // in the begining, current_level != level
     int box_in_level = -2;  // this checks if all the boxes before this
     // level < tolerance. only true, we can return when we find one overlaps eps box and smaller than tolerance or eps-box
@@ -1122,9 +1105,8 @@ __device__ bool vertexFaceCCD_double(
     // Scalar current_tolerance=std::numeric_limits<Scalar>::infinity(); // set returned tolerance as infinite
     Scalar t_upper_bound = max_t; // 2*tol make it more conservative
 
-    
     MinHeap istack;
-    
+
     bool zero_in;
     bool box_in;
     Scalar t_up[8];
@@ -1135,18 +1117,19 @@ __device__ bool vertexFaceCCD_double(
     Scalar v_dw[8];
     int level;
     bool box_in_[3];
-    bool ck0,ck1,ck2;
+    bool ck0, ck1, ck2;
     Singleinterval itv0, itv1, itv2;
-   
-   // LINENBR 3
+
+    // LINENBR 3
     istack.insertKey(item(iset, -1));
-     //return true;
+    //return true;
     item current_item;
 
     //LINENBR 5
     while (!istack.empty())
     {
-        if(overflow_flag!=NO_OVERFLOW){
+        if (overflow_flag != NO_OVERFLOW)
+        {
             break;
         }
 
@@ -1171,34 +1154,36 @@ __device__ bool vertexFaceCCD_double(
         }
         // LINENBR 8
         refine++;
-    
-    box_in = false;
-    zero_in=false;
-    
-    itv0 = current[0]; itv1 = current[1]; itv2 = current[2];
-    //return true;
-    convert_tuv_to_array(itv0, itv1, itv2, t_up, t_dw, u_up, u_dw, v_up, v_dw);
-    // LINENBR 7
-    evaluate_bbox_one_dimension_vector_return_tolerance(
-        t_up, t_dw, u_up, u_dw, v_up, v_dw, data_in.v0s,data_in.v1s,data_in.v2s,data_in.v3s,
-        data_in.v0e,data_in.v1e,data_in.v2e,data_in.v3e, 0, /*check_vf*/true, err[0], ms, box_in_[0],
-        true_tol[0],ck0);
-    evaluate_bbox_one_dimension_vector_return_tolerance(
-        t_up, t_dw, u_up, u_dw, v_up, v_dw, data_in.v0s,data_in.v1s,data_in.v2s,data_in.v3s,
-        data_in.v0e,data_in.v1e,data_in.v2e,data_in.v3e, 1, /*check_vf*/true, err[1], ms, box_in_[1],
-        true_tol[1],ck1);
-    evaluate_bbox_one_dimension_vector_return_tolerance( 
-        t_up, t_dw, u_up, u_dw, v_up, v_dw, data_in.v0s,data_in.v1s,data_in.v2s,data_in.v3s,
-        data_in.v0e,data_in.v1e,data_in.v2e,data_in.v3e, 2, /*check_vf*/true, err[2], ms, box_in_[2],
-        true_tol[2],ck2);
-    
-    box_in = box_in_[0] && box_in_[1] && box_in_[2];
-    zero_in=ck0&&ck1&&ck2;
-    //return zero_in;// REGSCOUNT 100
+
+        box_in = false;
+        zero_in = false;
+
+        itv0 = current[0];
+        itv1 = current[1];
+        itv2 = current[2];
+        //return true;
+        convert_tuv_to_array(itv0, itv1, itv2, t_up, t_dw, u_up, u_dw, v_up, v_dw);
+        // LINENBR 7
+        evaluate_bbox_one_dimension_vector_return_tolerance(
+            t_up, t_dw, u_up, u_dw, v_up, v_dw, data_in.v0s, data_in.v1s, data_in.v2s, data_in.v3s,
+            data_in.v0e, data_in.v1e, data_in.v2e, data_in.v3e, 0, /*check_vf*/ true, err[0], ms, box_in_[0],
+            true_tol[0], ck0);
+        evaluate_bbox_one_dimension_vector_return_tolerance(
+            t_up, t_dw, u_up, u_dw, v_up, v_dw, data_in.v0s, data_in.v1s, data_in.v2s, data_in.v3s,
+            data_in.v0e, data_in.v1e, data_in.v2e, data_in.v3e, 1, /*check_vf*/ true, err[1], ms, box_in_[1],
+            true_tol[1], ck1);
+        evaluate_bbox_one_dimension_vector_return_tolerance(
+            t_up, t_dw, u_up, u_dw, v_up, v_dw, data_in.v0s, data_in.v1s, data_in.v2s, data_in.v3s,
+            data_in.v0e, data_in.v1e, data_in.v2e, data_in.v3e, 2, /*check_vf*/ true, err[2], ms, box_in_[2],
+            true_tol[2], ck2);
+
+        box_in = box_in_[0] && box_in_[1] && box_in_[2];
+        zero_in = ck0 && ck1 && ck2;
+        //return zero_in;// REGSCOUNT 100
 
         if (!zero_in)
             continue;
-        
+
         VectorMax3d widths = width(current);
 
         bool tol_condition = true_tol[0] <= co_domain_tolerance && true_tol[1] <= co_domain_tolerance && true_tol[2] <= co_domain_tolerance;
@@ -1223,47 +1208,45 @@ __device__ bool vertexFaceCCD_double(
         if (condition1 || condition2 || condition3)
         {
             TOI = current[0].first;
-            
+
             // continue;
             toi = Numccd2double(TOI);
 
             return true;
-
         }
 
-       // LINENBR 10
-            if (current_level != level)
-            {
-                // LINENBR 22
-                current_level = level;
-                find_level_root = false;
-            }
-            if (!find_level_root)
-            {
-                TOI = current[0].first;
+        // LINENBR 10
+        if (current_level != level)
+        {
+            // LINENBR 22
+            current_level = level;
+            find_level_root = false;
+        }
+        if (!find_level_root)
+        {
+            TOI = current[0].first;
 
-                // LINENBR 11
-                // continue;
-                temp_toi = Numccd2double(TOI);
+            // LINENBR 11
+            // continue;
+            temp_toi = Numccd2double(TOI);
 
-                // if the real tolerance is larger than input, use the real one;
-                // if the real tolerance is smaller than input, use input
-                temp_output_tolerance = max(
-                    max(
-                        max(true_tol[0], true_tol[1]), true_tol[2]),
-                    co_domain_tolerance);
+            // if the real tolerance is larger than input, use the real one;
+            // if the real tolerance is smaller than input, use input
+            temp_output_tolerance = max(
+                max(
+                    max(true_tol[0], true_tol[1]), true_tol[2]),
+                co_domain_tolerance);
 
-                find_level_root =
-                    true; // this ensures always find the earlist root
-            }
+            find_level_root =
+                true; // this ensures always find the earlist root
+        }
 
-            // LINENBR 12
-            if (refine > max_itr)
-            {
-                overflow_flag = ITERATION_OVERFLOW;
-                break;
-            }
-        
+        // LINENBR 12
+        if (refine > max_itr)
+        {
+            overflow_flag = ITERATION_OVERFLOW;
+            break;
+        }
 
         // if this box is small enough, or inside of eps-box, then just continue,
         // but we need to record the collision time
@@ -1291,7 +1274,7 @@ __device__ bool vertexFaceCCD_double(
         }
 
         int split_i = -1;
-        
+
         for (int i = 0; i < 3; i++)
         {
             if (check[i])
@@ -1348,7 +1331,7 @@ __device__ bool vertexFaceCCD_double(
         if (split_i == 1)
         {
 
-            if (sum_no_larger_1( halves.second.first, current[2].first))
+            if (sum_no_larger_1(halves.second.first, current[2].first))
             {
 
                 current[split_i] = halves.second;
@@ -1396,7 +1379,7 @@ __device__ bool vertexFaceCCD_double(
         {
             if (check_t_overlap)
             {
-                if ( interval_overlap_region(
+                if (interval_overlap_region(
                         halves.second, 0, t_upper_bound))
                 {
                     current[split_i] = halves.second;
@@ -1406,7 +1389,7 @@ __device__ bool vertexFaceCCD_double(
                         overflow_flag = HEAP_OVERFLOW;
                     }
                 }
-                if ( interval_overlap_region(
+                if (interval_overlap_region(
                         halves.first, 0, t_upper_bound))
                 {
                     current[split_i] = halves.first;
@@ -1437,7 +1420,7 @@ __device__ bool vertexFaceCCD_double(
 #else
         if (check_t_overlap && split_i == 0)
         {
-            if (interval_overlap_region( 
+            if (interval_overlap_region(
                     halves.second, 0, t_upper_bound))
             {
                 current[split_i] = halves.second;
@@ -1495,7 +1478,7 @@ __device__ bool vertexFaceCCD_double(
     // {
     //     return true;
     // }
-    
+
     // return is_impacting;
 }
 __device__ bool edgeEdgeCCD_double(
@@ -1513,38 +1496,36 @@ __device__ bool edgeEdgeCCD_double(
     overflow_flag = 0;
 
     bool is_impacting;
-    
 
     Scalar tol[3];
-    
+
     Scalar err1[3];
 
     compute_edge_edge_tolerance_new(data_in, tolerance, tol);
 
-
-        //////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////
 
 #ifdef CALCULATE_ERROR_BOUND
-        VectorMax3d vlist[8];
+    VectorMax3d vlist[8];
 #pragma unroll
-        for (int i = 0; i < 3; i++)
-        {
-            vlist[0].v[i] = data_in.v0s[i];
-            vlist[1].v[i] = data_in.v1s[i];
-            vlist[2].v[i] = data_in.v2s[i];
-            vlist[3].v[i] = data_in.v3s[i];
-            vlist[4].v[i] = data_in.v0e[i];
-            vlist[5].v[i] = data_in.v1e[i];
-            vlist[6].v[i] = data_in.v2e[i];
-            vlist[7].v[i] = data_in.v3e[i];
-        }
+    for (int i = 0; i < 3; i++)
+    {
+        vlist[0].v[i] = data_in.v0s[i];
+        vlist[1].v[i] = data_in.v1s[i];
+        vlist[2].v[i] = data_in.v2s[i];
+        vlist[3].v[i] = data_in.v3s[i];
+        vlist[4].v[i] = data_in.v0e[i];
+        vlist[5].v[i] = data_in.v1e[i];
+        vlist[6].v[i] = data_in.v2e[i];
+        vlist[7].v[i] = data_in.v3e[i];
+    }
 
-        bool use_ms = ms > 0;
-        get_numerical_error(vlist, 8, /*is_vf*/false, use_ms, err1);
+    bool use_ms = ms > 0;
+    get_numerical_error(vlist, 8, /*is_vf*/ false, use_ms, err1);
 #else
-        err1[0] = err[0];
-        err1[1] = err[1];
-        err1[2] = err[2];
+    err1[0] = err[0];
+    err1[1] = err[1];
+    err1[2] = err[2];
 #endif
 
 #ifdef TIME_UPPER_IS_ONE
@@ -1561,20 +1542,18 @@ __device__ bool edgeEdgeCCD_double(
     iset[1] = init_interval;
     iset[2] = init_interval;
 
-    is_impacting =   interval_root_finder_double_horizontal_tree(  
-    tol, tolerance, iset, check_t_overlap, t_max, toi,
-        /*is_vf*/false, err1, ms, data_in.v0s,data_in.v1s,data_in.v2s,data_in.v3s,
-        data_in.v0e,data_in.v1e,data_in.v2e,data_in.v3e, max_itr,
-        output_tolerance, overflow_flag);      
+    is_impacting = interval_root_finder_double_horizontal_tree(
+        tol, tolerance, iset, check_t_overlap, t_max, toi,
+        /*is_vf*/ false, err1, ms, data_in.v0s, data_in.v1s, data_in.v2s, data_in.v3s,
+        data_in.v0e, data_in.v1e, data_in.v2e, data_in.v3e, max_itr,
+        output_tolerance, overflow_flag);
 
     if (overflow_flag)
     {
         return true;
     }
-    
+
     return is_impacting;
 }
 
-
-// 
-
+//
