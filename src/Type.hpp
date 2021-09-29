@@ -81,6 +81,7 @@ class VectorMax3d{
 public:
     __device__ __host__ VectorMax3d(){};
     __device__ __host__ VectorMax3d(Scalar a, Scalar b, Scalar c);
+    __device__ __host__ void init(Scalar a, Scalar b, Scalar c);
    
     Scalar v[3];
 __device__  __host__  friend VectorMax3d operator+(const VectorMax3d &x, const VectorMax3d &y)
@@ -192,4 +193,38 @@ public:
     }
 
 };
-// __device__ void item_equal(item& a, const item& b);
+
+class CCDConfig{
+public:
+    Scalar err_in[3]={-1,-1,-1};// the input error bound calculate from the AABB of the whole mesh
+    Scalar ms=0;// the minimum separation
+    Scalar co_domain_tolerance=1e-6; // tolerance of the co-domain
+    Scalar max_t=1; // the upper bound of the time interval
+    int max_itr=1e6;// the maximal nbr of iterations
+    
+
+};
+class CCDOut{
+public:
+
+    Scalar toi=SCALAR_LIMIT;
+    Scalar output_tolerance;
+    int overflow_flag=NO_OVERFLOW;
+    Scalar tol[3];// conservative domain tolerance
+};
+
+class BoxCompute{
+public:
+    item current_item;// containing 3 intervals and the level
+    Scalar current_toi;
+    Scalar err[3]; // the error bound
+    bool box_in=false; // if the inclusion function is inside the error bound
+    bool true_tol; // the actual solving tolerance of the co-domain
+};
+
+class BoxPrimatives{
+public:
+    bool b[3];
+    int dim;
+
+};

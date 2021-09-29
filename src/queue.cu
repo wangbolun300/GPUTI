@@ -86,8 +86,23 @@ __device__ void swap(item *x, item *y);
 
 __device__ MinHeap::MinHeap()
 {
-	heap_size = 0;
+	heap_size = 1;
 	capacity = HEAP_SIZE;
+	harr[0].itv[0].first.first = 0;
+	harr[0].itv[0].first.second = 0;
+	harr[0].itv[0].second.first = 1;
+	harr[0].itv[0].second.second = 0;
+	
+	harr[0].itv[1].first.first = 0;
+	harr[0].itv[1].first.second = 0;
+	harr[0].itv[1].second.first = 1;
+	harr[0].itv[1].second.second = 0;
+	
+	harr[0].itv[2].first.first = 0;
+	harr[0].itv[2].first.second = 0;
+	harr[0].itv[2].second.first = 1;
+	harr[0].itv[2].second.second = 0;
+	harr[0].level = -1;
 }
 
 // Inserts a new key 'k'

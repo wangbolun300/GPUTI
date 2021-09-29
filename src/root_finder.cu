@@ -26,7 +26,11 @@ __device__ __host__ VectorMax3d::VectorMax3d(Scalar a, Scalar b, Scalar c)
     v[1] = b;
     v[2] = c;
 }
-
+__device__ __host__ void VectorMax3d::init(Scalar a, Scalar b, Scalar c){
+    v[0] = a;
+    v[1] = b;
+    v[2] = c;
+}
 __device__ long reduction(const long n, long &result)
 {
     int t = 0;
@@ -859,21 +863,9 @@ __device__ Scalar max_linf_4(
     const VectorMax3d &p4e)
 {
     Scalar r = 0; //,temp = 0, temp2=0, temp3 = 0, temp4=0;
-    // temp4 = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p4", max_linf_dist, p4e, p4);
     r = max(r, max_linf_dist(p4e, p4));
-    // if (r < temp4) return temp4;
-
-    // temp3 = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p3", max_linf_dist, p3e, p3);
-    // if (r < temp3) return temp3;
     r = max(r, max_linf_dist(p3e, p3));
-
-    // temp2 = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p2", max_linf_dist, p2e, p2);
-    // if (r < temp2) return temp2;
     r = max(r, max_linf_dist(p2e, p2));
-
-    // temp = recordLaunch<Scalar, const VectorMax3d &, const VectorMax3d &>("max_linf_dist-p1", max_linf_dist, p1e, p1);
-    // if (r < temp) return temp;
-    // return tem /p4;
     return max(r, max_linf_dist(p1e, p1));
 }
 __device__ void compute_face_vertex_tolerance_3d_new(
@@ -1018,6 +1010,364 @@ __device__ bool CCD_Solver(
 
     return true;
 }
+__device__ bool Origin_in_function_bounding_box_double_vector_return_tolerance(
+    Singleinterval *paras,
+    const Scalar *a0s,
+    const Scalar *a1s,
+    const Scalar *b0s,
+    const Scalar *b1s,
+    const Scalar *a0e,
+    const Scalar *a1e,
+    const Scalar *b0e,
+    const Scalar *b1e,
+    const bool check_vf,
+    const Scalar *box,
+    const Scalar ms,
+    bool &box_in_eps,
+    Scalar *tolerance)
+{
+
+    // box_in_eps = false;
+    // Scalar t_up[8];
+    // Scalar t_dw[8];
+    // Scalar u_up[8];
+    // Scalar u_dw[8];
+    // Scalar v_up[8];
+    // Scalar v_dw[8];
+    // Singleinterval *itv0 = &paras[0], *itv1 = &paras[1], *itv2 = &paras[2];
+
+    // convert_tuv_to_array(itv0, itv1, itv2, t_up, t_dw, u_up, u_dw, v_up, v_dw);
+
+    // bool ck;
+    // bool box_in[3];
+    // for (int i = 0; i < 3; i++)
+    // {
+
+    //     ck = evaluate_bbox_one_dimension_vector_return_tolerance(
+    //         t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
+    //         a1e, b0e, b1e, i, check_vf, box[i], ms, box_in[i],
+    //         tolerance[i]);
+
+    //     if (!ck)
+    //         return false;
+    // }
+    // if (box_in[0] && box_in[1] && box_in[2])
+    // {
+    //     box_in_eps = true;
+    // }
+    return true;
+}
+__device__ void compute_face_vertex_tolerance(const CCDdata &data_in,const CCDConfig& config, CCDOut& out){
+    VectorMax3d v(data_in.v0s[0], data_in.v0s[1], data_in.v0s[2]);
+    VectorMax3d f0(data_in.v1s[0], data_in.v1s[1], data_in.v1s[2]);
+    VectorMax3d f1(data_in.v2s[0], data_in.v2s[1], data_in.v2s[2]);
+    VectorMax3d f2(data_in.v3s[0], data_in.v3s[1], data_in.v3s[2]);
+    VectorMax3d p000 = v - f0, p001 = v - f2,
+                p011 = v - (f1 + f2 - f0), p010 = v - f1;
+    v.init(data_in.v0e[0], data_in.v0e[1], data_in.v0e[2]);
+    f0.init(data_in.v1e[0], data_in.v1e[1], data_in.v1e[2]);
+    f1.init(data_in.v2e[0], data_in.v2e[1], data_in.v2e[2]);
+    f2.init(data_in.v3e[0], data_in.v3e[1], data_in.v3e[2]);   
+    VectorMax3d p100 = v - f0, p101 = v - f2,
+                p111 = v - (f1 + f2 - f0), p110 = v - f1;
+    
+    Scalar dl = 3 * max_linf_4(p000, p001, p011, p010, p100, p101, p111, p110);
+    Scalar edge0_length =
+        3 * max_linf_4(p000, p100, p101, p001, p010, p110, p111, p011);
+    Scalar edge1_length =
+        3 * max_linf_4(p000, p100, p110, p010, p001, p101, p111, p011);
+
+    out.tol[0] = config.co_domain_tolerance / dl;
+    out.tol[1] = config.co_domain_tolerance / edge0_length;
+    out.tol[2] = config.co_domain_tolerance / edge1_length;
+}
+
+__device__ __host__ void get_numerical_error_vf(
+    const CCDdata &data_in,
+    BoxCompute &box)
+{
+    Scalar vffilter;
+
+#ifdef GPUTI_USE_DOUBLE_PRECISION
+    vffilter = 6.661338147750939e-15;
+#else
+    vffilter = 3.576279e-06;
+#endif
+    Scalar xmax = fabs(data_in.v0s[0]);
+    Scalar ymax = fabs(data_in.v0s[1]);
+    Scalar zmax = fabs(data_in.v0s[2]);
+
+    xmax = max(xmax,fabs(data_in.v1s[0]));
+    ymax = max(ymax,fabs(data_in.v1s[1]));
+    zmax = max(zmax,fabs(data_in.v1s[2]));
+    
+    xmax = max(xmax,fabs(data_in.v2s[0]));
+    ymax = max(ymax,fabs(data_in.v2s[1]));
+    zmax = max(zmax,fabs(data_in.v2s[2]));
+
+    xmax = max(xmax,fabs(data_in.v3s[0]));
+    ymax = max(ymax,fabs(data_in.v3s[1]));
+    zmax = max(zmax,fabs(data_in.v3s[2]));
+
+    xmax = max(xmax,fabs(data_in.v0e[0]));
+    ymax = max(ymax,fabs(data_in.v0e[1]));
+    zmax = max(zmax,fabs(data_in.v0e[2]));
+
+    xmax = max(xmax,fabs(data_in.v1e[0]));
+    ymax = max(ymax,fabs(data_in.v1e[1]));
+    zmax = max(zmax,fabs(data_in.v1e[2]));
+
+    xmax = max(xmax,fabs(data_in.v2e[0]));
+    ymax = max(ymax,fabs(data_in.v2e[1]));
+    zmax = max(zmax,fabs(data_in.v2e[2]));
+
+    xmax = max(xmax,fabs(data_in.v3e[0]));
+    ymax = max(ymax,fabs(data_in.v3e[1]));
+    zmax = max(zmax,fabs(data_in.v3e[2]));
+
+    xmax = max(xmax, Scalar(1));
+    ymax = max(ymax, Scalar(1));
+    zmax = max(zmax, Scalar(1));
+
+    box.err[0] = xmax * xmax * xmax * vffilter;
+    box.err[1] = ymax * ymax * ymax * vffilter;
+    box.err[2] = zmax * zmax * zmax * vffilter;
+    return;
+}
+// Singleinterval *paras,
+//     const Scalar *a0s,
+//     const Scalar *a1s,
+//     const Scalar *b0s,
+//     const Scalar *b1s,
+//     const Scalar *a0e,
+//     const Scalar *a1e,
+//     const Scalar *b0e,
+//     const Scalar *b1e,
+//     const bool check_vf,
+//     const Scalar *box,
+//     const Scalar ms,
+//     bool &box_in_eps,
+//     Scalar *tolerance)
+__device__ Scalar calculate_vf(const CCDdata &data_in, const BoxCompute& box, const BoxPrimatives& bp){
+    Scalar t_up,t_dw, u_up, u_dw, v_up, v_dw;
+    if(bp.b[0]==0){// t0
+        t_up=box.current_item.itv[0].first.first;
+        t_dw=1<<box.current_item.itv[0].first.second;
+    }
+    else{// t1
+        t_up=box.current_item.itv[0].second.first;
+        t_dw=1<<box.current_item.itv[0].second.second;
+    }
+
+    if(bp.b[1]==0){// u0
+        u_up=box.current_item.itv[1].first.first;
+        u_dw=1<<box.current_item.itv[1].first.second;
+    }
+    else{// u1
+        u_up=box.current_item.itv[1].second.first;
+        u_dw=1<<box.current_item.itv[1].second.second;
+    }
+
+    if(bp.b[2]==0){// v0
+        v_up=box.current_item.itv[2].first.first;
+        v_dw=1<<box.current_item.itv[2].first.second;
+    }
+    else{// v1
+        v_up=box.current_item.itv[2].second.first;
+        v_dw=1<<box.current_item.itv[2].second.second;
+    }
+}
+
+__device__ bool Origin_in_vf_inclusion_function(const CCDdata &data_in, BoxCompute& box){
+    box.box_in=false;
+    // t0_up=box.current_item.itv[0].first.first
+    // t0_dw=box.current_item.itv[0].first.second
+    // t1_up=box.current_item.itv[0].second.first
+    // t1_dw=box.current_item.itv[0].second.second
+    
+    Scalar v, t0, t1, t2, pt, rst;
+    v=
+    v = (ve - vs) * t_up[i] / t_dw[i] + vs;
+        t0 = (t0e - t0s) * t_up[i] / t_dw[i] + t0s;
+        t1 = (t1e - t1s) * t_up[i] / t_dw[i] + t1s;
+        t2 = (t2e - t2s) * t_up[i] / t_dw[i] + t2s;
+        pt = (t1 - t0) * u_up[i] / u_dw[i] + (t2 - t0) * v_up[i] / v_dw[i] + t0;
+        rst[i] = v - pt;
+    // Scalar t_up[8];
+    // Scalar t_dw[8];
+    // Scalar u_up[8];
+    // Scalar u_dw[8];
+    // Scalar v_up[8];
+    // Scalar v_dw[8];
+    // Singleinterval *itv0 = &paras[0], *itv1 = &paras[1], *itv2 = &paras[2];
+
+    // convert_tuv_to_array(itv0, itv1, itv2, t_up, t_dw, u_up, u_dw, v_up, v_dw);
+
+    // bool ck;
+    // bool box_in[3];
+    // for (int i = 0; i < 3; i++)
+    // {
+
+    //     ck = evaluate_bbox_one_dimension_vector_return_tolerance(
+    //         t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
+    //         a1e, b0e, b1e, i, check_vf, box[i], ms, box_in[i],
+    //         tolerance[i]);
+
+    //     if (!ck)
+    //         return false;
+    // }
+    // if (box_in[0] && box_in[1] && box_in[2])
+    // {
+    //     box_in_eps = true;
+    // }
+}
+
+__device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CCDOut& out){
+    
+    MinHeap istack;// now when initialized, size is 1 and initialized with [0,1]^3
+    compute_face_vertex_tolerance(data_in, config, out);
+    bool may_have_roots=false;
+    BoxCompute box;
+
+#ifdef CALCULATE_ERROR_BOUND
+    get_numerical_error_vf(data_in, box);
+#else
+    box.err[0] = config.err_in[0];
+    box.err[1] = config.err_in[1];
+    box.err[2] = config.err_in[2];
+#endif
+
+    out.output_tolerance = config.co_domain_tolerance;
+
+    // this is used to catch the tolerance for each level
+    Scalar temp_output_tolerance = config.co_domain_tolerance;
+    // LINENBR 2
+    int refine = 0;
+    // temp_toi is to catch the first toi of each level
+    Scalar temp_toi = out.toi;
+    Scalar skip_toi =out.toi;
+    
+    bool use_skip = false; // when tolerance is small enough or when box in epsilon, this is activated.
+    int current_level = -2; // in the begining, current_level != level
+    int box_in_level = -2;  // this checks if all the boxes before this
+    // level < tolerance. only true, we can return when we find one overlaps eps box and smaller than tolerance or eps-box
+    bool this_level_less_tol = true;
+    bool find_level_root = false;
+
+    while (!istack.empty())
+    {
+        if (out.overflow_flag != NO_OVERFLOW)
+        {
+            break;
+        }
+
+        //LINENBR 6
+        box.current_item = istack.extractMin();// get the level and the intervals
+        box.current_toi=Numccd2double(box.current_item.itv[0].first);
+        // if this box is later than TOI_SKIP in time, we can skip this one.
+        // TOI_SKIP is only updated when the box is small enough or totally contained in eps-box
+        if (box.current_toi>=skip_toi)
+        {
+            continue;
+        }
+        if (box_in_level != box.current_item.level)
+        { // before check a new level, set this_level_less_tol=true
+            box_in_level = box.current_item.level;
+            this_level_less_tol = true;
+        }
+        // LINENBR 8
+        refine++;
+
+        box.box_in = false;
+
+        bool zero_in =
+            Origin_in_vf_inclusion_function(
+                current, a0s, a1s, b0s, b1s, a0e, a1e, b0e, b1e, check_vf,
+                err, ms, box_in, true_tol);
+        //return zero_in;// REGSCOUNT 100
+        
+        if (!zero_in)
+            continue;
+
+        VectorMax3d widths = width(current);
+
+        tol_condition = true_tol[0] <= co_domain_tolerance && true_tol[1] <= co_domain_tolerance && true_tol[2] <= co_domain_tolerance;
+
+        // Condition 1, stopping condition on t, u and v is satisfied. this is useless now since we have condition 2
+        condition1 = widths.v[0] <= tol[0] && widths.v[1] <= tol[1] && widths.v[2] <= tol[2];
+
+        // Condition 2, zero_in = true, box inside eps-box and in this level,
+        // no box whose zero_in is true but box size larger than tolerance, can return
+        condition2 = box_in && this_level_less_tol;
+        if (!tol_condition)
+        {
+            this_level_less_tol = false;
+            // this level has at least one box whose size > tolerance, thus we
+            // cannot directly return if find one box whose size < tolerance or box-in
+        }
+
+        // Condition 3, in this level, we find a box that zero-in and size < tolerance.
+        // and no other boxes whose zero-in is true in this level before this one is larger than tolerance, can return
+        condition3 = this_level_less_tol;
+        // LINENBR 15, 16
+        if (condition1 || condition2 || condition3)
+        {
+            TOI = current[0].first;
+
+            // continue;
+            toi = Numccd2double(TOI);
+
+            return true;
+        }
+
+        // LINENBR 10
+        if (current_level != level)
+        {
+            // LINENBR 22
+            current_level = level;
+            find_level_root = false;
+        }
+        if (!find_level_root)
+        {
+            TOI = current[0].first;
+
+            // LINENBR 11
+            // continue;
+            // this is the first toi of this level
+            temp_toi = Numccd2double(TOI);
+
+            // if the real tolerance is larger than input, use the real one;
+            // if the real tolerance is smaller than input, use input
+            temp_output_tolerance = max(
+                max(
+                    max(true_tol[0], true_tol[1]), true_tol[2]),
+                co_domain_tolerance);
+
+            find_level_root =
+                true; // this ensures always find the earlist root
+        }
+
+        // LINENBR 12
+        if (refine > max_itr)
+        {
+            overflow_flag = ITERATION_OVERFLOW;
+            break;
+        }
+
+        // if this box is small enough, or inside of eps-box, then just continue,
+        // but we need to record the collision time
+        if (tol_condition || box_in)
+        {
+            if (less_than(current[0].first, TOI_SKIP))
+            {
+                TOI_SKIP = current[0].first;
+            }
+            use_skip = true;
+            continue;
+        }
+    }
+
+}
 
 __device__ bool vertexFaceCCD_double(
     const CCDdata &data_in,
@@ -1085,27 +1435,7 @@ __device__ bool vertexFaceCCD_double(
     overflow_flag = 0;
     
     compute_face_vertex_tolerance_3d_new(data_in, co_domain_tolerance, tol);
-#ifdef CALCULATE_ERROR_BOUND
-    
-#pragma unroll
-    for (int i = 0; i < 3; i++)
-    {
-        vlist[0].v[i] = data_in.v0s[i];
-        vlist[1].v[i] = data_in.v1s[i];
-        vlist[2].v[i] = data_in.v2s[i];
-        vlist[3].v[i] = data_in.v3s[i];
-        vlist[4].v[i] = data_in.v0e[i];
-        vlist[5].v[i] = data_in.v1e[i];
-        vlist[6].v[i] = data_in.v2e[i];
-        vlist[7].v[i] = data_in.v3e[i];
-    }
-    use_ms = ms > 0;
-    get_numerical_error(vlist, 8, /*is_vf*/ true, use_ms, err);
-#else
-    err[0] = err_in[0];
-    err[1] = err_in[1];
-    err[2] = err_in[2];
-#endif
+
 
 #ifdef TIME_UPPER_IS_ONE
     check_t_overlap = false; // if input max_time = 1, then no need to check overlap
@@ -1185,27 +1515,10 @@ __device__ bool vertexFaceCCD_double(
         box_in = false;
         zero_in = false;
 
-        itv0 = current[0];
-        itv1 = current[1];
-        itv2 = current[2];
-        //return true;
-        convert_tuv_to_array(itv0, itv1, itv2, t_up, t_dw, u_up, u_dw, v_up, v_dw);
-        // LINENBR 7
-        evaluate_bbox_one_dimension_vector_return_tolerance(
-            t_up, t_dw, u_up, u_dw, v_up, v_dw, data_in.v0s, data_in.v1s, data_in.v2s, data_in.v3s,
-            data_in.v0e, data_in.v1e, data_in.v2e, data_in.v3e, 0, /*check_vf*/ true, err[0], ms, box_in_[0],
-            true_tol[0], ck0);
-        evaluate_bbox_one_dimension_vector_return_tolerance(
-            t_up, t_dw, u_up, u_dw, v_up, v_dw, data_in.v0s, data_in.v1s, data_in.v2s, data_in.v3s,
-            data_in.v0e, data_in.v1e, data_in.v2e, data_in.v3e, 1, /*check_vf*/ true, err[1], ms, box_in_[1],
-            true_tol[1], ck1);
-        evaluate_bbox_one_dimension_vector_return_tolerance(
-            t_up, t_dw, u_up, u_dw, v_up, v_dw, data_in.v0s, data_in.v1s, data_in.v2s, data_in.v3s,
-            data_in.v0e, data_in.v1e, data_in.v2e, data_in.v3e, 2, /*check_vf*/ true, err[2], ms, box_in_[2],
-            true_tol[2], ck2);
-
-        box_in = box_in_[0] && box_in_[1] && box_in_[2];
-        zero_in = ck0 && ck1 && ck2;
+        // zero_in =
+        //     Origin_in_function_bounding_box_double_vector_return_tolerance(
+        //         current, a0s, a1s, b0s, b1s, a0e, a1e, b0e, b1e, check_vf,
+        //         err, ms, box_in, true_tol);
         //return zero_in;// REGSCOUNT 100
         
         if (!zero_in)
@@ -1255,6 +1568,7 @@ __device__ bool vertexFaceCCD_double(
 
             // LINENBR 11
             // continue;
+            // this is the first toi of this level
             temp_toi = Numccd2double(TOI);
 
             // if the real tolerance is larger than input, use the real one;
