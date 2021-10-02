@@ -1148,9 +1148,8 @@ __device__ __host__ void get_numerical_error_vf(
 //     const Scalar ms,
 //     bool &box_in_eps,
 //     Scalar *tolerance)
-__device__ Scalar calculate_vf(const CCDdata &data_in, const BoxCompute& box, const BoxPrimatives& bp){
-    Scalar t_up,t_dw, u_up, u_dw, v_up, v_dw;
-    if(bp.b[0]==0){// t0
+__device__ void BoxPrimatives::calculate_tuv(const BoxCompute& box){
+    if(b[0]==0){// t0
         t_up=box.current_item.itv[0].first.first;
         t_dw=1<<box.current_item.itv[0].first.second;
     }
@@ -1177,49 +1176,91 @@ __device__ Scalar calculate_vf(const CCDdata &data_in, const BoxCompute& box, co
         v_dw=1<<box.current_item.itv[2].second.second;
     }
 }
+__device__ Scalar calculate_vf(const CCDdata &data_in, const BoxPrimatives& bp){
+    Scalar v, pt, t0, t1, t2;
+    v = (data_in.v0e[bp.dim] - data_in.v0s[bp.dim]) * bp.t_up / bp.t_dw + data_in.v0s[bp.dim];
+        t0 = (data_in.v1e[bp.dim] - data_in.v1s[bp.dim]) * bp.t_up / bp.t_dw + data_in.v1s[bp.dim];
+        t1 = (data_in.v2e[bp.dim] - data_in.v2s[bp.dim]) * bp.t_up / bp.t_dw + data_in.t1s[bp.dim];
+        t2 = (data_in.v3e[bp.dim] - data_in.v3s[bp.dim]) * bp.t_up / bp.t_dw + data_in.t2s[bp.dim];
+        pt = (t1 - t0) * bp.u_up / bp.u_dw + (t2 - t0) * bp.v_up / bp.v_dw + t0;
+        return (v - pt);
+}
 
 __device__ bool Origin_in_vf_inclusion_function(const CCDdata &data_in, BoxCompute& box){
-    box.box_in=false;
-    // t0_up=box.current_item.itv[0].first.first
-    // t0_dw=box.current_item.itv[0].first.second
-    // t1_up=box.current_item.itv[0].second.first
-    // t1_dw=box.current_item.itv[0].second.second
+    BoxPrimatives bp;
+    Scalar vmin=-SCALAR_LIMIT, vmax=SCALAR_LIMIT, value;
+    for(bp.dim=0;bp.dim<3;bp.dim++){
+
+        for (int i = 0; i < 2; i++)
+        {
+            for (int j = 0; j < 2; j++)
+            {
+                for (int k = 0; k < 2; k++)
+                {
+                    bp.b[0] = i;
+                    bp.b[1] = j;
+                    bp.b[2] = k; //100
+                    bp.calculate_tuv(box);
+                    value = calculate_vf(data_in, bp);
+                    vmin = min(vmin, value);
+                    vmax = max(vmax, value);
+                }
+            }
+        }
+        // get the min and max in one dimension
+        box.true_tol = max(box.true_tol, vmax - vmin); // this is the real tolerance
+
+        if (vmin > box.err[bp.dim] || vmax < -box.err[bp.dim])
+        {
+            return false;
+        }
+
+        if (vmin < -box.err[bp.dim] || vmax > box.err[bp.dim])
+        {
+            box.box_in = false;
+        }
+        
+    }
+    return true;
+}
+__device__ void BoxCompute::calculate_interval_widths()
+{
     
-    Scalar v, t0, t1, t2, pt, rst;
-    v=
-    v = (ve - vs) * t_up[i] / t_dw[i] + vs;
-        t0 = (t0e - t0s) * t_up[i] / t_dw[i] + t0s;
-        t1 = (t1e - t1s) * t_up[i] / t_dw[i] + t1s;
-        t2 = (t2e - t2s) * t_up[i] / t_dw[i] + t2s;
-        pt = (t1 - t0) * u_up[i] / u_dw[i] + (t2 - t0) * v_up[i] / v_dw[i] + t0;
-        rst[i] = v - pt;
-    // Scalar t_up[8];
-    // Scalar t_dw[8];
-    // Scalar u_up[8];
-    // Scalar u_dw[8];
-    // Scalar v_up[8];
-    // Scalar v_dw[8];
-    // Singleinterval *itv0 = &paras[0], *itv1 = &paras[1], *itv2 = &paras[2];
+    widths[0] = Scalar(current_item.itv[0].second.first) / (1 << current_item.itv[0].second.second) - Scalar(current_item.itv[0].first.first) / (1 << current_item.itv[0].first.second);
+    widths[1] = Scalar(current_item.itv[1].second.first) / (1 << current_item.itv[1].second.second) - Scalar(current_item.itv[1].first.first) / (1 << current_item.itv[1].first.second);
+    widths[2] = Scalar(current_item.itv[2].second.first) / (1 << current_item.itv[2].second.second) - Scalar(current_item.itv[2].first.first) / (1 << current_item.itv[2].first.second);
+}
+__device__ void split_dimension(const CCDOut& out,BoxCompute& box){
+    Scalar res[3];
+    res[0]=box.widths[0]/out.tol[0];
+    res[1]=box.widths[1]/out.tol[1];
+    res[2]=box.widths[2]/out.tol[2];
+    if(res[0]>=res[1]&&res[0]>=res[2]){
+        box.split=0;
+    }
+    if(res[1]>=res[0]&&res[1]>=res[2]){
+        box.split=1;
+    }
+    if(res[2]>=res[1]&&res[2]>=res[0]){
+        box.split=2;
+    }
+}
 
-    // convert_tuv_to_array(itv0, itv1, itv2, t_up, t_dw, u_up, u_dw, v_up, v_dw);
+__device__ void bisect_vf_and_push(const BoxCompute& box, MinHeap& istack,CCDOut& out){
+    interval_pair halves;
+    bisect(box.current_item.itv[box.split], halves);
+    if (!less_than(halves.first.first, halves.first.second))
+    {
+        out.overflow_flag = BISECTION_OVERFLOW;
+        return;
+    }
+    if (!less_than(halves.second.first, halves.second.second))
+    {
+        out.overflow_flag = BISECTION_OVERFLOW;
+        break;
+    }
+    xxx
 
-    // bool ck;
-    // bool box_in[3];
-    // for (int i = 0; i < 3; i++)
-    // {
-
-    //     ck = evaluate_bbox_one_dimension_vector_return_tolerance(
-    //         t_up, t_dw, u_up, u_dw, v_up, v_dw, a0s, a1s, b0s, b1s, a0e,
-    //         a1e, b0e, b1e, i, check_vf, box[i], ms, box_in[i],
-    //         tolerance[i]);
-
-    //     if (!ck)
-    //         return false;
-    // }
-    // if (box_in[0] && box_in[1] && box_in[2])
-    // {
-    //     box_in_eps = true;
-    // }
 }
 
 __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CCDOut& out){
@@ -1263,7 +1304,8 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
 
         //LINENBR 6
         box.current_item = istack.extractMin();// get the level and the intervals
-        box.current_toi=Numccd2double(box.current_item.itv[0].first);
+        box.current_toi=Scalar(box.current_item.itv[0].first.first) / (1 << box.current_item.itv[0].first.second);
+        
         // if this box is later than TOI_SKIP in time, we can skip this one.
         // TOI_SKIP is only updated when the box is small enough or totally contained in eps-box
         if (box.current_toi>=skip_toi)
@@ -1277,28 +1319,32 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
         }
         // LINENBR 8
         refine++;
-
-        box.box_in = false;
-
         bool zero_in =
-            Origin_in_vf_inclusion_function(
-                current, a0s, a1s, b0s, b1s, a0e, a1e, b0e, b1e, check_vf,
-                err, ms, box_in, true_tol);
+            Origin_in_vf_inclusion_function(data_in,box);
         //return zero_in;// REGSCOUNT 100
         
         if (!zero_in)
             continue;
 
-        VectorMax3d widths = width(current);
-
-        tol_condition = true_tol[0] <= co_domain_tolerance && true_tol[1] <= co_domain_tolerance && true_tol[2] <= co_domain_tolerance;
-
+        
+        box.calculate_interval_widths();
+                
+        // LINENBR 15, 16
         // Condition 1, stopping condition on t, u and v is satisfied. this is useless now since we have condition 2
-        condition1 = widths.v[0] <= tol[0] && widths.v[1] <= tol[1] && widths.v[2] <= tol[2];
-
+        bool condition = box.widths[0] <= out.tol[0] && box.widths[1] <= out.tol[1] && box.widths[2] <= out.tol[2];
+        if(condition){
+            out.toi=box.current_toi;
+            return true;
+        }
         // Condition 2, zero_in = true, box inside eps-box and in this level,
         // no box whose zero_in is true but box size larger than tolerance, can return
-        condition2 = box_in && this_level_less_tol;
+        condition = box.box_in && this_level_less_tol;
+        if(condition){
+            out.toi=box.current_toi;
+            return true;
+        }
+
+        bool tol_condition = box.true_tol <= config.co_domain_tolerance;
         if (!tol_condition)
         {
             this_level_less_tol = false;
@@ -1308,43 +1354,28 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
 
         // Condition 3, in this level, we find a box that zero-in and size < tolerance.
         // and no other boxes whose zero-in is true in this level before this one is larger than tolerance, can return
-        condition3 = this_level_less_tol;
-        // LINENBR 15, 16
-        if (condition1 || condition2 || condition3)
-        {
-            TOI = current[0].first;
-
-            // continue;
-            toi = Numccd2double(TOI);
-
+        condition = this_level_less_tol;
+        if(condition){
+            out.toi=box.current_toi;
             return true;
         }
 
-        // LINENBR 10
-        if (current_level != level)
+        // This is for early termination, finding the earlist root of this level in case of early termination happens
+        if (current_level != box.current_item.level)
         {
             // LINENBR 22
-            current_level = level;
+            current_level = box.current_item.level;
             find_level_root = false;
         }
         if (!find_level_root)
         {
-            TOI = current[0].first;
-
             // LINENBR 11
-            // continue;
             // this is the first toi of this level
-            temp_toi = Numccd2double(TOI);
-
+            temp_toi = box.current_toi;
             // if the real tolerance is larger than input, use the real one;
             // if the real tolerance is smaller than input, use input
-            temp_output_tolerance = max(
-                max(
-                    max(true_tol[0], true_tol[1]), true_tol[2]),
-                co_domain_tolerance);
-
-            find_level_root =
-                true; // this ensures always find the earlist root
+            temp_output_tolerance = max(box.true_tol,config.co_domain_tolerance);
+            find_level_root =true; // this ensures always find the earlist root
         }
 
         // LINENBR 12
@@ -1356,18 +1387,21 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
 
         // if this box is small enough, or inside of eps-box, then just continue,
         // but we need to record the collision time
-        if (tol_condition || box_in)
+        if (tol_condition || box.box_in )
         {
-            if (less_than(current[0].first, TOI_SKIP))
+            if(box.current_toi<skip_toi)
             {
-                TOI_SKIP = current[0].first;
+                skip_toi=box.current_toi;
             }
             use_skip = true;
             continue;
         }
+        split_dimension(out,box);
+
     }
 
 }
+
 
 __device__ bool vertexFaceCCD_double(
     const CCDdata &data_in,

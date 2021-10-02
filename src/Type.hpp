@@ -194,6 +194,7 @@ public:
 
 };
 
+// the initialized error input, solve tolerance, time interval upper bound, etc.
 class CCDConfig{
 public:
     Scalar err_in[3]={-1,-1,-1};// the input error bound calculate from the AABB of the whole mesh
@@ -204,6 +205,8 @@ public:
     
 
 };
+
+// the output info
 class CCDOut{
 public:
 
@@ -213,18 +216,30 @@ public:
     Scalar tol[3];// conservative domain tolerance
 };
 
+// this is to record the interval related info
 class BoxCompute{
 public:
     item current_item;// containing 3 intervals and the level
     Scalar current_toi;
     Scalar err[3]; // the error bound
-    bool box_in=false; // if the inclusion function is inside the error bound
-    bool true_tol; // the actual solving tolerance of the co-domain
+    bool box_in=true; // if the inclusion function is inside the error bound
+    Scalar true_tol=0; // the actual solving tolerance of the co-domain
+    Scalar widths[3];
+    __device__ void calculate_interval_widths();
+    int split;
 };
 
+// this is to calculate the vertices of the inclusion function
 class BoxPrimatives{
 public:
     bool b[3];
     int dim;
+    Scalar t_up;
+    Scalar t_dw;
+    Scalar u_up;
+    Scalar u_dw;
+    Scalar v_up;
+    Scalar v_dw;
+    __device__ void calculate_tuv(const BoxCompute& box);
 
 };
