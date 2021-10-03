@@ -1191,7 +1191,8 @@ __device__ bool Origin_in_vf_inclusion_function(const CCDdata &data_in, BoxCompu
     Scalar vmax=-SCALAR_LIMIT;
     Scalar value;
     for(bp.dim=0;bp.dim<3;bp.dim++){
-
+         vmin=SCALAR_LIMIT;
+        vmax=-SCALAR_LIMIT;
         for (int i = 0; i < 2; i++)
         {
             for (int j = 0; j < 2; j++)
