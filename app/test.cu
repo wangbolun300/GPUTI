@@ -90,7 +90,7 @@ void write_csv(const std::string &file, const std::vector<std::string> titles, c
 }
 
 
-__device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scalar &time_impact)
+__device__ void single_test_wrapper_return_toi_old(CCDdata *data, bool &result, Scalar &time_impact)
 {
     
     Scalar err[3];
@@ -105,7 +105,6 @@ __device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scal
     Scalar output_tolerance;
     bool no_zero_toi = false;
     int overflow_flag;
-    bool is_edge = data->is_edge;
     CCDdata data_cp;
     for (int i = 0; i < 3; i++)
     {
@@ -118,7 +117,6 @@ __device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scal
         data_cp.v2e[i] = data->v2e[i];
         data_cp.v3e[i] = data->v3e[i];
     }
-    data_cp.is_edge = is_edge;
     
 #ifdef CHECK_EE
         result = edgeEdgeCCD_double(data_cp, err, ms, toi, tolerance,
@@ -128,6 +126,32 @@ __device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scal
                                       t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag);
 #endif
     time_impact = toi;
+    
+    return;
+}
+__device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scalar &time_impact)
+{
+    CCDConfig config; // using default values, 
+    CCDOut out;
+    CCDdata data_cp;
+    for (int i = 0; i < 3; i++)
+    {
+        data_cp.v0s[i] = data->v0s[i];
+        data_cp.v1s[i] = data->v1s[i];
+        data_cp.v2s[i] = data->v2s[i];
+        data_cp.v3s[i] = data->v3s[i];
+        data_cp.v0e[i] = data->v0e[i];
+        data_cp.v1e[i] = data->v1e[i];
+        data_cp.v2e[i] = data->v2e[i];
+        data_cp.v3e[i] = data->v3e[i];
+    }
+    
+#ifdef CHECK_EE
+        result = true;
+#else
+        result =vertexFaceCCD(data_cp,config,  out);
+#endif
+    time_impact = out.toi;
     
     return;
 }
@@ -323,7 +347,7 @@ void run_rational_data_single_method_parallel(
     int size = queries.size();
     std::cout << "data loaded, size " << queries.size() << std::endl;
     double tavg = 0;
-    int max_query_cp_size = 1e5;
+    int max_query_cp_size = 1e7;
     int start_id = 0;
 
     result_list.resize(size);

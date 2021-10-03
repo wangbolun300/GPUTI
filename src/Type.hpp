@@ -8,7 +8,7 @@
 #include <cudaProfiler.h>
 //#define GPUTI_USE_DOUBLE_PRECISION
 // #define GPUTI_SHOW_INFO 
-#define GPUTI_GO_DEAP_HEAP
+// #define GPUTI_GO_DEAP_HEAP
 static const int TESTING_ID = 219064;
 
 // #define CHECK_EE
@@ -136,7 +136,6 @@ public:
     Scalar v1e[3];
     Scalar v2e[3];
     Scalar v3e[3];
-    bool is_edge;
     __device__ __host__  CCDdata& operator=(const CCDdata& x)
     {
         if (this == &x)
@@ -151,7 +150,6 @@ public:
             v2e[i]=x.v2e[i];
             v3e[i]=x.v3e[i];
         }
-        is_edge=x.is_edge;
         return *this;
     }
 };
@@ -214,6 +212,7 @@ public:
     Scalar output_tolerance;
     int overflow_flag=NO_OVERFLOW;
     Scalar tol[3];// conservative domain tolerance
+    Scalar dbg[8];
 };
 
 // this is to record the interval related info
@@ -225,7 +224,6 @@ public:
     bool box_in=true; // if the inclusion function is inside the error bound
     Scalar true_tol=0; // the actual solving tolerance of the co-domain
     Scalar widths[3];
-    __device__ void calculate_interval_widths();
     int split;
 };
 

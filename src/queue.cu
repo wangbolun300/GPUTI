@@ -106,7 +106,7 @@ __device__ MinHeap::MinHeap()
 }
 
 // Inserts a new key 'k'
-__device__ bool MinHeap::insertKey(item k)
+__device__ bool MinHeap::insertKey(const item &k)
 { // to avoid overflow, instead of comparing with capacity, we compare with capacity -1
 	if (heap_size == capacity - 1)
 	{

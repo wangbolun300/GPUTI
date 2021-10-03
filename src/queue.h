@@ -39,5 +39,5 @@ public:
 	// __device__ void deleteKey(int i);
 
 	// Inserts a new key 'k'
-	__device__ bool insertKey(item k);
+	__device__ bool insertKey(const item &k);
 };

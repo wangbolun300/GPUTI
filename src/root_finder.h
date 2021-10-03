@@ -43,6 +43,7 @@ __device__ bool CCD_Solver(
     bool no_zero_toi,
     int &overflow_flag,
     bool is_vf);
+__device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CCDOut& out);
 //__device__ 
 // __device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scalar &time_impact);
 
