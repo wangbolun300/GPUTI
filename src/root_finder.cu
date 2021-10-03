@@ -1187,8 +1187,8 @@ __device__ Scalar calculate_vf(const CCDdata &data_in, const BoxPrimatives& bp){
 
 __device__ bool Origin_in_vf_inclusion_function(const CCDdata &data_in, BoxCompute& box){
     BoxPrimatives bp;
-    Scalar vmin=-SCALAR_LIMIT;
-    Scalar vmax=SCALAR_LIMIT;
+    Scalar vmin=SCALAR_LIMIT;
+    Scalar vmax=-SCALAR_LIMIT;
     Scalar value;
     for(bp.dim=0;bp.dim<3;bp.dim++){
 
