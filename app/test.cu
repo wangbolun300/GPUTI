@@ -13,19 +13,6 @@
 
 extern std::vector<std::string> simulation_folders, handcrafted_folders;
 
-
-void print_V(std::array<std::array<Scalar, 3>, 8> V)
-{
-    for (int i = 0; i < 8; i++)
-    {
-        std::cout << V[i][0] << ", " << V[i][1] << ", " << V[i][2] << std::endl;
-        if (i == 3)
-        {
-            std::cout << std::endl;
-        }
-    }
-    std::cout << std::endl;
-}
 std::array<std::array<Scalar, 3>, 8> substract_ccd(const std::vector<std::array<Scalar, 3>> &data, int nbr)
 {
     std::array<std::array<Scalar, 3>, 8> result;
@@ -89,47 +76,7 @@ void write_csv(const std::string &file, const std::vector<std::string> titles, c
     fout.close();
 }
 
-
-__device__ void single_test_wrapper_return_toi_old(CCDdata *data, bool &result, Scalar &time_impact)
-{
-    
-    Scalar err[3];
-    err[0] = -1;
-    err[1] = -1;
-    err[2] = -1;
-    Scalar ms = 0;
-    Scalar toi;
-    Scalar tolerance = 1e-6;
-    Scalar t_max = 1;
-    int max_itr = 1e6;
-    Scalar output_tolerance;
-    bool no_zero_toi = false;
-    int overflow_flag;
-    CCDdata data_cp;
-    for (int i = 0; i < 3; i++)
-    {
-        data_cp.v0s[i] = data->v0s[i];
-        data_cp.v1s[i] = data->v1s[i];
-        data_cp.v2s[i] = data->v2s[i];
-        data_cp.v3s[i] = data->v3s[i];
-        data_cp.v0e[i] = data->v0e[i];
-        data_cp.v1e[i] = data->v1e[i];
-        data_cp.v2e[i] = data->v2e[i];
-        data_cp.v3e[i] = data->v3e[i];
-    }
-    
-#ifdef CHECK_EE
-        result = edgeEdgeCCD_double(data_cp, err, ms, toi, tolerance,
-                              t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag);
-#else
-        result = vertexFaceCCD_double(data_cp, err, ms, toi, tolerance,
-                                      t_max, max_itr, output_tolerance, no_zero_toi, overflow_flag);
-#endif
-    time_impact = toi;
-    
-    return;
-}
-__device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scalar &time_impact)
+__device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scalar &time_impact, Scalar *dbg)
 {
     CCDConfig config; // using default values, 
     CCDOut out;
@@ -152,11 +99,14 @@ __device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scal
         result =vertexFaceCCD(data_cp,config,  out);
 #endif
     time_impact = out.toi;
+    for(int i=0;i<8;i++){
+        dbg[i]=out.dbg[i];
+    }
     
     return;
 }
 
-__global__ void run_parallel_ccd_all(CCDdata *data, bool *res, int size, Scalar *tois)
+__global__ void run_parallel_ccd_all(CCDdata *data, bool *res, int size, Scalar *tois, Scalar *dbg)
 {
 
     int tx = threadIdx.x + blockIdx.x * blockDim.x;
@@ -166,9 +116,13 @@ __global__ void run_parallel_ccd_all(CCDdata *data, bool *res, int size, Scalar 
     CCDdata *input = &data[tx];
     bool result;
     Scalar toi;
-    recordLaunch<CCDdata *, bool &, Scalar &>("single_test_wrapper_return_toi", single_test_wrapper_return_toi, input, result, toi);
+    Scalar ddbg[8];
+    recordLaunch<CCDdata *, bool &, Scalar &, Scalar *>("single_test_wrapper_return_toi", single_test_wrapper_return_toi, input, result, toi,ddbg);
     res[tx] = result;
     tois[tx] = toi;
+    for(int i=0;i<8;i++){
+        dbg[i]=ddbg[i];
+    }
     // }
 }
 
@@ -187,37 +141,43 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     }
     bool *res = new bool[nbr];
     Scalar *tois = new Scalar[nbr];
+    Scalar *dbg=new Scalar[8];
 
     // device
     CCDdata *d_data_list;
     bool *d_res;
     Scalar *d_tois;
+    Scalar *d_dbg;
 
     int data_size = sizeof(CCDdata) * nbr;
     int result_size = sizeof(bool) * nbr;
     int time_size = sizeof(Scalar) * nbr;
+    int dbg_size=sizeof(Scalar)*8;
 
     cudaMalloc(&d_data_list, data_size);
     cudaMalloc(&d_res, result_size);
     cudaMalloc(&d_tois, time_size);
+    cudaMalloc(&d_dbg, dbg_size);
+
     cudaMemcpy(d_data_list, data_list, data_size, cudaMemcpyHostToDevice);
 
     ccd::Timer timer;
     cudaProfilerStart();
     timer.start();
-    recordLaunch("run_parallel_ccd_all", nbr / parallel_nbr + 1, parallel_nbr, run_parallel_ccd_all, d_data_list, d_res, nbr, d_tois);
+    recordLaunch("run_parallel_ccd_all", nbr / parallel_nbr + 1, parallel_nbr, run_parallel_ccd_all, d_data_list, d_res, nbr, d_tois, d_dbg);
     cudaDeviceSynchronize();
     double tt = timer.getElapsedTimeInMicroSec();
     run_time = tt;
     cudaProfilerStop();
 
     cudaMemcpy(res, d_res, result_size, cudaMemcpyDeviceToHost);
-
     cudaMemcpy(tois, d_tois, time_size, cudaMemcpyDeviceToHost);
+    cudaMemcpy(dbg, d_dbg, dbg_size, cudaMemcpyDeviceToHost);
 
     cudaFree(d_data_list);
     cudaFree(d_res);
     cudaFree(d_tois);
+    cudaFree(d_dbg);
 
     for (int i = 0; i < nbr; i++)
     {
@@ -230,12 +190,15 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     {
         time_impact[i] = tois[i];
     }
-
+    std::cout << "dbg info\n"
+              << dbg[0] << "," << dbg[1] << "," << dbg[2] << "," << dbg[3] << "," << dbg[4] << "," << dbg[5] << "," << dbg[6] << "," << dbg[7] << std::endl;
     delete[] res;
     delete[] data_list;
     delete[] tois;
+    delete[] dbg;
     cudaError_t ct = cudaGetLastError();
-    printf("******************\n%s\n************\n", cudaGetErrorString(ct));	
+    printf("******************\n%s\n************\n", cudaGetErrorString(ct));
+    
     return;
 }
 
@@ -337,7 +300,14 @@ void run_rational_data_single_method_parallel(
 
 #ifdef GPUTI_GO_DEAP_HEAP
     std::array<std::array<Scalar, 3>, 8> deep_one = queries[TESTING_ID];
-    queries.resize(9e4);
+    std::cout<<"query\n";
+    for(int i=0;i<8;i++){
+        std::cout<<deep_one[i][0]<<", "<<deep_one[i][1]<<", "<<deep_one[i][2]<<std::endl;
+        if(i==3){
+            std::cout<<std::endl;
+        }
+    }
+    queries.resize(TEST_SIZE);
     expect_list.resize(queries.size());
     for (int i = 0; i < queries.size(); i++)
     {
