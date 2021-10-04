@@ -76,7 +76,7 @@ void write_csv(const std::string &file, const std::vector<std::string> titles, c
     fout.close();
 }
 
-__device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scalar &time_impact, Scalar *dbg)
+__device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scalar &time_impact)
 {
     CCDConfig config; // using default values, 
     CCDOut out;
@@ -99,14 +99,16 @@ __device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scal
         result =vertexFaceCCD(data_cp,config,  out);
 #endif
     time_impact = out.toi;
-    for(int i=0;i<8;i++){
-        dbg[i]=out.dbg[i];
-    }
+    // for(int i=0;i<8;i++){
+    //     dbg[i]=out.dbg[i];
+    // }
     
     return;
 }
 
-__global__ void run_parallel_ccd_all(CCDdata *data, bool *res, int size, Scalar *tois, Scalar *dbg)
+__global__ void run_parallel_ccd_all(CCDdata *data, bool *res, int size, Scalar *tois
+//, Scalar *dbg
+)
 {
 
     int tx = threadIdx.x + blockIdx.x * blockDim.x;
@@ -117,12 +119,11 @@ __global__ void run_parallel_ccd_all(CCDdata *data, bool *res, int size, Scalar 
     bool result;
     Scalar toi;
     Scalar ddbg[8];
-    recordLaunch<CCDdata *, bool &, Scalar &, Scalar *>("single_test_wrapper_return_toi", single_test_wrapper_return_toi, input, result, toi,ddbg);
+    recordLaunch<CCDdata *, bool &, Scalar &>("single_test_wrapper_return_toi", single_test_wrapper_return_toi, input, result, toi);
     res[tx] = result;
     tois[tx] = toi;
-    for(int i=0;i<8;i++){
-        dbg[i]=ddbg[i];
-    }
+    // for(int i=0;i<8;i++){
+    //     dbg[i]=ddbg[i];
     // }
 }
 
@@ -141,30 +142,32 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     }
     bool *res = new bool[nbr];
     Scalar *tois = new Scalar[nbr];
-    Scalar *dbg=new Scalar[8];
+    //Scalar *dbg=new Scalar[8];
 
     // device
     CCDdata *d_data_list;
     bool *d_res;
     Scalar *d_tois;
-    Scalar *d_dbg;
+    //Scalar *d_dbg;
 
     int data_size = sizeof(CCDdata) * nbr;
     int result_size = sizeof(bool) * nbr;
     int time_size = sizeof(Scalar) * nbr;
-    int dbg_size=sizeof(Scalar)*8;
+   // int dbg_size=sizeof(Scalar)*8;
 
     cudaMalloc(&d_data_list, data_size);
     cudaMalloc(&d_res, result_size);
     cudaMalloc(&d_tois, time_size);
-    cudaMalloc(&d_dbg, dbg_size);
+    //cudaMalloc(&d_dbg, dbg_size);
 
     cudaMemcpy(d_data_list, data_list, data_size, cudaMemcpyHostToDevice);
 
     ccd::Timer timer;
     cudaProfilerStart();
     timer.start();
-    recordLaunch("run_parallel_ccd_all", nbr / parallel_nbr + 1, parallel_nbr, run_parallel_ccd_all, d_data_list, d_res, nbr, d_tois, d_dbg);
+    recordLaunch("run_parallel_ccd_all", nbr / parallel_nbr + 1, parallel_nbr, run_parallel_ccd_all, d_data_list, d_res, nbr, d_tois
+    //, d_dbg
+    );
     cudaDeviceSynchronize();
     double tt = timer.getElapsedTimeInMicroSec();
     run_time = tt;
@@ -172,12 +175,12 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
 
     cudaMemcpy(res, d_res, result_size, cudaMemcpyDeviceToHost);
     cudaMemcpy(tois, d_tois, time_size, cudaMemcpyDeviceToHost);
-    cudaMemcpy(dbg, d_dbg, dbg_size, cudaMemcpyDeviceToHost);
+    //cudaMemcpy(dbg, d_dbg, dbg_size, cudaMemcpyDeviceToHost);
 
     cudaFree(d_data_list);
     cudaFree(d_res);
     cudaFree(d_tois);
-    cudaFree(d_dbg);
+    //cudaFree(d_dbg);
 
     for (int i = 0; i < nbr; i++)
     {
@@ -190,12 +193,12 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     {
         time_impact[i] = tois[i];
     }
-    std::cout << "dbg info\n"
-              << dbg[0] << "," << dbg[1] << "," << dbg[2] << "," << dbg[3] << "," << dbg[4] << "," << dbg[5] << "," << dbg[6] << "," << dbg[7] << std::endl;
+    // std::cout << "dbg info\n"
+    //           << dbg[0] << "," << dbg[1] << "," << dbg[2] << "," << dbg[3] << "," << dbg[4] << "," << dbg[5] << "," << dbg[6] << "," << dbg[7] << std::endl;
     delete[] res;
     delete[] data_list;
     delete[] tois;
-    delete[] dbg;
+    //delete[] dbg;
     cudaError_t ct = cudaGetLastError();
     printf("******************\n%s\n************\n", cudaGetErrorString(ct));
     

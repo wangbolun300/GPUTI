@@ -541,7 +541,7 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
         bool zero_in =
             Origin_in_vf_inclusion_function(data_in,box, out);
         //return zero_in;// REGSCOUNT 100
-        out.dbg[0]=zero_in;
+        
         if (!zero_in)
             continue;
 
@@ -560,7 +560,6 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
         condition = box.box_in && this_level_less_tol;
         if(condition){
             out.toi=box.current_toi;
-            out.dbg[1]+=1;
             return true;
         }
 
@@ -577,7 +576,6 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
         condition = this_level_less_tol;
         if(condition){
             out.toi=box.current_toi;
-            out.dbg[2]+=1;
             return true;
         }
 
@@ -622,7 +620,6 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
     }
     if (out.overflow_flag != NO_OVERFLOW)
     {
-        out.dbg[3]+=1;
         out.toi = temp_toi;
         out.output_tolerance = temp_output_tolerance;
         return true;
@@ -630,7 +627,6 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
 
     if (use_skip)
     {
-        out.dbg[4]+=1;
         out.toi = skip_toi;
 
         return true;

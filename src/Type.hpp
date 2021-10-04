@@ -7,10 +7,10 @@
 #include <cuda_profiler_api.h>
 #include <cudaProfiler.h>
 //#define GPUTI_USE_DOUBLE_PRECISION
-// #define GPUTI_GO_DEAP_HEAP
-static const int TESTING_ID = 0;
-static const int TEST_SIZE=1;
-static const int TEST_NBR_QUERIES=1e9;
+#define GPUTI_GO_DEAP_HEAP
+static const int TESTING_ID = 219064;
+static const int TEST_SIZE=1e6;
+static const int TEST_NBR_QUERIES=1e9;// set as large as possible to avoid truncation of reading data
 // #define CHECK_EE
 #define NO_CHECK_MS
 #define CALCULATE_ERROR_BOUND
@@ -212,7 +212,7 @@ public:
     Scalar output_tolerance;
     int overflow_flag=NO_OVERFLOW;
     Scalar tol[3];// conservative domain tolerance
-    Scalar dbg[8];
+    //Scalar dbg[8];
 };
 
 // this is to record the interval related info
