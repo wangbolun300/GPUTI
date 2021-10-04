@@ -31,38 +31,12 @@ static const int HEAP_OVERFLOW = 2;
 static const int ITERATION_OVERFLOW = 3;
 
 
-class Numccd{
-public:
-__device__ Numccd(){};
-__device__ Numccd(const long a, const int b);
-long first;
-int second;
-__device__ friend bool operator==(const Numccd &r, const Numccd &r1)
-        {
-            if(r.first==r1.first&&r.second==r1.second){
-                return true;
-            }
-            return false;
-        }
-__device__ Numccd& operator=(const Numccd& x)
-    {
-        if (this == &x)
-            return *this;
-        
-        first=x.first;
-        second=x.second;
-        
-        return *this;
-    }
-
-};
-
 class Singleinterval{
 public:
 __device__ Singleinterval(){};
-__device__ Singleinterval(Numccd f, Numccd s);
-Numccd first;
-Numccd second;
+__device__ Singleinterval(const Scalar &f, const Scalar &s);
+Scalar first;
+Scalar second;
 __device__ Singleinterval& operator=(const Singleinterval& x)
     {
         if (this == &x)
@@ -73,10 +47,6 @@ __device__ Singleinterval& operator=(const Singleinterval& x)
     }
 };
 
-// typedef std::pair<long, int> Numccd; //<k,n> pair present a number k/pow(2,n)
-// typedef std::pair<Numccd, Numccd>
-//         Singleinterval; // a interval presented by two double numbers
-//typedef Singleinterval Interval3[3]; // 3 dimesional interval
 class VectorMax3d{
 public:
     __device__ __host__ VectorMax3d(){};
@@ -113,7 +83,7 @@ __device__ __host__  VectorMax3d& operator=(const VectorMax3d& x)
 
 class interval_pair{
     public:
-    __device__ interval_pair(const Singleinterval& a, const Singleinterval& b);
+    __device__ interval_pair(const Singleinterval& itv);
     __device__ interval_pair(){};
     Singleinterval first;
     Singleinterval second;
@@ -165,7 +135,7 @@ class item {
 public:
 	int level;
 	Singleinterval itv[3];
-	__device__ item(const Singleinterval si[3], int level);
+	__device__ item(const Singleinterval si[3], const int &level);
 	__device__ item();
 	__device__ item& operator=(const item& x)
     {
@@ -174,18 +144,12 @@ public:
         // itv[0]=x.itv[0];
 		// itv[1]=x.itv[1];
 		// itv[2]=x.itv[2];
-    itv[0].first.first = x.itv[0].first.first;
-    itv[0].first.second = x.itv[0].first.second;
-    itv[0].second.first = x.itv[0].second.first;
-    itv[0].second.second = x.itv[0].second.second;
-    itv[1].first.first = x.itv[1].first.first;
-    itv[1].first.second = x.itv[1].first.second;
-    itv[1].second.first = x.itv[1].second.first;
-    itv[1].second.second = x.itv[1].second.second;
-    itv[2].first.first = x.itv[2].first.first;
-    itv[2].first.second = x.itv[2].first.second;
-    itv[2].second.first = x.itv[2].second.first;
-    itv[2].second.second = x.itv[2].second.second;
+    itv[0].first = x.itv[0].first;
+    itv[0].second = x.itv[0].second;
+    itv[1].first = x.itv[1].first;
+    itv[1].second = x.itv[1].second;
+    itv[2].first = x.itv[2].first;
+    itv[2].second = x.itv[2].second;
         level=x.level;
         return *this;
     }
@@ -219,7 +183,6 @@ public:
 class BoxCompute{
 public:
     item current_item;// containing 3 intervals and the level
-    Scalar current_toi;
     Scalar err[3]; // the error bound
     bool box_in=true; // if the inclusion function is inside the error bound
     Scalar true_tol=0; // the actual solving tolerance of the co-domain
@@ -232,12 +195,8 @@ class BoxPrimatives{
 public:
     bool b[3];
     int dim;
-    Scalar t_up;
-    Scalar t_dw;
-    Scalar u_up;
-    Scalar u_dw;
-    Scalar v_up;
-    Scalar v_dw;
-    __device__ void calculate_tuv(const BoxCompute& box);
-
+    Scalar t;
+    Scalar u;
+    Scalar v;
+__device__ void calculate_tuv(const BoxCompute& box);
 };

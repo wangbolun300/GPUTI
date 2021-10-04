@@ -30,134 +30,30 @@ __device__ __host__ void VectorMax3d::init(Scalar a, Scalar b, Scalar c){
     v[1] = b;
     v[2] = c;
 }
-__device__ long reduction(const long n, long &result)
-{
-    int t = 0;
-    int newn = n;
-    while (newn % 2 == 0)
-    {
-        newn = newn / 2;
-        t++;
-    }
-    result = newn;
-    return t;
-}
 
-__device__ Singleinterval::Singleinterval(Numccd f, Numccd s)
+
+__device__ Singleinterval::Singleinterval(const Scalar& f, const Scalar& s)
 {
     first = f;
     second = s;
 }
-__device__ interval_pair::interval_pair(const Singleinterval &a, const Singleinterval &b)
-{
-    first = a;
-    second = b;
+
+// this function do the bisection
+__device__ interval_pair::interval_pair(const Singleinterval& itv){
+    Scalar c=(itv.first+itv.second)/2;
+    first.first=itv.first;
+    first.second=c;
+    second.first=c;
+    second.second=itv.second;
 }
 
-// calculate a*(2^b)
-__device__ long power(const long a, const int b) { return a << b; }
-__device__ Scalar Numccd2double(const Numccd &n)
+// TODO need to calculate error bound
+__device__ bool sum_no_larger_1(const Scalar &num1, const Scalar &num2)
 {
-    Scalar r = Scalar(n.first) / power(1, n.second);
-    return r;
-}
-__device__ Numccd::Numccd(const long a, const int b)
-{
-    first = a;
-    second = b;
-}
-__device__ bool sum_no_larger_1(const Numccd &num1, const Numccd &num2)
-{
-    long k1 = num1.first;
-    int n1 = num1.second;
-    long k2 = num2.first;
-    int n2 = num2.second;
-    long k;
-    int n;
-    if (n1 == n2)
-    {
-        k = k1 + k2;
-        n = n1;
-    }
-    if (n1 < n2)
-    {
-        k = power(1, n2 - n1) * k1 + k2;
-        n = n2;
-    }
-    if (n1 > n2)
-    {
-        k = power(1, n1 - n2) * k2 + k1;
-        n = n1;
-    }
-    if (k > power(1, n))
-        return false;
-    else
+    if(num1+num2<=1){
         return true;
-}
-__device__ bool less_than(const Numccd &num1, const Numccd &num2)
-{
-    long k1 = num1.first;
-    int n1 = num1.second;
-    long k2 = num2.first;
-    int n2 = num2.second;
-
-    if (n1 < n2)
-    {
-        k1 = power(1, n2 - n1) * k1;
     }
-    if (n1 > n2)
-    {
-        k2 = power(1, n1 - n2) * k2;
-    }
-    if (k1 < k2)
-        return true;
     return false;
-}
-__device__ bool interval_overlap_region(
-    const Singleinterval &itv, const Scalar r1, const Scalar r2)
-{
-    Scalar b1 = Numccd2double(itv.first);
-    Scalar b2 = Numccd2double(itv.second);
-    if (b2 < r1 || b1 > r2)
-        return false;
-    return true;
-}
-
-__device__ void bisect(const Singleinterval &inter, interval_pair &out)
-{
-    Numccd low = inter.first;
-    Numccd up = inter.second;
-
-    // interval is [k1/pow(2,n1), k2/pow(2,n2)], k1,k2,n1,n2 are all not negative
-    long k1 = low.first;
-    int n1 = low.second;
-    long k2 = up.first;
-    int n2 = up.second;
-
-    long k;
-    int n;
-    int p;
-    long r;
-    if (n2 == n1)
-    {
-        p = reduction(k1 + k2, r);
-        k = r;
-        n = n2 - p + 1;
-    }
-    if (n2 > n1)
-    {
-        k = k1 * power(1, n2 - n1) + k2;
-        n = n2 + 1;
-    }
-    if (n2 < n1)
-    {
-        k = k1 + k2 * power(1, n1 - n2);
-        n = n1 + 1;
-    }
-    Numccd newnum(k, n);
-    Singleinterval i1(low, newnum), i2(newnum, up);
-    out.first = i1;
-    out.second = i2;
 }
 
 
@@ -283,39 +179,33 @@ __device__ __host__ void get_numerical_error_vf(
 //     Scalar *tolerance)
 __device__ void BoxPrimatives::calculate_tuv(const BoxCompute& box){
     if(b[0]==0){// t0
-        t_up=box.current_item.itv[0].first.first;
-        t_dw=1<<box.current_item.itv[0].first.second;
+        t=box.current_item.itv[0].first;
     }
     else{// t1
-        t_up=box.current_item.itv[0].second.first;
-        t_dw=1<<box.current_item.itv[0].second.second;
+        t=box.current_item.itv[0].second;
     }
 
     if(b[1]==0){// u0
-        u_up=box.current_item.itv[1].first.first;
-        u_dw=1<<box.current_item.itv[1].first.second;
+        u=box.current_item.itv[1].first;
     }
     else{// u1
-        u_up=box.current_item.itv[1].second.first;
-        u_dw=1<<box.current_item.itv[1].second.second;
+        u=box.current_item.itv[1].second;
     }
 
     if(b[2]==0){// v0
-        v_up=box.current_item.itv[2].first.first;
-        v_dw=1<<box.current_item.itv[2].first.second;
+        v=box.current_item.itv[2].first;
     }
     else{// v1
-        v_up=box.current_item.itv[2].second.first;
-        v_dw=1<<box.current_item.itv[2].second.second;
+        v=box.current_item.itv[2].second;
     }
 }
 __device__ Scalar calculate_vf(const CCDdata &data_in, const BoxPrimatives& bp){
     Scalar v, pt, t0, t1, t2;
-    v = (data_in.v0e[bp.dim] - data_in.v0s[bp.dim]) * bp.t_up / bp.t_dw + data_in.v0s[bp.dim];
-        t0 = (data_in.v1e[bp.dim] - data_in.v1s[bp.dim]) * bp.t_up / bp.t_dw + data_in.v1s[bp.dim];
-        t1 = (data_in.v2e[bp.dim] - data_in.v2s[bp.dim]) * bp.t_up / bp.t_dw + data_in.v2s[bp.dim];
-        t2 = (data_in.v3e[bp.dim] - data_in.v3s[bp.dim]) * bp.t_up / bp.t_dw + data_in.v3s[bp.dim];
-        pt = (t1 - t0) * bp.u_up / bp.u_dw + (t2 - t0) * bp.v_up / bp.v_dw + t0;
+    v = (data_in.v0e[bp.dim] - data_in.v0s[bp.dim]) * bp.t + data_in.v0s[bp.dim];
+        t0 = (data_in.v1e[bp.dim] - data_in.v1s[bp.dim]) * bp.t + data_in.v1s[bp.dim];
+        t1 = (data_in.v2e[bp.dim] - data_in.v2s[bp.dim]) * bp.t + data_in.v2s[bp.dim];
+        t2 = (data_in.v3e[bp.dim] - data_in.v3s[bp.dim]) * bp.t + data_in.v3s[bp.dim];
+        pt = (t1 - t0) * bp.u / bp.u + (t2 - t0) * bp.v / bp.v + t0;
         return (v - pt);
 }
 
@@ -361,13 +251,6 @@ __device__ bool Origin_in_vf_inclusion_function(const CCDdata &data_in, BoxCompu
     }
     return true;
 }
-__device__ void calculate_interval_widths(BoxCompute& box)
-{
-    
-    box.widths[0] = Scalar(box.current_item.itv[0].second.first) / (1 << box.current_item.itv[0].second.second) - Scalar(box.current_item.itv[0].first.first) / (1 << box.current_item.itv[0].first.second);
-    box.widths[1] = Scalar(box.current_item.itv[1].second.first) / (1 << box.current_item.itv[1].second.second) - Scalar(box.current_item.itv[1].first.first) / (1 << box.current_item.itv[1].first.second);
-    box.widths[2] = Scalar(box.current_item.itv[2].second.first) / (1 << box.current_item.itv[2].second.second) - Scalar(box.current_item.itv[2].first.first) / (1 << box.current_item.itv[2].first.second);
-}
 __device__ void split_dimension(const CCDOut& out,BoxCompute& box){
     Scalar res[3];
     res[0]=box.widths[0]/out.tol[0];
@@ -385,15 +268,14 @@ __device__ void split_dimension(const CCDOut& out,BoxCompute& box){
 }
 
 __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinHeap& istack,CCDOut& out){
-    interval_pair halves;
+    interval_pair halves(box.current_item.itv[box.split]);// bisected
     bool inserted;
-    bisect(box.current_item.itv[box.split], halves);
-    if (!less_than(halves.first.first, halves.first.second))
+    if (halves.first.first  >= halves.first.second)
     {
         out.overflow_flag = BISECTION_OVERFLOW;
         return;
     }
-    if (!less_than(halves.second.first, halves.second.second))
+    if (halves.second.first>= halves.second.second)
     {
         out.overflow_flag = BISECTION_OVERFLOW;
         return;
@@ -402,8 +284,7 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinH
     {
         if (config.max_t!=1)
         {
-            if (interval_overlap_region(
-                    halves.second, 0, config.max_t))
+            if (halves.second.first <= config.max_t)
             {
                 box.current_item.itv[box.split] = halves.second;
                 inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
@@ -412,15 +293,12 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinH
                     out.overflow_flag = HEAP_OVERFLOW;
                 }
             }
-            if (interval_overlap_region(
-                    halves.first, 0, config.max_t))
+
+            box.current_item.itv[box.split] = halves.first;
+            inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+            if (inserted == false)
             {
-                box.current_item.itv[box.split] = halves.first;
-                inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
-                if (inserted == false)
-                {
-                    out.overflow_flag = HEAP_OVERFLOW;
-                }
+                out.overflow_flag = HEAP_OVERFLOW;
             }
         }
         else
@@ -523,11 +401,10 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
 
         //LINENBR 6
         box.current_item = istack.extractMin();// get the level and the intervals
-        box.current_toi=Scalar(box.current_item.itv[0].first.first) / (1 << box.current_item.itv[0].first.second);
         
         // if this box is later than TOI_SKIP in time, we can skip this one.
         // TOI_SKIP is only updated when the box is small enough or totally contained in eps-box
-        if (box.current_toi>=skip_toi)
+        if (box.current_item.itv[0].first>=skip_toi)
         {
             continue;
         }
@@ -545,21 +422,23 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
         if (!zero_in)
             continue;
 
-        
-        calculate_interval_widths(box);
+        // get the width of the box
+        box.widths[0] = box.current_item.itv[0].second - box.current_item.itv[0].first;
+        box.widths[1] = box.current_item.itv[1].second - box.current_item.itv[1].first;
+        box.widths[2] = box.current_item.itv[2].second - box.current_item.itv[2].first;
                 
         // LINENBR 15, 16
         // Condition 1, stopping condition on t, u and v is satisfied. this is useless now since we have condition 2
         bool condition = box.widths[0] <= out.tol[0] && box.widths[1] <= out.tol[1] && box.widths[2] <= out.tol[2];
         if(condition){
-            out.toi=box.current_toi;
+            out.toi=box.current_item.itv[0].first;
             return true;
         }
         // Condition 2, zero_in = true, box inside eps-box and in this level,
         // no box whose zero_in is true but box size larger than tolerance, can return
         condition = box.box_in && this_level_less_tol;
         if(condition){
-            out.toi=box.current_toi;
+            out.toi=box.current_item.itv[0].first;
             return true;
         }
 
@@ -575,7 +454,7 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
         // and no other boxes whose zero-in is true in this level before this one is larger than tolerance, can return
         condition = this_level_less_tol;
         if(condition){
-            out.toi=box.current_toi;
+            out.toi=box.current_item.itv[0].first;
             return true;
         }
 
@@ -590,7 +469,7 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
         {
             // LINENBR 11
             // this is the first toi of this level
-            temp_toi = box.current_toi;
+            temp_toi = box.current_item.itv[0].first;
             // if the real tolerance is larger than input, use the real one;
             // if the real tolerance is smaller than input, use input
             temp_output_tolerance = max(box.true_tol,config.co_domain_tolerance);
@@ -608,9 +487,9 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
         // but we need to record the collision time
         if (tol_condition || box.box_in )
         {
-            if(box.current_toi<skip_toi)
+            if(box.current_item.itv[0].first<skip_toi)
             {
-                skip_toi=box.current_toi;
+                skip_toi=box.current_item.itv[0].first;
             }
             use_skip = true;
             continue;
