@@ -94,7 +94,7 @@ __device__ MinHeap::MinHeap()
 	harr[0].level = -1;
 }
 
-// Inserts a new key 'k', and level = level+1
+// Inserts a new key 'k'
 __device__ bool MinHeap::insertKey(const item &k)
 { // to avoid overflow, instead of comparing with capacity, we compare with capacity -1
 	if (heap_size == capacity - 1)
@@ -115,7 +115,7 @@ __device__ bool MinHeap::insertKey(const item &k)
 	harr[i].itv[2].first = k.itv[2].first;
 	harr[i].itv[2].second = k.itv[2].second;
 	
-	harr[i].level = k.level+1;
+	harr[i].level = k.level;
 	heap_size++;
 
 	// Fix the min heap property if it is violated

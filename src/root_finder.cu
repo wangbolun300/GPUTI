@@ -25,38 +25,37 @@ __device__ __host__ VectorMax3d::VectorMax3d(Scalar a, Scalar b, Scalar c)
     v[1] = b;
     v[2] = c;
 }
-__device__ __host__ void VectorMax3d::init(Scalar a, Scalar b, Scalar c)
-{
+__device__ __host__ void VectorMax3d::init(Scalar a, Scalar b, Scalar c){
     v[0] = a;
     v[1] = b;
     v[2] = c;
 }
 
-__device__ Singleinterval::Singleinterval(const Scalar &f, const Scalar &s)
+
+__device__ Singleinterval::Singleinterval(const Scalar& f, const Scalar& s)
 {
     first = f;
     second = s;
 }
 
 // this function do the bisection
-__device__ interval_pair::interval_pair(const Singleinterval &itv)
-{
-    Scalar c = (itv.first + itv.second) / 2;
-    first.first = itv.first;
-    first.second = c;
-    second.first = c;
-    second.second = itv.second;
+__device__ interval_pair::interval_pair(const Singleinterval& itv){
+    Scalar c=(itv.first+itv.second)/2;
+    first.first=itv.first;
+    first.second=c;
+    second.first=c;
+    second.second=itv.second;
 }
 
 // TODO need to calculate error bound
 __device__ bool sum_no_larger_1(const Scalar &num1, const Scalar &num2)
 {
-    if (num1 + num2 <= 1)
-    {
+    if(num1+num2<=1){
         return true;
     }
     return false;
 }
+
 
 __device__ Scalar max_linf_dist(const VectorMax3d &p1, const VectorMax3d &p2)
 {
@@ -84,8 +83,10 @@ __device__ Scalar max_linf_4(
     return max(r, max_linf_dist(p1e, p1));
 }
 
-__device__ void compute_face_vertex_tolerance(const CCDdata &data_in, const CCDConfig &config, CCDOut &out)
-{
+
+
+
+__device__ void compute_face_vertex_tolerance(const CCDdata &data_in,const CCDConfig& config, CCDOut& out){
     VectorMax3d v(data_in.v0s[0], data_in.v0s[1], data_in.v0s[2]);
     VectorMax3d f0(data_in.v1s[0], data_in.v1s[1], data_in.v1s[2]);
     VectorMax3d f1(data_in.v2s[0], data_in.v2s[1], data_in.v2s[2]);
@@ -95,10 +96,10 @@ __device__ void compute_face_vertex_tolerance(const CCDdata &data_in, const CCDC
     v.init(data_in.v0e[0], data_in.v0e[1], data_in.v0e[2]);
     f0.init(data_in.v1e[0], data_in.v1e[1], data_in.v1e[2]);
     f1.init(data_in.v2e[0], data_in.v2e[1], data_in.v2e[2]);
-    f2.init(data_in.v3e[0], data_in.v3e[1], data_in.v3e[2]);
+    f2.init(data_in.v3e[0], data_in.v3e[1], data_in.v3e[2]);   
     VectorMax3d p100 = v - f0, p101 = v - f2,
                 p111 = v - (f1 + f2 - f0), p110 = v - f1;
-
+    
     Scalar dl = 3 * max_linf_4(p000, p001, p011, p010, p100, p101, p111, p110);
     Scalar edge0_length =
         3 * max_linf_4(p000, p100, p101, p001, p010, p110, p111, p011);
@@ -125,33 +126,33 @@ __device__ __host__ void get_numerical_error_vf(
     Scalar ymax = fabs(data_in.v0s[1]);
     Scalar zmax = fabs(data_in.v0s[2]);
 
-    xmax = max(xmax, fabs(data_in.v1s[0]));
-    ymax = max(ymax, fabs(data_in.v1s[1]));
-    zmax = max(zmax, fabs(data_in.v1s[2]));
+    xmax = max(xmax,fabs(data_in.v1s[0]));
+    ymax = max(ymax,fabs(data_in.v1s[1]));
+    zmax = max(zmax,fabs(data_in.v1s[2]));
+    
+    xmax = max(xmax,fabs(data_in.v2s[0]));
+    ymax = max(ymax,fabs(data_in.v2s[1]));
+    zmax = max(zmax,fabs(data_in.v2s[2]));
 
-    xmax = max(xmax, fabs(data_in.v2s[0]));
-    ymax = max(ymax, fabs(data_in.v2s[1]));
-    zmax = max(zmax, fabs(data_in.v2s[2]));
+    xmax = max(xmax,fabs(data_in.v3s[0]));
+    ymax = max(ymax,fabs(data_in.v3s[1]));
+    zmax = max(zmax,fabs(data_in.v3s[2]));
 
-    xmax = max(xmax, fabs(data_in.v3s[0]));
-    ymax = max(ymax, fabs(data_in.v3s[1]));
-    zmax = max(zmax, fabs(data_in.v3s[2]));
+    xmax = max(xmax,fabs(data_in.v0e[0]));
+    ymax = max(ymax,fabs(data_in.v0e[1]));
+    zmax = max(zmax,fabs(data_in.v0e[2]));
 
-    xmax = max(xmax, fabs(data_in.v0e[0]));
-    ymax = max(ymax, fabs(data_in.v0e[1]));
-    zmax = max(zmax, fabs(data_in.v0e[2]));
+    xmax = max(xmax,fabs(data_in.v1e[0]));
+    ymax = max(ymax,fabs(data_in.v1e[1]));
+    zmax = max(zmax,fabs(data_in.v1e[2]));
 
-    xmax = max(xmax, fabs(data_in.v1e[0]));
-    ymax = max(ymax, fabs(data_in.v1e[1]));
-    zmax = max(zmax, fabs(data_in.v1e[2]));
+    xmax = max(xmax,fabs(data_in.v2e[0]));
+    ymax = max(ymax,fabs(data_in.v2e[1]));
+    zmax = max(zmax,fabs(data_in.v2e[2]));
 
-    xmax = max(xmax, fabs(data_in.v2e[0]));
-    ymax = max(ymax, fabs(data_in.v2e[1]));
-    zmax = max(zmax, fabs(data_in.v2e[2]));
-
-    xmax = max(xmax, fabs(data_in.v3e[0]));
-    ymax = max(ymax, fabs(data_in.v3e[1]));
-    zmax = max(zmax, fabs(data_in.v3e[2]));
+    xmax = max(xmax,fabs(data_in.v3e[0]));
+    ymax = max(ymax,fabs(data_in.v3e[1]));
+    zmax = max(zmax,fabs(data_in.v3e[2]));
 
     xmax = max(xmax, Scalar(1));
     ymax = max(ymax, Scalar(1));
@@ -176,56 +177,46 @@ __device__ __host__ void get_numerical_error_vf(
 //     const Scalar ms,
 //     bool &box_in_eps,
 //     Scalar *tolerance)
-__device__ void BoxPrimatives::calculate_tuv(const BoxCompute &box)
-{
-    if (b[0] == 0)
-    { // t0
-        t = box.current_item.itv[0].first;
+__device__ void BoxPrimatives::calculate_tuv(const BoxCompute& box){
+    if(b[0]==0){// t0
+        t=box.current_item.itv[0].first;
     }
-    else
-    { // t1
-        t = box.current_item.itv[0].second;
+    else{// t1
+        t=box.current_item.itv[0].second;
     }
 
-    if (b[1] == 0)
-    { // u0
-        u = box.current_item.itv[1].first;
+    if(b[1]==0){// u0
+        u=box.current_item.itv[1].first;
     }
-    else
-    { // u1
-        u = box.current_item.itv[1].second;
+    else{// u1
+        u=box.current_item.itv[1].second;
     }
 
-    if (b[2] == 0)
-    { // v0
-        v = box.current_item.itv[2].first;
+    if(b[2]==0){// v0
+        v=box.current_item.itv[2].first;
     }
-    else
-    { // v1
-        v = box.current_item.itv[2].second;
+    else{// v1
+        v=box.current_item.itv[2].second;
     }
 }
-__device__ Scalar calculate_vf(const CCDdata &data_in, const BoxPrimatives &bp)
-{
+__device__ Scalar calculate_vf(const CCDdata &data_in, const BoxPrimatives& bp){
     Scalar v, pt, t0, t1, t2;
     v = (data_in.v0e[bp.dim] - data_in.v0s[bp.dim]) * bp.t + data_in.v0s[bp.dim];
-    t0 = (data_in.v1e[bp.dim] - data_in.v1s[bp.dim]) * bp.t + data_in.v1s[bp.dim];
-    t1 = (data_in.v2e[bp.dim] - data_in.v2s[bp.dim]) * bp.t + data_in.v2s[bp.dim];
-    t2 = (data_in.v3e[bp.dim] - data_in.v3s[bp.dim]) * bp.t + data_in.v3s[bp.dim];
-    pt = (t1 - t0) * bp.u + (t2 - t0) * bp.v + t0;
-    return (v - pt);
+        t0 = (data_in.v1e[bp.dim] - data_in.v1s[bp.dim]) * bp.t + data_in.v1s[bp.dim];
+        t1 = (data_in.v2e[bp.dim] - data_in.v2s[bp.dim]) * bp.t + data_in.v2s[bp.dim];
+        t2 = (data_in.v3e[bp.dim] - data_in.v3s[bp.dim]) * bp.t + data_in.v3s[bp.dim];
+        pt = (t1 - t0) * bp.u + (t2 - t0) * bp.v + t0;
+        return (v - pt);
 }
 
-__device__ bool Origin_in_vf_inclusion_function(const CCDdata &data_in, BoxCompute &box, CCDOut &out)
-{
+__device__ bool Origin_in_vf_inclusion_function(const CCDdata &data_in, BoxCompute& box, CCDOut& out){
     BoxPrimatives bp;
-    Scalar vmin = SCALAR_LIMIT;
-    Scalar vmax = -SCALAR_LIMIT;
+    Scalar vmin=SCALAR_LIMIT;
+    Scalar vmax=-SCALAR_LIMIT;
     Scalar value;
-    for (bp.dim = 0; bp.dim < 3; bp.dim++)
-    {
-        vmin = SCALAR_LIMIT;
-        vmax = -SCALAR_LIMIT;
+    for(bp.dim=0;bp.dim<3;bp.dim++){
+        vmin=SCALAR_LIMIT;
+        vmax=-SCALAR_LIMIT;
         for (int i = 0; i < 2; i++)
         {
             for (int j = 0; j < 2; j++)
@@ -239,6 +230,7 @@ __device__ bool Origin_in_vf_inclusion_function(const CCDdata &data_in, BoxCompu
                     value = calculate_vf(data_in, bp);
                     vmin = min(vmin, value);
                     vmax = max(vmax, value);
+                    
                 }
             }
         }
@@ -255,104 +247,123 @@ __device__ bool Origin_in_vf_inclusion_function(const CCDdata &data_in, BoxCompu
         {
             box.box_in = false;
         }
+        
     }
     return true;
 }
-__device__ void split_dimension(const CCDOut &out, BoxCompute &box)
-{
+__device__ void split_dimension(const CCDOut& out,BoxCompute& box){
     Scalar res[3];
-    res[0] = box.widths[0] / out.tol[0];
-    res[1] = box.widths[1] / out.tol[1];
-    res[2] = box.widths[2] / out.tol[2];
-    if (res[0] >= res[1] && res[0] >= res[2])
-    {
-        box.split = 0;
+    res[0]=box.widths[0]/out.tol[0];
+    res[1]=box.widths[1]/out.tol[1];
+    res[2]=box.widths[2]/out.tol[2];
+    if(res[0]>=res[1]&&res[0]>=res[2]){
+        box.split=0;
     }
-    if (res[1] >= res[0] && res[1] >= res[2])
-    {
-        box.split = 1;
+    if(res[1]>=res[0]&&res[1]>=res[2]){
+        box.split=1;
     }
-    if (res[2] >= res[1] && res[2] >= res[0])
-    {
-        box.split = 2;
+    if(res[2]>=res[1]&&res[2]>=res[0]){
+        box.split=2;
     }
 }
 
-__device__ void bisect_vf_and_push(BoxCompute &box, const CCDConfig &config, MinHeap &istack, CCDOut &out)
-{
-    interval_pair halves(box.current_item.itv[box.split]); // bisected
+__device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinHeap& istack,CCDOut& out){
+    interval_pair halves(box.current_item.itv[box.split]);// bisected
     bool inserted;
-    box.current_item.itv[box.split] = halves.first;
-    inserted = istack.insertKey(box.current_item);
-    if (inserted == false)
-    {
-        out.overflow_flag = HEAP_OVERFLOW;
-        return;
-    }
-    if (halves.first.first >= halves.first.second)
+    if (halves.first.first  >= halves.first.second)
     {
         out.overflow_flag = BISECTION_OVERFLOW;
         return;
     }
-    if (halves.second.first >= halves.second.second)
+    if (halves.second.first>= halves.second.second)
     {
         out.overflow_flag = BISECTION_OVERFLOW;
         return;
     }
-    bool push_second = false;
-    if (box.split == 0) // split t interval
+    if (box.split == 0)// split t interval
     {
-        if (config.max_t != 1)
+        if (config.max_t!=1)
         {
             if (halves.second.first <= config.max_t)
             {
-                // box.current_item.itv[box.split] = halves.second;
-                // inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
-                // if (inserted == false)
-                // {
-                //     out.overflow_flag = HEAP_OVERFLOW;
-                // }
-                push_second = true;
+                box.current_item.itv[box.split] = halves.second;
+                inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+                if (inserted == false)
+                {
+                    out.overflow_flag = HEAP_OVERFLOW;
+                }
+            }
+
+            box.current_item.itv[box.split] = halves.first;
+            inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+            if (inserted == false)
+            {
+                out.overflow_flag = HEAP_OVERFLOW;
+            }
+        }
+        else
+        {
+            box.current_item.itv[box.split] = halves.second;
+            inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+            if (inserted == false)
+            {
+                out.overflow_flag = HEAP_OVERFLOW;
+            }
+            box.current_item.itv[box.split] = halves.first;
+            inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+            if (inserted == false)
+            {
+                out.overflow_flag = HEAP_OVERFLOW;
             }
         }
     }
 
     if (box.split == 1) // split u interval
     {
+
         if (sum_no_larger_1(halves.second.first, box.current_item.itv[2].first)) // check if u+v<=1
         {
-            push_second = true;
+
+            box.current_item.itv[box.split] = halves.second;
+            // LINENBR 20
+            inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+            if (inserted == false)
+            {
+                out.overflow_flag = HEAP_OVERFLOW;
+            }
+        }
+
+        box.current_item.itv[box.split] = halves.first;
+        inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+        if (inserted == false)
+        {
+            out.overflow_flag = HEAP_OVERFLOW;
         }
     }
     if (box.split == 2) // split v interval
     {
         if (sum_no_larger_1(halves.second.first, box.current_item.itv[1].first))
         {
-            push_second = true;
+            box.current_item.itv[box.split] = halves.second;
+            inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+            if (inserted == false)
+            {
+                out.overflow_flag = HEAP_OVERFLOW;
+            }
         }
-    }
-    if (push_second)
-    {
-        box.current_item.itv[box.split] = halves.second;
-        inserted = istack.insertKey(box.current_item);
+
+        box.current_item.itv[box.split] = halves.first;
+        inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
         if (inserted == false)
         {
             out.overflow_flag = HEAP_OVERFLOW;
-            return;
         }
     }
-    // box.current_item.itv[box.split] = halves.first;
-    // inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
-    // if (inserted == false)
-    // {
-    //     out.overflow_flag = HEAP_OVERFLOW;
-    // }
 }
 
-__device__ bool vertexFaceCCD(const CCDdata &data_in, const CCDConfig &config, CCDOut &out)
-{
-
-    MinHeap istack; // now when initialized, size is 1 and initialized with [0,1]^3
+__device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CCDOut& out){
+    
+    MinHeap istack;// now when initialized, size is 1 and initialized with [0,1]^3
     compute_face_vertex_tolerance(data_in, config, out);
     BoxCompute box;
 
@@ -372,9 +383,9 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in, const CCDConfig &config, C
     int refine = 0;
     // temp_toi is to catch the first toi of each level
     Scalar temp_toi = out.toi;
-    Scalar skip_toi = out.toi;
-
-    bool use_skip = false;  // when tolerance is small enough or when box in epsilon, this is activated.
+    Scalar skip_toi =out.toi;
+    
+    bool use_skip = false; // when tolerance is small enough or when box in epsilon, this is activated.
     int current_level = -2; // in the begining, current_level != level
     int box_in_level = -2;  // this checks if all the boxes before this
     // level < tolerance. only true, we can return when we find one overlaps eps box and smaller than tolerance or eps-box
@@ -389,11 +400,11 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in, const CCDConfig &config, C
         }
 
         //LINENBR 6
-        box.current_item = istack.extractMin(); // get the level and the intervals
-
+        box.current_item = istack.extractMin();// get the level and the intervals
+        
         // if this box is later than TOI_SKIP in time, we can skip this one.
         // TOI_SKIP is only updated when the box is small enough or totally contained in eps-box
-        if (box.current_item.itv[0].first >= skip_toi)
+        if (box.current_item.itv[0].first>=skip_toi)
         {
             continue;
         }
@@ -404,37 +415,33 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in, const CCDConfig &config, C
         }
         // LINENBR 8
         refine++;
-        //LINENBR 7
         bool zero_in =
-            Origin_in_vf_inclusion_function(data_in, box, out);
-
+            Origin_in_vf_inclusion_function(data_in,box, out);
+        //return zero_in;// REGSCOUNT 100
+        
         if (!zero_in)
             continue;
 
-        //LINENBR 15, 16, 17
         // get the width of the box
         box.widths[0] = box.current_item.itv[0].second - box.current_item.itv[0].first;
         box.widths[1] = box.current_item.itv[1].second - box.current_item.itv[1].first;
         box.widths[2] = box.current_item.itv[2].second - box.current_item.itv[2].first;
-
-        //LINENBR 15, 16, 17
+                
+        // LINENBR 15, 16
         // Condition 1, stopping condition on t, u and v is satisfied. this is useless now since we have condition 2
         bool condition = box.widths[0] <= out.tol[0] && box.widths[1] <= out.tol[1] && box.widths[2] <= out.tol[2];
-        if (condition)
-        {
-            out.toi = box.current_item.itv[0].first;
+        if(condition){
+            out.toi=box.current_item.itv[0].first;
             return true;
         }
-        //LINENBR 15, 16, 17
         // Condition 2, zero_in = true, box inside eps-box and in this level,
         // no box whose zero_in is true but box size larger than tolerance, can return
         condition = box.box_in && this_level_less_tol;
-        if (condition)
-        {
-            out.toi = box.current_item.itv[0].first;
+        if(condition){
+            out.toi=box.current_item.itv[0].first;
             return true;
         }
-        //LINENBR 15, 16, 17
+
         bool tol_condition = box.true_tol <= config.co_domain_tolerance;
         if (!tol_condition)
         {
@@ -442,13 +449,12 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in, const CCDConfig &config, C
             // this level has at least one box whose size > tolerance, thus we
             // cannot directly return if find one box whose size < tolerance or box-in
         }
-        //LINENBR 15, 16, 17
+
         // Condition 3, in this level, we find a box that zero-in and size < tolerance.
         // and no other boxes whose zero-in is true in this level before this one is larger than tolerance, can return
         condition = this_level_less_tol;
-        if (condition)
-        {
-            out.toi = box.current_item.itv[0].first;
+        if(condition){
+            out.toi=box.current_item.itv[0].first;
             return true;
         }
 
@@ -466,8 +472,8 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in, const CCDConfig &config, C
             temp_toi = box.current_item.itv[0].first;
             // if the real tolerance is larger than input, use the real one;
             // if the real tolerance is smaller than input, use input
-            temp_output_tolerance = max(box.true_tol, config.co_domain_tolerance);
-            find_level_root = true; // this ensures always find the earlist root
+            temp_output_tolerance = max(box.true_tol,config.co_domain_tolerance);
+            find_level_root =true; // this ensures always find the earlist root
         }
 
         // LINENBR 12
@@ -479,76 +485,17 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in, const CCDConfig &config, C
 
         // if this box is small enough, or inside of eps-box, then just continue,
         // but we need to record the collision time
-        if (tol_condition || box.box_in)
+        if (tol_condition || box.box_in )
         {
-            if (box.current_item.itv[0].first < skip_toi)
+            if(box.current_item.itv[0].first<skip_toi)
             {
-                skip_toi = box.current_item.itv[0].first;
+                skip_toi=box.current_item.itv[0].first;
             }
             use_skip = true;
             continue;
         }
-        //LINENBR 19
-        split_dimension(out, box);
-        //bisect_vf_and_push(box,config, istack,out);
-        //////////////////////////////////////////////////////////
-        //LINENBR 20
-        // this block is directly taken from bisect_vf_and_push(box,config, istack,out);
-        interval_pair halves(box.current_item.itv[box.split]); // bisected
-        box.current_item.itv[box.split] = halves.first;// push the first item
-        zero_in = istack.insertKey(box.current_item);
-        if (zero_in == false)
-        {
-            out.overflow_flag = HEAP_OVERFLOW;
-            break;
-        }
-        if (halves.first.first >= halves.first.second)
-        {
-            out.overflow_flag = BISECTION_OVERFLOW;
-            break;
-        }
-        if (halves.second.first >= halves.second.second)
-        {
-            out.overflow_flag = BISECTION_OVERFLOW;
-            break;
-        }
-        bool push_second = false;
-        if (box.split == 0) // split t interval
-        {
-            if (config.max_t != 1)
-            {
-                if (halves.second.first <= config.max_t)
-                {
-                    push_second = true;
-                }
-            }
-        }
-
-        if (box.split == 1) // split u interval
-        {
-            if (sum_no_larger_1(halves.second.first, box.current_item.itv[2].first)) // check if u+v<=1
-            {
-                push_second = true;
-            }
-        }
-        if (box.split == 2) // split v interval
-        {
-            if (sum_no_larger_1(halves.second.first, box.current_item.itv[1].first))
-            {
-                push_second = true;
-            }
-        }
-        if (push_second)
-        {
-            box.current_item.itv[box.split] = halves.second;
-            zero_in = istack.insertKey(box.current_item);
-            if (zero_in == false)
-            {
-                out.overflow_flag = HEAP_OVERFLOW;
-                break;
-            }
-        }
-        /////////////////////////////////////////////////////////
+        split_dimension(out,box);
+        bisect_vf_and_push(box,config, istack,out);
     }
     if (out.overflow_flag != NO_OVERFLOW)
     {
@@ -566,4 +513,4 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in, const CCDConfig &config, C
     return false;
 }
 
-//
+
