@@ -270,6 +270,7 @@ __device__ void split_dimension(const CCDOut& out,BoxCompute& box){
 __device__ void bisect_vf_and_push(BoxCompute& box,const CCDdata& data, MinHeap& istack,CCDOut& out){
     interval_pair halves(box.current_item.itv[box.split]);// bisected
     bool inserted;
+    item pushed;
     if (halves.first.first  >= halves.first.second)
     {
         out.overflow_flag = BISECTION_OVERFLOW;
@@ -287,7 +288,11 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDdata& data, MinHeap&
             if (halves.second.first <= data.max_t)
             {
                 box.current_item.itv[box.split] = halves.second;
-                inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+                pushed.itv[0]=box.current_item.itv[0];
+                pushed.itv[1]=box.current_item.itv[1];
+                pushed.itv[2]=box.current_item.itv[2];
+                pushed.level=box.current_item.level + 1;
+                inserted = istack.insertKey(pushed);
                 if (inserted == false)
                 {
                     out.overflow_flag = HEAP_OVERFLOW;
@@ -295,7 +300,11 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDdata& data, MinHeap&
             }
 
             box.current_item.itv[box.split] = halves.first;
-            inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+            pushed.itv[0]=box.current_item.itv[0];
+                pushed.itv[1]=box.current_item.itv[1];
+                pushed.itv[2]=box.current_item.itv[2];
+            pushed.level=box.current_item.level + 1;
+            inserted = istack.insertKey(pushed);
             if (inserted == false)
             {
                 out.overflow_flag = HEAP_OVERFLOW;
@@ -304,13 +313,21 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDdata& data, MinHeap&
         else
         {
             box.current_item.itv[box.split] = halves.second;
-            inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+            pushed.itv[0]=box.current_item.itv[0];
+                pushed.itv[1]=box.current_item.itv[1];
+                pushed.itv[2]=box.current_item.itv[2];
+            pushed.level=box.current_item.level + 1;
+            inserted = istack.insertKey(pushed);
             if (inserted == false)
             {
                 out.overflow_flag = HEAP_OVERFLOW;
             }
             box.current_item.itv[box.split] = halves.first;
-            inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+            pushed.itv[0]=box.current_item.itv[0];
+                pushed.itv[1]=box.current_item.itv[1];
+                pushed.itv[2]=box.current_item.itv[2];
+            pushed.level=box.current_item.level + 1;
+            inserted = istack.insertKey(pushed);
             if (inserted == false)
             {
                 out.overflow_flag = HEAP_OVERFLOW;
@@ -325,8 +342,12 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDdata& data, MinHeap&
         {
 
             box.current_item.itv[box.split] = halves.second;
+            pushed.itv[0]=box.current_item.itv[0];
+                pushed.itv[1]=box.current_item.itv[1];
+                pushed.itv[2]=box.current_item.itv[2];
+            pushed.level=box.current_item.level + 1;
             // LINENBR 20
-            inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+            inserted = istack.insertKey(pushed);
             if (inserted == false)
             {
                 out.overflow_flag = HEAP_OVERFLOW;
@@ -334,7 +355,11 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDdata& data, MinHeap&
         }
 
         box.current_item.itv[box.split] = halves.first;
-        inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+        pushed.itv[0]=box.current_item.itv[0];
+                pushed.itv[1]=box.current_item.itv[1];
+                pushed.itv[2]=box.current_item.itv[2];
+        pushed.level=box.current_item.level + 1;
+        inserted = istack.insertKey(pushed);
         if (inserted == false)
         {
             out.overflow_flag = HEAP_OVERFLOW;
@@ -345,7 +370,11 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDdata& data, MinHeap&
         if (sum_no_larger_1(halves.second.first, box.current_item.itv[1].first))
         {
             box.current_item.itv[box.split] = halves.second;
-            inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+            pushed.itv[0]=box.current_item.itv[0];
+                pushed.itv[1]=box.current_item.itv[1];
+                pushed.itv[2]=box.current_item.itv[2];
+            pushed.level=box.current_item.level + 1;
+            inserted = istack.insertKey(pushed);
             if (inserted == false)
             {
                 out.overflow_flag = HEAP_OVERFLOW;
@@ -353,7 +382,11 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDdata& data, MinHeap&
         }
 
         box.current_item.itv[box.split] = halves.first;
-        inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+        pushed.itv[0]=box.current_item.itv[0];
+                pushed.itv[1]=box.current_item.itv[1];
+                pushed.itv[2]=box.current_item.itv[2];
+        pushed.level=box.current_item.level + 1;
+        inserted = istack.insertKey(pushed);
         if (inserted == false)
         {
             out.overflow_flag = HEAP_OVERFLOW;
@@ -361,11 +394,11 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDdata& data, MinHeap&
     }
 }
 
-__device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CCDOut& out,MinHeap &istack){
+__device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CCDOut& out,MinHeap &istack,
+BoxCompute &box){
     
     // now when initialized, size is 1 and initialized with [0,1]^3
     compute_face_vertex_tolerance(data_in, config, out);
-    BoxCompute box;
 
 #ifdef CALCULATE_ERROR_BOUND
     get_numerical_error_vf(data_in, box);
@@ -391,7 +424,9 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
     // level < tolerance. only true, we can return when we find one overlaps eps box and smaller than tolerance or eps-box
     bool this_level_less_tol = true;
     bool find_level_root = false;
-
+    bool zero_in;
+    bool condition;
+    bool tol_condition;
     while (!istack.empty())
     {
         if (out.overflow_flag != NO_OVERFLOW)
@@ -415,7 +450,7 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
         }
         // LINENBR 8
         refine++;
-        bool zero_in =
+        zero_in =
             Origin_in_vf_inclusion_function(data_in,box, out);
         //return zero_in;// REGSCOUNT 100
         
@@ -429,7 +464,7 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
                 
         // LINENBR 15, 16
         // Condition 1, stopping condition on t, u and v is satisfied. this is useless now since we have condition 2
-        bool condition = box.widths[0] <= out.tol[0] && box.widths[1] <= out.tol[1] && box.widths[2] <= out.tol[2];
+        condition = box.widths[0] <= out.tol[0] && box.widths[1] <= out.tol[1] && box.widths[2] <= out.tol[2];
         if(condition){
             out.toi=box.current_item.itv[0].first;
             return true;
@@ -442,7 +477,7 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
             return true;
         }
 
-        bool tol_condition = box.true_tol <= config.co_domain_tolerance;
+        tol_condition = box.true_tol <= config.co_domain_tolerance;
         if (!tol_condition)
         {
             this_level_less_tol = false;

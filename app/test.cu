@@ -77,7 +77,7 @@ void write_csv(const std::string &file, const std::vector<std::string> titles, c
 }
 
 __device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, const CCDConfig& config,  
-    CCDOut &out,MinHeap &istack)
+    CCDOut &out,MinHeap &istack, BoxCompute &box)
 {
     
     CCDdata data_cp;
@@ -96,7 +96,7 @@ __device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, cons
 #ifdef CHECK_EE
         result = true;
 #else
-        result =vertexFaceCCD(data_cp,config,  out, istack);
+        result =vertexFaceCCD(data_cp,config,  out, istack, box);
 #endif
     // for(int i=0;i<8;i++){
     //     dbg[i]=out.dbg[i];
@@ -122,7 +122,8 @@ __global__ void run_parallel_ccd_all(CCDdata *data, bool *res, int size, Scalar 
     config.co_domain_tolerance=1e-6;
     CCDOut out;
     MinHeap istack;
-    single_test_wrapper_return_toi( &data[tx], result, config, out, istack);
+    BoxCompute box;
+    single_test_wrapper_return_toi( &data[tx], result, config, out, istack, box);
     res[tx] = result;
     tois[tx] = out.toi;
 
