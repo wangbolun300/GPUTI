@@ -76,10 +76,10 @@ void write_csv(const std::string &file, const std::vector<std::string> titles, c
     fout.close();
 }
 
-__device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scalar &time_impact)
+__device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, const CCDConfig& config,  
+    CCDOut &out,MinHeap &istack)
 {
-    CCDConfig config; // using default values, 
-    CCDOut out;
+    
     CCDdata data_cp;
     for (int i = 0; i < 3; i++)
     {
@@ -96,9 +96,8 @@ __device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scal
 #ifdef CHECK_EE
         result = true;
 #else
-        result =vertexFaceCCD(data_cp,config,  out);
+        result =vertexFaceCCD(data_cp,config,  out, istack);
 #endif
-    time_impact = out.toi;
     // for(int i=0;i<8;i++){
     //     dbg[i]=out.dbg[i];
     // }
@@ -115,16 +114,18 @@ __global__ void run_parallel_ccd_all(CCDdata *data, bool *res, int size, Scalar 
 
     if (tx >= size) return;
     // {
-    CCDdata *input = &data[tx];
     bool result;
-    Scalar toi;
-    Scalar ddbg[8];
-    recordLaunch<CCDdata *, bool &, Scalar &>("single_test_wrapper_return_toi", single_test_wrapper_return_toi, input, result, toi);
+    
+    CCDConfig config; // using default values, 
+    config.err_in[0]=-1;
+    config.ms=0;
+    config.co_domain_tolerance=1e-6;
+    CCDOut out;
+    MinHeap istack;
+    single_test_wrapper_return_toi( &data[tx], result, config, out, istack);
     res[tx] = result;
-    tois[tx] = toi;
-    // for(int i=0;i<8;i++){
-    //     dbg[i]=ddbg[i];
-    // }
+    tois[tx] = out.toi;
+
 }
 
 

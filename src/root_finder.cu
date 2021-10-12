@@ -267,7 +267,7 @@ __device__ void split_dimension(const CCDOut& out,BoxCompute& box){
     }
 }
 
-__device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinHeap& istack,CCDOut& out){
+__device__ void bisect_vf_and_push(BoxCompute& box,const CCDdata& data, MinHeap& istack,CCDOut& out){
     interval_pair halves(box.current_item.itv[box.split]);// bisected
     bool inserted;
     if (halves.first.first  >= halves.first.second)
@@ -282,9 +282,9 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinH
     }
     if (box.split == 0)// split t interval
     {
-        if (config.max_t!=1)
+        if (data.max_t!=1)
         {
-            if (halves.second.first <= config.max_t)
+            if (halves.second.first <= data.max_t)
             {
                 box.current_item.itv[box.split] = halves.second;
                 inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
@@ -361,9 +361,9 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinH
     }
 }
 
-__device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CCDOut& out){
+__device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CCDOut& out,MinHeap &istack){
     
-    MinHeap istack;// now when initialized, size is 1 and initialized with [0,1]^3
+    // now when initialized, size is 1 and initialized with [0,1]^3
     compute_face_vertex_tolerance(data_in, config, out);
     BoxCompute box;
 
@@ -476,12 +476,6 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
             find_level_root =true; // this ensures always find the earlist root
         }
 
-        // LINENBR 12
-        if (refine > config.max_itr)
-        {
-            out.overflow_flag = ITERATION_OVERFLOW;
-            break;
-        }
 
         // if this box is small enough, or inside of eps-box, then just continue,
         // but we need to record the collision time
@@ -495,7 +489,7 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
             continue;
         }
         split_dimension(out,box);
-        bisect_vf_and_push(box,config, istack,out);
+        bisect_vf_and_push(box,data_in, istack,out);
     }
     if (out.overflow_flag != NO_OVERFLOW)
     {

@@ -7,7 +7,7 @@
 #include <cuda_profiler_api.h>
 #include <cudaProfiler.h>
 //#define GPUTI_USE_DOUBLE_PRECISION
-#define GPUTI_GO_DEAP_HEAP
+// #define GPUTI_GO_DEAP_HEAP
 static const int TESTING_ID = 219064;
 static const int TEST_SIZE=1e6;
 static const int TEST_NBR_QUERIES=1e9;// set as large as possible to avoid truncation of reading data
@@ -106,6 +106,7 @@ public:
     Scalar v1e[3];
     Scalar v2e[3];
     Scalar v3e[3];
+    Scalar max_t=1; // the upper bound of the time interval
     __device__ __host__  CCDdata& operator=(const CCDdata& x)
     {
         if (this == &x)
@@ -120,6 +121,7 @@ public:
             v2e[i]=x.v2e[i];
             v3e[i]=x.v3e[i];
         }
+        max_t=x.max_t;
         return *this;
     }
 };
@@ -159,11 +161,9 @@ public:
 // the initialized error input, solve tolerance, time interval upper bound, etc.
 class CCDConfig{
 public:
-    Scalar err_in[3]={-1,-1,-1};// the input error bound calculate from the AABB of the whole mesh
-    Scalar ms=0;// the minimum separation
-    Scalar co_domain_tolerance=1e-6; // tolerance of the co-domain
-    Scalar max_t=1; // the upper bound of the time interval
-    int max_itr=1e6;// the maximal nbr of iterations
+    Scalar err_in[3];// the input error bound calculate from the AABB of the whole mesh
+    Scalar ms;// the minimum separation
+    Scalar co_domain_tolerance; // tolerance of the co-domain
     
 
 };
