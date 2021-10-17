@@ -9,8 +9,9 @@
 //#define GPUTI_USE_DOUBLE_PRECISION
 // #define GPUTI_GO_DEAP_HEAP
 static const int TESTING_ID = 219064;
-static const int TEST_SIZE=1e6;
+static const int TEST_SIZE=2000;
 static const int TEST_NBR_QUERIES=1e9;// set as large as possible to avoid truncation of reading data
+static const int MAX_COPY_QUERY_NBR = 5000;
 // #define CHECK_EE
 #define NO_CHECK_MS
 #define CALCULATE_ERROR_BOUND
@@ -161,9 +162,9 @@ public:
 // the initialized error input, solve tolerance, time interval upper bound, etc.
 class CCDConfig{
 public:
-    Scalar err_in[3];// the input error bound calculate from the AABB of the whole mesh
-    Scalar ms;// the minimum separation
-    Scalar co_domain_tolerance; // tolerance of the co-domain
+    Scalar err_in[3]={-1,-1,-1};// the input error bound calculate from the AABB of the whole mesh
+    Scalar ms=0;// the minimum separation
+    Scalar co_domain_tolerance=1e-6; // tolerance of the co-domain
     
 
 };
@@ -173,9 +174,9 @@ class CCDOut{
 public:
 
     Scalar toi=SCALAR_LIMIT;
-    Scalar output_tolerance;
+    Scalar output_tolerance=1e-6;
     int overflow_flag=NO_OVERFLOW;
-    Scalar tol[3];// conservative domain tolerance
+    Scalar tol[3]={0,0,0};// conservative domain tolerance
     //Scalar dbg[8];
 };
 
@@ -183,20 +184,63 @@ public:
 class BoxCompute{
 public:
     item current_item;// containing 3 intervals and the level
-    Scalar err[3]; // the error bound
+    Scalar err[3]={-1,-1,-1}; // the error bound
     bool box_in=true; // if the inclusion function is inside the error bound
     Scalar true_tol=0; // the actual solving tolerance of the co-domain
-    Scalar widths[3];
-    int split;
+    Scalar widths[3]={0,0,0};
+    int split=-1;
 };
 
 // this is to calculate the vertices of the inclusion function
 class BoxPrimatives{
 public:
-    bool b[3];
-    int dim;
-    Scalar t;
-    Scalar u;
-    Scalar v;
-__device__ void calculate_tuv(const BoxCompute& box);
+    bool b[3]={true,true,true};
+    int dim=-1;
+    Scalar t=0;
+    Scalar u=0;
+    Scalar v=0;
+//__device__ void calculate_tuv(const BoxCompute& box);
+};
+class MinHeap
+{
+	item harr[HEAP_SIZE]; // pointer to array of elements in heap
+	int capacity; // maximum possible size of min heap
+	int heap_size; // Current number of elements in min heap
+public:
+	// Constructor
+	//MinHeap(int capacity);
+   __device__ MinHeap();
+	// to heapify a subtree with the root at given index
+	__device__ void MinHeapify();
+	__device__ bool empty();
+	// index
+	__device__ int parent(int i) { return (i - 1) / 2; }
+
+	// to get index of left child of node at index i
+	__device__ int left(int i) { return (2 * i + 1); }
+
+	// to get index of right child of node at index i
+	__device__ int right(int i) { return (2 * i + 2); }
+
+	// to extract the root which is the minimum element
+	__device__ item extractMin();
+
+	// Decreases key value of key at index i to new_val
+	// __device__ void decreaseKey(int i, item new_val);
+
+	// Returns the minimum key (key at root) from min heap
+	__device__ item getMin() { return harr[0]; }
+
+	// Deletes a key stored at index i
+	// __device__ void deleteKey(int i);
+
+	// Inserts a new key 'k'
+	__device__ bool insertKey(const item &k);
+};
+class var_wrapper{
+public:
+CCDConfig config;
+CCDOut out;
+BoxCompute box;
+MinHeap istack;
 };

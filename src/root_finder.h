@@ -1,5 +1,5 @@
 #pragma once
-#include<gputi/queue.h>
+#include <gputi/Type.hpp>
 
 
 __device__ __host__ void get_numerical_error(
@@ -8,6 +8,6 @@ __device__ __host__ void get_numerical_error(
     const bool using_minimum_separation,
     Scalar *error);
 
-__device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CCDOut& out,MinHeap &istack, BoxCompute &box);
+__device__ bool vertexFaceCCD(const CCDdata &data_in,var_wrapper *vars);
 
 

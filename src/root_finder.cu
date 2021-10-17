@@ -86,7 +86,7 @@ __device__ Scalar max_linf_4(
 
 
 
-__device__ void compute_face_vertex_tolerance(const CCDdata &data_in,const CCDConfig& config, CCDOut& out){
+__device__ void compute_face_vertex_tolerance(const CCDdata &data_in,var_wrapper* vars){
     VectorMax3d v(data_in.v0s[0], data_in.v0s[1], data_in.v0s[2]);
     VectorMax3d f0(data_in.v1s[0], data_in.v1s[1], data_in.v1s[2]);
     VectorMax3d f1(data_in.v2s[0], data_in.v2s[1], data_in.v2s[2]);
@@ -106,9 +106,9 @@ __device__ void compute_face_vertex_tolerance(const CCDdata &data_in,const CCDCo
     Scalar edge1_length =
         3 * max_linf_4(p000, p100, p110, p010, p001, p101, p111, p011);
 
-    out.tol[0] = config.co_domain_tolerance / dl;
-    out.tol[1] = config.co_domain_tolerance / edge0_length;
-    out.tol[2] = config.co_domain_tolerance / edge1_length;
+    vars->out.tol[0] = vars->config.co_domain_tolerance / dl;
+    vars->out.tol[1] = vars->config.co_domain_tolerance / edge0_length;
+    vars->out.tol[2] = vars->config.co_domain_tolerance / edge1_length;
 }
 
 __device__ __host__ void get_numerical_error_vf(
@@ -177,26 +177,26 @@ __device__ __host__ void get_numerical_error_vf(
 //     const Scalar ms,
 //     bool &box_in_eps,
 //     Scalar *tolerance)
-__device__ void BoxPrimatives::calculate_tuv(const BoxCompute& box){
-    if(b[0]==0){// t0
-        t=box.current_item.itv[0].first;
+__device__ void calculate_tuv(BoxPrimatives& pri, const BoxCompute& box){
+    if(pri.b[0]==0){// t0
+        pri.t=box.current_item.itv[0].first;
     }
     else{// t1
-        t=box.current_item.itv[0].second;
+        pri.t=box.current_item.itv[0].second;
     }
 
-    if(b[1]==0){// u0
-        u=box.current_item.itv[1].first;
+    if(pri.b[1]==0){// u0
+        pri.u=box.current_item.itv[1].first;
     }
     else{// u1
-        u=box.current_item.itv[1].second;
+        pri.u=box.current_item.itv[1].second;
     }
 
-    if(b[2]==0){// v0
-        v=box.current_item.itv[2].first;
+    if(pri.b[2]==0){// v0
+        pri.v=box.current_item.itv[2].first;
     }
     else{// v1
-        v=box.current_item.itv[2].second;
+        pri.v=box.current_item.itv[2].second;
     }
 }
 __device__ Scalar calculate_vf(const CCDdata &data_in, const BoxPrimatives& bp){
@@ -226,7 +226,7 @@ __device__ bool Origin_in_vf_inclusion_function(const CCDdata &data_in, BoxCompu
                     bp.b[0] = i;
                     bp.b[1] = j;
                     bp.b[2] = k; //100
-                    bp.calculate_tuv(box);
+                    calculate_tuv(bp,box);
                     value = calculate_vf(data_in, bp);
                     vmin = min(vmin, value);
                     vmax = max(vmax, value);
@@ -394,8 +394,7 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDdata& data, MinHeap&
     }
 }
 
-__device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CCDOut& out,MinHeap &istack,
-BoxCompute &box){
+__device__ bool vertexFaceCCD(const CCDdata &data_in,var_wrapper* vars){
     
     // now when initialized, size is 1 and initialized with [0,1]^3
     compute_face_vertex_tolerance(data_in, config, out);

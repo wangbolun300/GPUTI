@@ -1,4 +1,4 @@
-#include <gputi/queue.h>
+#include <gputi/Type.hpp>
 #include <iostream>
 #include <limits>
 
@@ -150,12 +150,14 @@ __device__ item MinHeap::extractMin()
 __device__ void MinHeap::MinHeapify()
 {
 	int tmp = 0;
-	//return;
+	int l;
+	int r;
+	int smallest;
 	for (int itr = 0;; itr++)
 	{
-		int l = left(tmp);
-		int r = right(tmp);
-		int smallest = tmp;
+		l = left(tmp);
+		r = right(tmp);
+		smallest = tmp;
 		if (l < heap_size && custom_compare_less(harr[l], harr[tmp]))
 			smallest = l;
 		if (r < heap_size && custom_compare_less(harr[r], harr[smallest]))

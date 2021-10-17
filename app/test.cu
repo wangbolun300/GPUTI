@@ -76,8 +76,7 @@ void write_csv(const std::string &file, const std::vector<std::string> titles, c
     fout.close();
 }
 
-__device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, const CCDConfig& config,  
-    CCDOut &out,MinHeap &istack, BoxCompute &box)
+__device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, var_wrapper *vars)
 {
     
     CCDdata data_cp;
@@ -96,7 +95,7 @@ __device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, cons
 #ifdef CHECK_EE
         result = true;
 #else
-        result =vertexFaceCCD(data_cp,config,  out, istack, box);
+        result =vertexFaceCCD(data_cp,vars);
 #endif
     // for(int i=0;i<8;i++){
     //     dbg[i]=out.dbg[i];
@@ -105,26 +104,16 @@ __device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, cons
     return;
 }
 
-__global__ void run_parallel_ccd_all(CCDdata *data, bool *res, int size, Scalar *tois
-//, Scalar *dbg
-)
+
+
+__global__ void run_parallel_ccd_all(CCDdata *data, bool *res, int size, Scalar *tois, var_wrapper *vars)
 {
 
     int tx = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (tx >= size) return;
-    // {
-    bool result;
-    
-    CCDConfig config; // using default values, 
-    config.err_in[0]=-1;
-    config.ms=0;
-    config.co_domain_tolerance=1e-6;
-    CCDOut out;
-    MinHeap istack;
-    BoxCompute box;
-    single_test_wrapper_return_toi( &data[tx], result, config, out, istack, box);
-    res[tx] = result;
+
+    single_test_wrapper_return_toi( &data[tx], res[tx], &vars[tx]);
     tois[tx] = out.toi;
 
 }
@@ -150,16 +139,22 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     CCDdata *d_data_list;
     bool *d_res;
     Scalar *d_tois;
+    var_wrapper *d_vars;
+
     //Scalar *d_dbg;
 
     int data_size = sizeof(CCDdata) * nbr;
     int result_size = sizeof(bool) * nbr;
     int time_size = sizeof(Scalar) * nbr;
+    int var_size= sizeof(var_wrapper)*nbr;
+    //std::cout<<"size of var "<<var_size<<std::endl; 
+    //exit(0);
    // int dbg_size=sizeof(Scalar)*8;
 
     cudaMalloc(&d_data_list, data_size);
     cudaMalloc(&d_res, result_size);
     cudaMalloc(&d_tois, time_size);
+    cudaMalloc(&d_vars, var_size);
     //cudaMalloc(&d_dbg, dbg_size);
 
     cudaMemcpy(d_data_list, data_list, data_size, cudaMemcpyHostToDevice);
@@ -167,9 +162,7 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     ccd::Timer timer;
     cudaProfilerStart();
     timer.start();
-    recordLaunch("run_parallel_ccd_all", nbr / parallel_nbr + 1, parallel_nbr, run_parallel_ccd_all, d_data_list, d_res, nbr, d_tois
-    //, d_dbg
-    );
+    run_parallel_ccd_all<<<nbr / parallel_nbr + 1, parallel_nbr>>>( d_data_list, d_res, nbr, d_tois,d_vars);
     cudaDeviceSynchronize();
     double tt = timer.getElapsedTimeInMicroSec();
     run_time = tt;
@@ -182,6 +175,7 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     cudaFree(d_data_list);
     cudaFree(d_res);
     cudaFree(d_tois);
+    cudaFree(d_vars);
     //cudaFree(d_dbg);
 
     for (int i = 0; i < nbr; i++)
@@ -202,11 +196,10 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     delete[] tois;
     //delete[] dbg;
     cudaError_t ct = cudaGetLastError();
-    printf("******************\n%s\n************\n", cudaGetErrorString(ct));
+    //printf("******************\n%s\n************\n", cudaGetErrorString(ct));
     
     return;
 }
-
 
 bool WRITE_STATISTIC = true;
 
@@ -322,7 +315,7 @@ void run_rational_data_single_method_parallel(
     int size = queries.size();
     std::cout << "data loaded, size " << queries.size() << std::endl;
     double tavg = 0;
-    int max_query_cp_size = 1e7;
+    int max_query_cp_size = MAX_COPY_QUERY_NBR;
     int start_id = 0;
 
     result_list.resize(size);
