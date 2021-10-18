@@ -14,9 +14,7 @@ __device__ item::item(const Singleinterval si[3], const int &lv)
 	itv[2].first=si[2].first;
 	itv[2].second=si[2].second;
 }
-__device__ item::item()
-{
-}
+
 
 __device__ item item_max()
 {
@@ -78,7 +76,22 @@ __device__ bool custom_compare_no_larger(const item &i1, const item &i2)
 // Prototype of a utility function to swap two integers
 __device__ void swap(item *x, item *y);
 
-__device__ MinHeap::MinHeap()
+__device__ __host__ MinHeap::MinHeap()
+{
+	heap_size = 1;
+	capacity = HEAP_SIZE;
+	harr[0].itv[0].first = 0;
+	harr[0].itv[0].second = 1;
+
+	harr[0].itv[1].first = 0;
+	harr[0].itv[1].second = 1;
+	
+	harr[0].itv[2].first = 0;
+	harr[0].itv[2].second = 1;
+
+	harr[0].level = -1;
+}
+__device__ void MinHeap::initialize()
 {
 	heap_size = 1;
 	capacity = HEAP_SIZE;

@@ -114,18 +114,19 @@ __global__ void run_parallel_ccd_all(CCDdata *data, bool *res, int size, Scalar 
     if (tx >= size) return;
 
     single_test_wrapper_return_toi( &data[tx], res[tx], &vars[tx]);
-    tois[tx] = out.toi;
+    tois[tx] = vars[tx].out.toi;
 
 }
 
 
-
+int finish_nbr=0;
 void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, bool is_edge,
                  std::vector<bool> &result_list, double &run_time, std::vector<Scalar> &time_impact, int parallel_nbr)
 {
     int nbr = V.size();
     result_list.resize(nbr);
     // host
+    ////////////////////////////////////////
     CCDdata *data_list = new CCDdata[nbr];
     for (int i = 0; i < nbr; i++)
     {
@@ -133,31 +134,33 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     }
     bool *res = new bool[nbr];
     Scalar *tois = new Scalar[nbr];
-    //Scalar *dbg=new Scalar[8];
-
+    var_wrapper *vars= new var_wrapper[nbr];
+    //////////////////////////////////////////
     // device
     CCDdata *d_data_list;
     bool *d_res;
     Scalar *d_tois;
     var_wrapper *d_vars;
-
-    //Scalar *d_dbg;
+    //////////////////////////////////////////
 
     int data_size = sizeof(CCDdata) * nbr;
     int result_size = sizeof(bool) * nbr;
     int time_size = sizeof(Scalar) * nbr;
     int var_size= sizeof(var_wrapper)*nbr;
-    //std::cout<<"size of var "<<var_size<<std::endl; 
-    //exit(0);
+    // std::cout<<"size of one var_wrapper "<<sizeof(var_wrapper)<<std::endl; 
+    // std::cout<<"size of one CCDquery "<<sizeof(CCDdata)<<std::endl; 
+    // exit(0);
    // int dbg_size=sizeof(Scalar)*8;
 
     cudaMalloc(&d_data_list, data_size);
     cudaMalloc(&d_res, result_size);
     cudaMalloc(&d_tois, time_size);
     cudaMalloc(&d_vars, var_size);
-    //cudaMalloc(&d_dbg, dbg_size);
-
+    
     cudaMemcpy(d_data_list, data_list, data_size, cudaMemcpyHostToDevice);
+    std::cout<<"copy mem1"<<"\r";
+    cudaMemcpy(d_vars, vars, var_size, cudaMemcpyHostToDevice);
+    std::cout<<"copy mem2"<<"\r";
 
     ccd::Timer timer;
     cudaProfilerStart();
@@ -170,8 +173,10 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
 
     cudaMemcpy(res, d_res, result_size, cudaMemcpyDeviceToHost);
     cudaMemcpy(tois, d_tois, time_size, cudaMemcpyDeviceToHost);
-    //cudaMemcpy(dbg, d_dbg, dbg_size, cudaMemcpyDeviceToHost);
-
+    cudaMemcpy(vars, d_vars, sizeof(var_wrapper)*nbr, cudaMemcpyDeviceToHost);
+#ifdef GPUTI_GO_DEAP_HEAP
+std::cout<<"dbg info "<<vars[0].out.dbg[0]<<std::endl;
+#endif
     cudaFree(d_data_list);
     cudaFree(d_res);
     cudaFree(d_tois);
@@ -194,10 +199,13 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     delete[] res;
     delete[] data_list;
     delete[] tois;
+    delete[] vars;
     //delete[] dbg;
     cudaError_t ct = cudaGetLastError();
-    //printf("******************\n%s\n************\n", cudaGetErrorString(ct));
-    
+#ifdef GPUTI_GO_DEAP_HEAP
+    printf("******************\n%s\n************\n", cudaGetErrorString(ct));
+#endif
+    std::cout<<"finished "<<finish_nbr+nbr<<"\r";
     return;
 }
 

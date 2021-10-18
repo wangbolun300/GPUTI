@@ -113,7 +113,7 @@ __device__ void compute_face_vertex_tolerance(const CCDdata &data_in,var_wrapper
 
 __device__ __host__ void get_numerical_error_vf(
     const CCDdata &data_in,
-    BoxCompute &box)
+    var_wrapper* vars)
 {
     Scalar vffilter;
 
@@ -158,9 +158,9 @@ __device__ __host__ void get_numerical_error_vf(
     ymax = max(ymax, Scalar(1));
     zmax = max(zmax, Scalar(1));
 
-    box.err[0] = xmax * xmax * xmax * vffilter;
-    box.err[1] = ymax * ymax * ymax * vffilter;
-    box.err[2] = zmax * zmax * zmax * vffilter;
+    vars->box.err[0] = xmax * xmax * xmax * vffilter;
+    vars->box.err[1] = ymax * ymax * ymax * vffilter;
+    vars->box.err[2] = zmax * zmax * zmax * vffilter;
     return;
 }
 // Singleinterval *paras,
@@ -177,26 +177,26 @@ __device__ __host__ void get_numerical_error_vf(
 //     const Scalar ms,
 //     bool &box_in_eps,
 //     Scalar *tolerance)
-__device__ void calculate_tuv(BoxPrimatives& pri, const BoxCompute& box){
-    if(pri.b[0]==0){// t0
-        pri.t=box.current_item.itv[0].first;
+__device__ void calculate_tuv(var_wrapper *vars){
+    if(vars->bp.b[0]==0){// t0
+        vars->bp.t=vars->box.current_item.itv[0].first;
     }
     else{// t1
-        pri.t=box.current_item.itv[0].second;
+        vars->bp.t=vars->box.current_item.itv[0].second;
     }
 
-    if(pri.b[1]==0){// u0
-        pri.u=box.current_item.itv[1].first;
+    if(vars->bp.b[1]==0){// u0
+        vars->bp.u=vars->box.current_item.itv[1].first;
     }
     else{// u1
-        pri.u=box.current_item.itv[1].second;
+        vars->bp.u=vars->box.current_item.itv[1].second;
     }
 
-    if(pri.b[2]==0){// v0
-        pri.v=box.current_item.itv[2].first;
+    if(vars->bp.b[2]==0){// v0
+        vars->bp.v=vars->box.current_item.itv[2].first;
     }
     else{// v1
-        pri.v=box.current_item.itv[2].second;
+        vars->bp.v=vars->box.current_item.itv[2].second;
     }
 }
 __device__ Scalar calculate_vf(const CCDdata &data_in, const BoxPrimatives& bp){
@@ -209,12 +209,12 @@ __device__ Scalar calculate_vf(const CCDdata &data_in, const BoxPrimatives& bp){
         return (v - pt);
 }
 
-__device__ bool Origin_in_vf_inclusion_function(const CCDdata &data_in, BoxCompute& box, CCDOut& out){
-    BoxPrimatives bp;
+__device__ bool Origin_in_vf_inclusion_function(const CCDdata &data_in, var_wrapper* vars){
+    
     Scalar vmin=SCALAR_LIMIT;
     Scalar vmax=-SCALAR_LIMIT;
     Scalar value;
-    for(bp.dim=0;bp.dim<3;bp.dim++){
+    for(vars->bp.dim=0;vars->bp.dim<3;vars->bp.dim++){
         vmin=SCALAR_LIMIT;
         vmax=-SCALAR_LIMIT;
         for (int i = 0; i < 2; i++)
@@ -223,11 +223,11 @@ __device__ bool Origin_in_vf_inclusion_function(const CCDdata &data_in, BoxCompu
             {
                 for (int k = 0; k < 2; k++)
                 {
-                    bp.b[0] = i;
-                    bp.b[1] = j;
-                    bp.b[2] = k; //100
-                    calculate_tuv(bp,box);
-                    value = calculate_vf(data_in, bp);
+                    vars->bp.b[0] = i;
+                    vars->bp.b[1] = j;
+                    vars->bp.b[2] = k; //100
+                    calculate_tuv(vars);
+                    value = calculate_vf(data_in, vars->bp);
                     vmin = min(vmin, value);
                     vmax = max(vmax, value);
                     
@@ -236,160 +236,160 @@ __device__ bool Origin_in_vf_inclusion_function(const CCDdata &data_in, BoxCompu
         }
 
         // get the min and max in one dimension
-        box.true_tol = max(box.true_tol, vmax - vmin); // this is the real tolerance
+        vars->box.true_tol = max(vars->box.true_tol, vmax - vmin); // this is the real tolerance
 
-        if (vmin > box.err[bp.dim] || vmax < -box.err[bp.dim])
+        if (vmin > vars->box.err[vars->bp.dim] || vmax < -vars->box.err[vars->bp.dim])
         {
             return false;
         }
 
-        if (vmin < -box.err[bp.dim] || vmax > box.err[bp.dim])
+        if (vmin < -vars->box.err[vars->bp.dim] || vmax > vars->box.err[vars->bp.dim])
         {
-            box.box_in = false;
+            vars->box.box_in = false;
         }
         
     }
     return true;
 }
-__device__ void split_dimension(const CCDOut& out,BoxCompute& box){
+__device__ void split_dimension(var_wrapper *vars){
     Scalar res[3];
-    res[0]=box.widths[0]/out.tol[0];
-    res[1]=box.widths[1]/out.tol[1];
-    res[2]=box.widths[2]/out.tol[2];
+    res[0]=vars->box.widths[0]/vars->out.tol[0];
+    res[1]=vars->box.widths[1]/vars->out.tol[1];
+    res[2]=vars->box.widths[2]/vars->out.tol[2];
     if(res[0]>=res[1]&&res[0]>=res[2]){
-        box.split=0;
+        vars->box.split=0;
     }
     if(res[1]>=res[0]&&res[1]>=res[2]){
-        box.split=1;
+        vars->box.split=1;
     }
     if(res[2]>=res[1]&&res[2]>=res[0]){
-        box.split=2;
+        vars->box.split=2;
     }
 }
 
-__device__ void bisect_vf_and_push(BoxCompute& box,const CCDdata& data, MinHeap& istack,CCDOut& out){
-    interval_pair halves(box.current_item.itv[box.split]);// bisected
+__device__ void bisect_vf_and_push(var_wrapper* vars,const CCDdata& data){
+    interval_pair halves(vars->box.current_item.itv[vars->box.split]);// bisected
     bool inserted;
     item pushed;
     if (halves.first.first  >= halves.first.second)
     {
-        out.overflow_flag = BISECTION_OVERFLOW;
+        vars->out.overflow_flag = BISECTION_OVERFLOW;
         return;
     }
     if (halves.second.first>= halves.second.second)
     {
-        out.overflow_flag = BISECTION_OVERFLOW;
+        vars->out.overflow_flag = BISECTION_OVERFLOW;
         return;
     }
-    if (box.split == 0)// split t interval
+    if (vars->box.split == 0)// split t interval
     {
         if (data.max_t!=1)
         {
             if (halves.second.first <= data.max_t)
             {
-                box.current_item.itv[box.split] = halves.second;
-                pushed.itv[0]=box.current_item.itv[0];
-                pushed.itv[1]=box.current_item.itv[1];
-                pushed.itv[2]=box.current_item.itv[2];
-                pushed.level=box.current_item.level + 1;
-                inserted = istack.insertKey(pushed);
+                vars->box.current_item.itv[vars->box.split] = halves.second;
+                pushed.itv[0]=vars->box.current_item.itv[0];
+                pushed.itv[1]=vars->box.current_item.itv[1];
+                pushed.itv[2]=vars->box.current_item.itv[2];
+                pushed.level=vars->box.current_item.level + 1;
+                inserted = vars->istack.insertKey(pushed);
                 if (inserted == false)
                 {
-                    out.overflow_flag = HEAP_OVERFLOW;
+                    vars->out.overflow_flag = HEAP_OVERFLOW;
                 }
             }
 
-            box.current_item.itv[box.split] = halves.first;
-            pushed.itv[0]=box.current_item.itv[0];
-                pushed.itv[1]=box.current_item.itv[1];
-                pushed.itv[2]=box.current_item.itv[2];
-            pushed.level=box.current_item.level + 1;
-            inserted = istack.insertKey(pushed);
+            vars->box.current_item.itv[vars->box.split] = halves.first;
+            pushed.itv[0]=vars->box.current_item.itv[0];
+            pushed.itv[1]=vars->box.current_item.itv[1];
+            pushed.itv[2]=vars->box.current_item.itv[2];
+            pushed.level=vars->box.current_item.level + 1;
+            inserted = vars->istack.insertKey(pushed);
             if (inserted == false)
             {
-                out.overflow_flag = HEAP_OVERFLOW;
+                vars->out.overflow_flag = HEAP_OVERFLOW;
             }
         }
         else
         {
-            box.current_item.itv[box.split] = halves.second;
-            pushed.itv[0]=box.current_item.itv[0];
-                pushed.itv[1]=box.current_item.itv[1];
-                pushed.itv[2]=box.current_item.itv[2];
-            pushed.level=box.current_item.level + 1;
-            inserted = istack.insertKey(pushed);
+            vars->box.current_item.itv[vars->box.split] = halves.second;
+            pushed.itv[0]=vars->box.current_item.itv[0];
+            pushed.itv[1]=vars->box.current_item.itv[1];
+            pushed.itv[2]=vars->box.current_item.itv[2];
+            pushed.level=vars->box.current_item.level + 1;
+            inserted = vars->istack.insertKey(pushed);
             if (inserted == false)
             {
-                out.overflow_flag = HEAP_OVERFLOW;
+                vars->out.overflow_flag = HEAP_OVERFLOW;
             }
-            box.current_item.itv[box.split] = halves.first;
-            pushed.itv[0]=box.current_item.itv[0];
-                pushed.itv[1]=box.current_item.itv[1];
-                pushed.itv[2]=box.current_item.itv[2];
-            pushed.level=box.current_item.level + 1;
-            inserted = istack.insertKey(pushed);
+            vars->box.current_item.itv[vars->box.split] = halves.first;
+            pushed.itv[0]=vars->box.current_item.itv[0];
+            pushed.itv[1]=vars->box.current_item.itv[1];
+            pushed.itv[2]=vars->box.current_item.itv[2];
+            pushed.level=vars->box.current_item.level + 1;
+            inserted = vars->istack.insertKey(pushed);
             if (inserted == false)
             {
-                out.overflow_flag = HEAP_OVERFLOW;
+                vars->out.overflow_flag = HEAP_OVERFLOW;
             }
         }
     }
 
-    if (box.split == 1) // split u interval
+    if (vars->box.split == 1) // split u interval
     {
 
-        if (sum_no_larger_1(halves.second.first, box.current_item.itv[2].first)) // check if u+v<=1
+        if (sum_no_larger_1(halves.second.first, vars->box.current_item.itv[2].first)) // check if u+v<=1
         {
 
-            box.current_item.itv[box.split] = halves.second;
-            pushed.itv[0]=box.current_item.itv[0];
-                pushed.itv[1]=box.current_item.itv[1];
-                pushed.itv[2]=box.current_item.itv[2];
-            pushed.level=box.current_item.level + 1;
+            vars->box.current_item.itv[vars->box.split] = halves.second;
+            pushed.itv[0]=vars->box.current_item.itv[0];
+            pushed.itv[1]=vars->box.current_item.itv[1];
+            pushed.itv[2]=vars->box.current_item.itv[2];
+            pushed.level=vars->box.current_item.level + 1;
             // LINENBR 20
-            inserted = istack.insertKey(pushed);
+            inserted = vars->istack.insertKey(pushed);
             if (inserted == false)
             {
-                out.overflow_flag = HEAP_OVERFLOW;
+                vars->out.overflow_flag = HEAP_OVERFLOW;
             }
         }
 
-        box.current_item.itv[box.split] = halves.first;
-        pushed.itv[0]=box.current_item.itv[0];
-                pushed.itv[1]=box.current_item.itv[1];
-                pushed.itv[2]=box.current_item.itv[2];
-        pushed.level=box.current_item.level + 1;
-        inserted = istack.insertKey(pushed);
+        vars->box.current_item.itv[vars->box.split] = halves.first;
+        pushed.itv[0]=vars->box.current_item.itv[0];
+        pushed.itv[1]=vars->box.current_item.itv[1];
+        pushed.itv[2]=vars->box.current_item.itv[2];
+        pushed.level=vars->box.current_item.level + 1;
+        inserted = vars->istack.insertKey(pushed);
         if (inserted == false)
         {
-            out.overflow_flag = HEAP_OVERFLOW;
+            vars->out.overflow_flag = HEAP_OVERFLOW;
         }
     }
-    if (box.split == 2) // split v interval
+    if (vars->box.split == 2) // split v interval
     {
-        if (sum_no_larger_1(halves.second.first, box.current_item.itv[1].first))
+        if (sum_no_larger_1(halves.second.first, vars->box.current_item.itv[1].first))
         {
-            box.current_item.itv[box.split] = halves.second;
-            pushed.itv[0]=box.current_item.itv[0];
-                pushed.itv[1]=box.current_item.itv[1];
-                pushed.itv[2]=box.current_item.itv[2];
-            pushed.level=box.current_item.level + 1;
-            inserted = istack.insertKey(pushed);
+            vars->box.current_item.itv[vars->box.split] = halves.second;
+            pushed.itv[0]=vars->box.current_item.itv[0];
+            pushed.itv[1]=vars->box.current_item.itv[1];
+            pushed.itv[2]=vars->box.current_item.itv[2];
+            pushed.level=vars->box.current_item.level + 1;
+            inserted = vars->istack.insertKey(pushed);
             if (inserted == false)
             {
-                out.overflow_flag = HEAP_OVERFLOW;
+                vars->out.overflow_flag = HEAP_OVERFLOW;
             }
         }
 
-        box.current_item.itv[box.split] = halves.first;
-        pushed.itv[0]=box.current_item.itv[0];
-                pushed.itv[1]=box.current_item.itv[1];
-                pushed.itv[2]=box.current_item.itv[2];
-        pushed.level=box.current_item.level + 1;
-        inserted = istack.insertKey(pushed);
+        vars->box.current_item.itv[vars->box.split] = halves.first;
+        pushed.itv[0]=vars->box.current_item.itv[0];
+        pushed.itv[1]=vars->box.current_item.itv[1];
+        pushed.itv[2]=vars->box.current_item.itv[2];
+        pushed.level=vars->box.current_item.level + 1;
+        inserted = vars->istack.insertKey(pushed);
         if (inserted == false)
         {
-            out.overflow_flag = HEAP_OVERFLOW;
+            vars->out.overflow_flag = HEAP_OVERFLOW;
         }
     }
 }
@@ -397,144 +397,130 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDdata& data, MinHeap&
 __device__ bool vertexFaceCCD(const CCDdata &data_in,var_wrapper* vars){
     
     // now when initialized, size is 1 and initialized with [0,1]^3
-    compute_face_vertex_tolerance(data_in, config, out);
+    compute_face_vertex_tolerance(data_in, vars);
 
 #ifdef CALCULATE_ERROR_BOUND
-    get_numerical_error_vf(data_in, box);
+    get_numerical_error_vf(data_in, vars);
 #else
-    box.err[0] = config.err_in[0];
-    box.err[1] = config.err_in[1];
-    box.err[2] = config.err_in[2];
+    vars->box.err[0] = vars->config.err_in[0];
+    vars->box.err[1] = vars->config.err_in[1];
+    vars->box.err[2] = vars->config.err_in[2];
 #endif
-
-    out.output_tolerance = config.co_domain_tolerance;
-
-    // this is used to catch the tolerance for each level
-    Scalar temp_output_tolerance = config.co_domain_tolerance;
-    // LINENBR 2
-    int refine = 0;
-    // temp_toi is to catch the first toi of each level
-    Scalar temp_toi = out.toi;
-    Scalar skip_toi =out.toi;
+//return true;
+    vars->out.output_tolerance = vars->config.co_domain_tolerance;
     
-    bool use_skip = false; // when tolerance is small enough or when box in epsilon, this is activated.
-    int current_level = -2; // in the begining, current_level != level
-    int box_in_level = -2;  // this checks if all the boxes before this
-    // level < tolerance. only true, we can return when we find one overlaps eps box and smaller than tolerance or eps-box
-    bool this_level_less_tol = true;
-    bool find_level_root = false;
-    bool zero_in;
-    bool condition;
-    bool tol_condition;
-    while (!istack.empty())
+    vars->istack.initialize();
+    while (!(vars->istack.empty()))
     {
-        if (out.overflow_flag != NO_OVERFLOW)
+        
+        if (vars->out.overflow_flag != NO_OVERFLOW)
         {
             break;
         }
-
+        
         //LINENBR 6
-        box.current_item = istack.extractMin();// get the level and the intervals
+        vars->box.current_item = vars->istack.extractMin();// get the level and the intervals
         
         // if this box is later than TOI_SKIP in time, we can skip this one.
         // TOI_SKIP is only updated when the box is small enough or totally contained in eps-box
-        if (box.current_item.itv[0].first>=skip_toi)
+        if (vars->box.current_item.itv[0].first>=vars->skip_toi)
         {
             continue;
         }
-        if (box_in_level != box.current_item.level)
+        
+        if (vars->box_in_level != vars->box.current_item.level)
         { // before check a new level, set this_level_less_tol=true
-            box_in_level = box.current_item.level;
-            this_level_less_tol = true;
+            vars->box_in_level = vars->box.current_item.level;
+            vars->this_level_less_tol = true;
         }
         // LINENBR 8
-        refine++;
-        zero_in =
-            Origin_in_vf_inclusion_function(data_in,box, out);
-        //return zero_in;// REGSCOUNT 100
+        vars->refine++;
+        vars->zero_in =
+            Origin_in_vf_inclusion_function(data_in,vars);
+        // return true;// REGSCOUNT 100
         
-        if (!zero_in)
+        if (!vars->zero_in)
             continue;
 
         // get the width of the box
-        box.widths[0] = box.current_item.itv[0].second - box.current_item.itv[0].first;
-        box.widths[1] = box.current_item.itv[1].second - box.current_item.itv[1].first;
-        box.widths[2] = box.current_item.itv[2].second - box.current_item.itv[2].first;
+        vars->box.widths[0] = vars->box.current_item.itv[0].second - vars->box.current_item.itv[0].first;
+        vars->box.widths[1] = vars->box.current_item.itv[1].second - vars->box.current_item.itv[1].first;
+        vars->box.widths[2] = vars->box.current_item.itv[2].second - vars->box.current_item.itv[2].first;
                 
         // LINENBR 15, 16
         // Condition 1, stopping condition on t, u and v is satisfied. this is useless now since we have condition 2
-        condition = box.widths[0] <= out.tol[0] && box.widths[1] <= out.tol[1] && box.widths[2] <= out.tol[2];
-        if(condition){
-            out.toi=box.current_item.itv[0].first;
+        vars->condition = vars->box.widths[0] <= vars->out.tol[0] && vars->box.widths[1] <= vars->out.tol[1] && vars->box.widths[2] <= vars->out.tol[2];
+        if(vars->condition){
+            vars->out.toi=vars->box.current_item.itv[0].first;
             return true;
         }
         // Condition 2, zero_in = true, box inside eps-box and in this level,
         // no box whose zero_in is true but box size larger than tolerance, can return
-        condition = box.box_in && this_level_less_tol;
-        if(condition){
-            out.toi=box.current_item.itv[0].first;
+        vars->condition = vars->box.box_in && vars->this_level_less_tol;
+        if(vars->condition){
+            vars->out.toi=vars->box.current_item.itv[0].first;
             return true;
         }
 
-        tol_condition = box.true_tol <= config.co_domain_tolerance;
-        if (!tol_condition)
+        vars->tol_condition = vars->box.true_tol <= vars->config.co_domain_tolerance;
+        if (!vars->tol_condition)
         {
-            this_level_less_tol = false;
+            vars->this_level_less_tol = false;
             // this level has at least one box whose size > tolerance, thus we
             // cannot directly return if find one box whose size < tolerance or box-in
         }
 
         // Condition 3, in this level, we find a box that zero-in and size < tolerance.
         // and no other boxes whose zero-in is true in this level before this one is larger than tolerance, can return
-        condition = this_level_less_tol;
-        if(condition){
-            out.toi=box.current_item.itv[0].first;
+        vars->condition = vars->this_level_less_tol;
+        if(vars->condition){
+            vars->out.toi=vars->box.current_item.itv[0].first;
             return true;
         }
 
         // This is for early termination, finding the earlist root of this level in case of early termination happens
-        if (current_level != box.current_item.level)
+        if (vars->current_level != vars->box.current_item.level)
         {
             // LINENBR 22
-            current_level = box.current_item.level;
-            find_level_root = false;
+            vars->current_level = vars->box.current_item.level;
+            vars->find_level_root = false;
         }
-        if (!find_level_root)
+        if (!vars->find_level_root)
         {
             // LINENBR 11
             // this is the first toi of this level
-            temp_toi = box.current_item.itv[0].first;
+            vars->temp_toi = vars->box.current_item.itv[0].first;
             // if the real tolerance is larger than input, use the real one;
             // if the real tolerance is smaller than input, use input
-            temp_output_tolerance = max(box.true_tol,config.co_domain_tolerance);
-            find_level_root =true; // this ensures always find the earlist root
+            vars->temp_output_tolerance = max(vars->box.true_tol,vars->config.co_domain_tolerance);
+            vars->find_level_root =true; // this ensures always find the earlist root
         }
 
 
         // if this box is small enough, or inside of eps-box, then just continue,
         // but we need to record the collision time
-        if (tol_condition || box.box_in )
+        if (vars->tol_condition || vars->box.box_in )
         {
-            if(box.current_item.itv[0].first<skip_toi)
+            if(vars->box.current_item.itv[0].first<vars->skip_toi)
             {
-                skip_toi=box.current_item.itv[0].first;
+                vars->skip_toi=vars->box.current_item.itv[0].first;
             }
-            use_skip = true;
+            vars->use_skip = true;
             continue;
         }
-        split_dimension(out,box);
-        bisect_vf_and_push(box,data_in, istack,out);
+        split_dimension(vars);
+        bisect_vf_and_push(vars,data_in);
     }
-    if (out.overflow_flag != NO_OVERFLOW)
+    if (vars->out.overflow_flag != NO_OVERFLOW)
     {
-        out.toi = temp_toi;
-        out.output_tolerance = temp_output_tolerance;
+        vars->out.toi = vars->temp_toi;
+        vars->out.output_tolerance = vars->temp_output_tolerance;
         return true;
     }
 
-    if (use_skip)
+    if (vars->use_skip)
     {
-        out.toi = skip_toi;
+        vars->out.toi = vars->skip_toi;
 
         return true;
     }

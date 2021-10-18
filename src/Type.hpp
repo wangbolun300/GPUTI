@@ -11,7 +11,7 @@
 static const int TESTING_ID = 219064;
 static const int TEST_SIZE=2000;
 static const int TEST_NBR_QUERIES=1e9;// set as large as possible to avoid truncation of reading data
-static const int MAX_COPY_QUERY_NBR = 5000;
+static const int MAX_COPY_QUERY_NBR = 50000;
 // #define CHECK_EE
 #define NO_CHECK_MS
 #define CALCULATE_ERROR_BOUND
@@ -139,7 +139,7 @@ public:
 	int level;
 	Singleinterval itv[3];
 	__device__ item(const Singleinterval si[3], const int &level);
-	__device__ item();
+	__device__ item(){};
 	__device__ item& operator=(const item& x)
     {
         if (this == &x)
@@ -177,7 +177,7 @@ public:
     Scalar output_tolerance=1e-6;
     int overflow_flag=NO_OVERFLOW;
     Scalar tol[3]={0,0,0};// conservative domain tolerance
-    //Scalar dbg[8];
+    Scalar dbg[8];
 };
 
 // this is to record the interval related info
@@ -209,7 +209,9 @@ class MinHeap
 public:
 	// Constructor
 	//MinHeap(int capacity);
-   __device__ MinHeap();
+   __device__ __host__ MinHeap();
+
+   __device__ void initialize();
 	// to heapify a subtree with the root at given index
 	__device__ void MinHeapify();
 	__device__ bool empty();
@@ -243,4 +245,20 @@ CCDConfig config;
 CCDOut out;
 BoxCompute box;
 MinHeap istack;
+BoxPrimatives bp;
+
+int refine = 0;
+    // temp_toi is to catch the first toi of each level
+Scalar temp_toi = SCALAR_LIMIT;
+Scalar skip_toi =SCALAR_LIMIT;
+bool use_skip = false; // when tolerance is small enough or when box in epsilon, this is activated.
+int current_level = -2; // in the begining, current_level != level
+int box_in_level = -2;  // this checks if all the boxes before this
+// level < tolerance. only true, we can return when we find one overlaps eps box and smaller than tolerance or eps-box
+bool this_level_less_tol = true;
+bool find_level_root = false;
+bool zero_in;
+bool condition;
+bool tol_condition;
+Scalar temp_output_tolerance = config.co_domain_tolerance;
 };
