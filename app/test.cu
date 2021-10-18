@@ -78,7 +78,7 @@ void write_csv(const std::string &file, const std::vector<std::string> titles, c
 
 __device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, var_wrapper *vars)
 {
-    
+    vars->config.co_domain_tolerance=1e-6;
     CCDdata data_cp;
     for (int i = 0; i < 3; i++)
     {
@@ -120,9 +120,14 @@ __global__ void run_parallel_ccd_all(CCDdata *data, bool *res, int size, Scalar 
 
 
 int finish_nbr=0;
+double building_time=0;
+double loading_time=0;
+double post_time=0;
 void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, bool is_edge,
                  std::vector<bool> &result_list, double &run_time, std::vector<Scalar> &time_impact, int parallel_nbr)
 {
+    ccd::Timer timer;
+    timer.start();
     int nbr = V.size();
     result_list.resize(nbr);
     // host
@@ -134,7 +139,7 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     }
     bool *res = new bool[nbr];
     Scalar *tois = new Scalar[nbr];
-    var_wrapper *vars= new var_wrapper[nbr];
+    //var_wrapper *vars= new var_wrapper[nbr];
     //////////////////////////////////////////
     // device
     CCDdata *d_data_list;
@@ -147,35 +152,31 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     int result_size = sizeof(bool) * nbr;
     int time_size = sizeof(Scalar) * nbr;
     int var_size= sizeof(var_wrapper)*nbr;
+    building_time+=timer.getElapsedTimeInSec();
     // std::cout<<"size of one var_wrapper "<<sizeof(var_wrapper)<<std::endl; 
     // std::cout<<"size of one CCDquery "<<sizeof(CCDdata)<<std::endl; 
     // exit(0);
    // int dbg_size=sizeof(Scalar)*8;
-
+    timer.start();
     cudaMalloc(&d_data_list, data_size);
     cudaMalloc(&d_res, result_size);
     cudaMalloc(&d_tois, time_size);
     cudaMalloc(&d_vars, var_size);
-    
     cudaMemcpy(d_data_list, data_list, data_size, cudaMemcpyHostToDevice);
-    std::cout<<"copy mem1"<<"\r";
-    cudaMemcpy(d_vars, vars, var_size, cudaMemcpyHostToDevice);
-    std::cout<<"copy mem2"<<"\r";
+    loading_time+=timer.getElapsedTimeInSec();
 
-    ccd::Timer timer;
-    cudaProfilerStart();
+    
     timer.start();
     run_parallel_ccd_all<<<nbr / parallel_nbr + 1, parallel_nbr>>>( d_data_list, d_res, nbr, d_tois,d_vars);
     cudaDeviceSynchronize();
     double tt = timer.getElapsedTimeInMicroSec();
     run_time = tt;
-    cudaProfilerStop();
-
+    timer.start();
     cudaMemcpy(res, d_res, result_size, cudaMemcpyDeviceToHost);
     cudaMemcpy(tois, d_tois, time_size, cudaMemcpyDeviceToHost);
-    cudaMemcpy(vars, d_vars, sizeof(var_wrapper)*nbr, cudaMemcpyDeviceToHost);
+    //cudaMemcpy(vars, d_vars, sizeof(var_wrapper)*nbr, cudaMemcpyDeviceToHost);
 #ifdef GPUTI_GO_DEAP_HEAP
-std::cout<<"dbg info "<<vars[0].out.dbg[0]<<std::endl;
+//std::cout<<"dbg info "<<vars[0].out.dbg[0]<<std::endl;
 #endif
     cudaFree(d_data_list);
     cudaFree(d_res);
@@ -199,13 +200,15 @@ std::cout<<"dbg info "<<vars[0].out.dbg[0]<<std::endl;
     delete[] res;
     delete[] data_list;
     delete[] tois;
-    delete[] vars;
-    //delete[] dbg;
+    //delete[] vars;
+
     cudaError_t ct = cudaGetLastError();
 #ifdef GPUTI_GO_DEAP_HEAP
     printf("******************\n%s\n************\n", cudaGetErrorString(ct));
 #endif
-    std::cout<<"finished "<<finish_nbr+nbr<<"\r";
+    finish_nbr+=nbr;
+    std::cout<<"finished "<<finish_nbr<<"\r";
+    post_time+=timer.getElapsedTimeInSec();
     return;
 }
 
@@ -328,7 +331,8 @@ void run_rational_data_single_method_parallel(
 
     result_list.resize(size);
     tois.resize(size);
-
+    ccd::Timer timer;
+    timer.start();
     while (1)
     {
         std::vector<bool> tmp_results;
@@ -360,8 +364,14 @@ void run_rational_data_single_method_parallel(
 
         start_id += tmp_nbr;
     }
+
+    std::cout<<"building time in s "<<building_time<<std::endl;
+    std::cout<<"loading time in s "<<loading_time<<std::endl;
+    std::cout<<"post time in s "<<post_time<<std::endl;
+    std::cout<<"total call time in s "<<timer.getElapsedTimeInSec()<<std::endl;
+    std::cout<<"total GPU time "<<tavg<<std::endl;
     tavg /= size;
-    std::cout << "avg time " << tavg << std::endl;
+    std::cout << "\navg time " << tavg << std::endl;
 
     if (expect_list.size() != size)
     {

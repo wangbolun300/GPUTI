@@ -143,12 +143,12 @@ __device__ bool MinHeap::insertKey(const item &k)
 // Method to remove minimum element (or root) from min heap
 __device__ item MinHeap::extractMin()
 {
-
-	if (heap_size <= 0)
-		return item_max();
+	// using our algorithm the heap size will be checked by is_empty()
+	// if (heap_size <= 0)
+	// 	return item_max();
 
 	// Store the minimum value, and remove it from heap
-	item root;
+	
 
 	root = harr[0];
 
@@ -162,10 +162,8 @@ __device__ item MinHeap::extractMin()
 
 __device__ void MinHeap::MinHeapify()
 {
-	int tmp = 0;
-	int l;
-	int r;
-	int smallest;
+	tmp = 0;
+
 	for (int itr = 0;; itr++)
 	{
 		l = left(tmp);

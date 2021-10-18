@@ -87,80 +87,86 @@ __device__ Scalar max_linf_4(
 
 
 __device__ void compute_face_vertex_tolerance(const CCDdata &data_in,var_wrapper* vars){
-    VectorMax3d v(data_in.v0s[0], data_in.v0s[1], data_in.v0s[2]);
-    VectorMax3d f0(data_in.v1s[0], data_in.v1s[1], data_in.v1s[2]);
-    VectorMax3d f1(data_in.v2s[0], data_in.v2s[1], data_in.v2s[2]);
-    VectorMax3d f2(data_in.v3s[0], data_in.v3s[1], data_in.v3s[2]);
-    VectorMax3d p000 = v - f0, p001 = v - f2,
-                p011 = v - (f1 + f2 - f0), p010 = v - f1;
-    v.init(data_in.v0e[0], data_in.v0e[1], data_in.v0e[2]);
-    f0.init(data_in.v1e[0], data_in.v1e[1], data_in.v1e[2]);
-    f1.init(data_in.v2e[0], data_in.v2e[1], data_in.v2e[2]);
-    f2.init(data_in.v3e[0], data_in.v3e[1], data_in.v3e[2]);   
-    VectorMax3d p100 = v - f0, p101 = v - f2,
-                p111 = v - (f1 + f2 - f0), p110 = v - f1;
+    vars->tvars.v.init(data_in.v0s[0], data_in.v0s[1], data_in.v0s[2]);
+    vars->tvars.f0.init(data_in.v1s[0], data_in.v1s[1], data_in.v1s[2]);
+    vars->tvars.f1.init(data_in.v2s[0], data_in.v2s[1], data_in.v2s[2]);
+    vars->tvars.f2.init(data_in.v3s[0], data_in.v3s[1], data_in.v3s[2]);
+    vars->tvars.p000 = vars->tvars.v - vars->tvars.f0;
+    vars->tvars.p001 = vars->tvars.v - vars->tvars.f2;
+    vars->tvars.p011 = vars->tvars.v - (vars->tvars.f1 + vars->tvars.f2 - vars->tvars.f0); 
+    vars->tvars.p010 = vars->tvars.v - vars->tvars.f1;
+    vars->tvars.v.init(data_in.v0e[0], data_in.v0e[1], data_in.v0e[2]);
+    vars->tvars.f0.init(data_in.v1e[0], data_in.v1e[1], data_in.v1e[2]);
+    vars->tvars.f1.init(data_in.v2e[0], data_in.v2e[1], data_in.v2e[2]);
+    vars->tvars.f2.init(data_in.v3e[0], data_in.v3e[1], data_in.v3e[2]);   
+    vars->tvars.p100 = vars->tvars.v - vars->tvars.f0; 
+    vars->tvars.p101 = vars->tvars.v - vars->tvars.f2;
+    vars->tvars.p111 = vars->tvars.v - (vars->tvars.f1 + vars->tvars.f2 - vars->tvars.f0); 
+    vars->tvars.p110 = vars->tvars.v - vars->tvars.f1;
     
-    Scalar dl = 3 * max_linf_4(p000, p001, p011, p010, p100, p101, p111, p110);
-    Scalar edge0_length =
-        3 * max_linf_4(p000, p100, p101, p001, p010, p110, p111, p011);
-    Scalar edge1_length =
-        3 * max_linf_4(p000, p100, p110, p010, p001, p101, p111, p011);
+    vars->tvars.dl = 3 * max_linf_4(vars->tvars.p000, vars->tvars.p001, vars->tvars.p011, vars->tvars.p010, 
+    vars->tvars.p100, vars->tvars.p101, vars->tvars.p111, vars->tvars.p110);
+    vars->tvars.edge0_length =
+        3 * max_linf_4(vars->tvars.p000, vars->tvars.p100, vars->tvars.p101, vars->tvars.p001, 
+        vars->tvars.p010, vars->tvars.p110, vars->tvars.p111, vars->tvars.p011);
+    vars->tvars.edge1_length =
+        3 * max_linf_4(vars->tvars.p000, vars->tvars.p100, vars->tvars.p110, vars->tvars.p010, 
+        vars->tvars.p001, vars->tvars.p101, vars->tvars.p111, vars->tvars.p011);
 
-    vars->out.tol[0] = vars->config.co_domain_tolerance / dl;
-    vars->out.tol[1] = vars->config.co_domain_tolerance / edge0_length;
-    vars->out.tol[2] = vars->config.co_domain_tolerance / edge1_length;
+    vars->out.tol[0] = vars->config.co_domain_tolerance / vars->tvars.dl;
+    vars->out.tol[1] = vars->config.co_domain_tolerance / vars->tvars.edge0_length;
+    vars->out.tol[2] = vars->config.co_domain_tolerance / vars->tvars.edge1_length;
 }
 
 __device__ __host__ void get_numerical_error_vf(
     const CCDdata &data_in,
     var_wrapper* vars)
 {
-    Scalar vffilter;
 
 #ifdef GPUTI_USE_DOUBLE_PRECISION
-    vffilter = 6.661338147750939e-15;
+    vars->evars.vffilter = 6.661338147750939e-15;
 #else
-    vffilter = 3.576279e-06;
+    vars->evars.vffilter = 3.576279e-06;
 #endif
-    Scalar xmax = fabs(data_in.v0s[0]);
-    Scalar ymax = fabs(data_in.v0s[1]);
-    Scalar zmax = fabs(data_in.v0s[2]);
+    vars->evars.xmax = fabs(data_in.v0s[0]);
+    vars->evars.ymax = fabs(data_in.v0s[1]);
+    vars->evars.zmax = fabs(data_in.v0s[2]);
 
-    xmax = max(xmax,fabs(data_in.v1s[0]));
-    ymax = max(ymax,fabs(data_in.v1s[1]));
-    zmax = max(zmax,fabs(data_in.v1s[2]));
+    vars->evars.xmax = max(vars->evars.xmax,fabs(data_in.v1s[0]));
+    vars->evars.ymax = max(vars->evars.ymax,fabs(data_in.v1s[1]));
+    vars->evars.zmax = max(vars->evars.zmax,fabs(data_in.v1s[2]));
     
-    xmax = max(xmax,fabs(data_in.v2s[0]));
-    ymax = max(ymax,fabs(data_in.v2s[1]));
-    zmax = max(zmax,fabs(data_in.v2s[2]));
+    vars->evars.xmax = max(vars->evars.xmax,fabs(data_in.v2s[0]));
+    vars->evars.ymax = max(vars->evars.ymax,fabs(data_in.v2s[1]));
+    vars->evars.zmax = max(vars->evars.zmax,fabs(data_in.v2s[2]));
 
-    xmax = max(xmax,fabs(data_in.v3s[0]));
-    ymax = max(ymax,fabs(data_in.v3s[1]));
-    zmax = max(zmax,fabs(data_in.v3s[2]));
+    vars->evars.xmax = max(vars->evars.xmax,fabs(data_in.v3s[0]));
+    vars->evars.ymax = max(vars->evars.ymax,fabs(data_in.v3s[1]));
+    vars->evars.zmax = max(vars->evars.zmax,fabs(data_in.v3s[2]));
 
-    xmax = max(xmax,fabs(data_in.v0e[0]));
-    ymax = max(ymax,fabs(data_in.v0e[1]));
-    zmax = max(zmax,fabs(data_in.v0e[2]));
+    vars->evars.xmax = max(vars->evars.xmax,fabs(data_in.v0e[0]));
+    vars->evars.ymax = max(vars->evars.ymax,fabs(data_in.v0e[1]));
+    vars->evars.zmax = max(vars->evars.zmax,fabs(data_in.v0e[2]));
 
-    xmax = max(xmax,fabs(data_in.v1e[0]));
-    ymax = max(ymax,fabs(data_in.v1e[1]));
-    zmax = max(zmax,fabs(data_in.v1e[2]));
+    vars->evars.xmax = max(vars->evars.xmax,fabs(data_in.v1e[0]));
+    vars->evars.ymax = max(vars->evars.ymax,fabs(data_in.v1e[1]));
+    vars->evars.zmax = max(vars->evars.zmax,fabs(data_in.v1e[2]));
 
-    xmax = max(xmax,fabs(data_in.v2e[0]));
-    ymax = max(ymax,fabs(data_in.v2e[1]));
-    zmax = max(zmax,fabs(data_in.v2e[2]));
+    vars->evars.xmax = max(vars->evars.xmax,fabs(data_in.v2e[0]));
+    vars->evars.ymax = max(vars->evars.ymax,fabs(data_in.v2e[1]));
+    vars->evars.zmax = max(vars->evars.zmax,fabs(data_in.v2e[2]));
 
-    xmax = max(xmax,fabs(data_in.v3e[0]));
-    ymax = max(ymax,fabs(data_in.v3e[1]));
-    zmax = max(zmax,fabs(data_in.v3e[2]));
+    vars->evars.xmax = max(vars->evars.xmax,fabs(data_in.v3e[0]));
+    vars->evars.ymax = max(vars->evars.ymax,fabs(data_in.v3e[1]));
+    vars->evars.zmax = max(vars->evars.zmax,fabs(data_in.v3e[2]));
 
-    xmax = max(xmax, Scalar(1));
-    ymax = max(ymax, Scalar(1));
-    zmax = max(zmax, Scalar(1));
+    vars->evars.xmax = max(vars->evars.xmax, Scalar(1));
+    vars->evars.ymax = max(vars->evars.ymax, Scalar(1));
+    vars->evars.zmax = max(vars->evars.zmax, Scalar(1));
 
-    vars->box.err[0] = xmax * xmax * xmax * vffilter;
-    vars->box.err[1] = ymax * ymax * ymax * vffilter;
-    vars->box.err[2] = zmax * zmax * zmax * vffilter;
+    vars->box.err[0] = vars->evars.xmax * vars->evars.xmax * vars->evars.xmax * vars->evars.vffilter;
+    vars->box.err[1] = vars->evars.ymax * vars->evars.ymax * vars->evars.ymax * vars->evars.vffilter;
+    vars->box.err[2] = vars->evars.zmax * vars->evars.zmax * vars->evars.zmax * vars->evars.vffilter;
     return;
 }
 // Singleinterval *paras,
@@ -408,6 +414,21 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,var_wrapper* vars){
 #endif
 //return true;
     vars->out.output_tolerance = vars->config.co_domain_tolerance;
+    vars->out.toi=SCALAR_LIMIT;
+    vars->out.overflow_flag=NO_OVERFLOW;
+
+vars->refine = 0;
+    // temp_toi is to catch the first toi of each level
+vars->temp_toi = SCALAR_LIMIT;
+vars->skip_toi =SCALAR_LIMIT;
+vars->use_skip = false; // when tolerance is small enough or when box in epsilon, this is activated.
+vars->current_level = -2; // in the begining, current_level != level
+vars->box_in_level = -2;  // this checks if all the boxes before this
+// level < tolerance. only true, we can return when we find one overlaps eps box and smaller than tolerance or eps-box
+vars->this_level_less_tol = true;
+vars->find_level_root = false;
+
+vars->temp_output_tolerance = vars->config.co_domain_tolerance;
     
     vars->istack.initialize();
     while (!(vars->istack.empty()))

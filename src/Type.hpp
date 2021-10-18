@@ -162,9 +162,9 @@ public:
 // the initialized error input, solve tolerance, time interval upper bound, etc.
 class CCDConfig{
 public:
-    Scalar err_in[3]={-1,-1,-1};// the input error bound calculate from the AABB of the whole mesh
-    Scalar ms=0;// the minimum separation
-    Scalar co_domain_tolerance=1e-6; // tolerance of the co-domain
+    Scalar err_in[3];// the input error bound calculate from the AABB of the whole mesh
+    Scalar ms;// the minimum separation
+    Scalar co_domain_tolerance; // tolerance of the co-domain
     
 
 };
@@ -173,10 +173,10 @@ public:
 class CCDOut{
 public:
 
-    Scalar toi=SCALAR_LIMIT;
-    Scalar output_tolerance=1e-6;
-    int overflow_flag=NO_OVERFLOW;
-    Scalar tol[3]={0,0,0};// conservative domain tolerance
+    Scalar toi;
+    Scalar output_tolerance;
+    int overflow_flag;
+    Scalar tol[3];// conservative domain tolerance
     Scalar dbg[8];
 };
 
@@ -184,28 +184,60 @@ public:
 class BoxCompute{
 public:
     item current_item;// containing 3 intervals and the level
-    Scalar err[3]={-1,-1,-1}; // the error bound
-    bool box_in=true; // if the inclusion function is inside the error bound
-    Scalar true_tol=0; // the actual solving tolerance of the co-domain
-    Scalar widths[3]={0,0,0};
-    int split=-1;
+    Scalar err[3]; // the error bound
+    bool box_in; // if the inclusion function is inside the error bound
+    Scalar true_tol; // the actual solving tolerance of the co-domain
+    Scalar widths[3];
+    int split;
 };
 
 // this is to calculate the vertices of the inclusion function
 class BoxPrimatives{
 public:
-    bool b[3]={true,true,true};
-    int dim=-1;
-    Scalar t=0;
-    Scalar u=0;
-    Scalar v=0;
+    bool b[3];
+    int dim;
+    Scalar t;
+    Scalar u;
+    Scalar v;
 //__device__ void calculate_tuv(const BoxCompute& box);
+};
+
+class tol_var{
+public:
+    VectorMax3d v;
+    VectorMax3d f0;
+    VectorMax3d f1;
+    VectorMax3d f2;
+    VectorMax3d p000;
+    VectorMax3d p001;
+    VectorMax3d p011;
+    VectorMax3d p010;   
+    VectorMax3d p100;
+    VectorMax3d p101;
+    VectorMax3d p111;
+    VectorMax3d p110;
+    Scalar dl;
+    Scalar edge0_length;
+    Scalar edge1_length;
+};
+class err_var{
+public:
+Scalar vffilter;
+Scalar xmax;
+Scalar ymax;
+Scalar zmax;
 };
 class MinHeap
 {
 	item harr[HEAP_SIZE]; // pointer to array of elements in heap
 	int capacity; // maximum possible size of min heap
 	int heap_size; // Current number of elements in min heap
+    item root;// temporary variable used for extractMin()
+    // tmp, l, r, smallest are used in MinHeapify()
+    int tmp = 0;
+	int l;
+	int r;
+	int smallest;
 public:
 	// Constructor
 	//MinHeap(int capacity);
@@ -246,19 +278,21 @@ CCDOut out;
 BoxCompute box;
 MinHeap istack;
 BoxPrimatives bp;
+tol_var tvars;
+err_var evars;
 
 int refine = 0;
     // temp_toi is to catch the first toi of each level
-Scalar temp_toi = SCALAR_LIMIT;
-Scalar skip_toi =SCALAR_LIMIT;
-bool use_skip = false; // when tolerance is small enough or when box in epsilon, this is activated.
-int current_level = -2; // in the begining, current_level != level
-int box_in_level = -2;  // this checks if all the boxes before this
+Scalar temp_toi;
+Scalar skip_toi;
+bool use_skip; // when tolerance is small enough or when box in epsilon, this is activated.
+int current_level; // in the begining, current_level != level
+int box_in_level;  // this checks if all the boxes before this
 // level < tolerance. only true, we can return when we find one overlaps eps box and smaller than tolerance or eps-box
-bool this_level_less_tol = true;
-bool find_level_root = false;
+bool this_level_less_tol;
+bool find_level_root;
 bool zero_in;
 bool condition;
 bool tol_condition;
-Scalar temp_output_tolerance = config.co_domain_tolerance;
+Scalar temp_output_tolerance;
 };
