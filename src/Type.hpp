@@ -85,6 +85,7 @@ __device__ __host__  VectorMax3d& operator=(const VectorMax3d& x)
 class interval_pair{
     public:
     __device__ interval_pair(const Singleinterval& itv);
+    __device__ void init(const Singleinterval &itv);
     __device__ interval_pair(){};
     Singleinterval first;
     Singleinterval second;
@@ -227,6 +228,27 @@ Scalar xmax;
 Scalar ymax;
 Scalar zmax;
 };
+class inclusion_var{
+public:
+    Scalar vmin;
+    Scalar vmax;
+    Scalar value;
+    int i;
+    int j;
+    int k;
+    Scalar v;
+    Scalar pt;
+    Scalar t0;
+    Scalar t1;
+    Scalar t2;
+};
+class bisect_vars{
+public:
+    Scalar res[3];
+    interval_pair halves;
+    bool inserted;
+    item pushed;
+};
 class MinHeap
 {
 	item harr[HEAP_SIZE]; // pointer to array of elements in heap
@@ -280,6 +302,8 @@ MinHeap istack;
 BoxPrimatives bp;
 tol_var tvars;
 err_var evars;
+inclusion_var ivars;
+bisect_vars bvars;
 
 int refine = 0;
     // temp_toi is to catch the first toi of each level
