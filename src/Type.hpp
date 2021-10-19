@@ -251,7 +251,7 @@ public:
 };
 class MinHeap
 {
-	item harr[HEAP_SIZE]; // pointer to array of elements in heap
+	
 	int capacity; // maximum possible size of min heap
 	int heap_size; // Current number of elements in min heap
     item root;// temporary variable used for extractMin()
@@ -260,7 +260,11 @@ class MinHeap
 	int l;
 	int r;
 	int smallest;
+    bool status;
+    int itr;
+    item* itm;
 public:
+    item harr[HEAP_SIZE]; // pointer to array of elements in heap
 	// Constructor
 	//MinHeap(int capacity);
    __device__ __host__ MinHeap();
@@ -292,6 +296,7 @@ public:
 
 	// Inserts a new key 'k'
 	__device__ bool insertKey(const item &k);
+    __device__ void swap(item *x, item *y);
 };
 class var_wrapper{
 public:

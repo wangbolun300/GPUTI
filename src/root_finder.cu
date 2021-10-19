@@ -41,18 +41,18 @@ __device__ Singleinterval::Singleinterval(const Scalar &f, const Scalar &s)
 // this function do the bisection
 __device__ interval_pair::interval_pair(const Singleinterval &itv)
 {
-    Scalar c = (itv.first + itv.second) / 2;
+    // Scalar c = (itv.first + itv.second) / 2;
     first.first = itv.first;
-    first.second = c;
-    second.first = c;
+    first.second = (itv.first + itv.second) / 2;
+    second.first = (itv.first + itv.second) / 2;
     second.second = itv.second;
 }
 __device__ void interval_pair::init(const Singleinterval &itv)
 {
-    Scalar c = (itv.first + itv.second) / 2;
+    //Scalar c = (itv.first + itv.second) / 2;
     first.first = itv.first;
-    first.second = c;
-    second.first = c;
+    first.second = (itv.first + itv.second) / 2;;
+    second.first = (itv.first + itv.second) / 2;;
     second.second = itv.second;
 }
 
@@ -92,20 +92,20 @@ __device__ Scalar max_linf_4(
     return max(r, max_linf_dist(p1e, p1));
 }
 
-__device__ void compute_face_vertex_tolerance(const CCDdata &data_in, var_wrapper *vars)
+__device__ void compute_face_vertex_tolerance(CCDdata *data_in, var_wrapper *vars)
 {
-    vars->tvars.v.init(data_in.v0s[0], data_in.v0s[1], data_in.v0s[2]);
-    vars->tvars.f0.init(data_in.v1s[0], data_in.v1s[1], data_in.v1s[2]);
-    vars->tvars.f1.init(data_in.v2s[0], data_in.v2s[1], data_in.v2s[2]);
-    vars->tvars.f2.init(data_in.v3s[0], data_in.v3s[1], data_in.v3s[2]);
+    vars->tvars.v.init(data_in->v0s[0], data_in->v0s[1], data_in->v0s[2]);
+    vars->tvars.f0.init(data_in->v1s[0], data_in->v1s[1], data_in->v1s[2]);
+    vars->tvars.f1.init(data_in->v2s[0], data_in->v2s[1], data_in->v2s[2]);
+    vars->tvars.f2.init(data_in->v3s[0], data_in->v3s[1], data_in->v3s[2]);
     vars->tvars.p000 = vars->tvars.v - vars->tvars.f0;
     vars->tvars.p001 = vars->tvars.v - vars->tvars.f2;
     vars->tvars.p011 = vars->tvars.v - (vars->tvars.f1 + vars->tvars.f2 - vars->tvars.f0);
     vars->tvars.p010 = vars->tvars.v - vars->tvars.f1;
-    vars->tvars.v.init(data_in.v0e[0], data_in.v0e[1], data_in.v0e[2]);
-    vars->tvars.f0.init(data_in.v1e[0], data_in.v1e[1], data_in.v1e[2]);
-    vars->tvars.f1.init(data_in.v2e[0], data_in.v2e[1], data_in.v2e[2]);
-    vars->tvars.f2.init(data_in.v3e[0], data_in.v3e[1], data_in.v3e[2]);
+    vars->tvars.v.init(data_in->v0e[0], data_in->v0e[1], data_in->v0e[2]);
+    vars->tvars.f0.init(data_in->v1e[0], data_in->v1e[1], data_in->v1e[2]);
+    vars->tvars.f1.init(data_in->v2e[0], data_in->v2e[1], data_in->v2e[2]);
+    vars->tvars.f2.init(data_in->v3e[0], data_in->v3e[1], data_in->v3e[2]);
     vars->tvars.p100 = vars->tvars.v - vars->tvars.f0;
     vars->tvars.p101 = vars->tvars.v - vars->tvars.f2;
     vars->tvars.p111 = vars->tvars.v - (vars->tvars.f1 + vars->tvars.f2 - vars->tvars.f0);
@@ -126,7 +126,7 @@ __device__ void compute_face_vertex_tolerance(const CCDdata &data_in, var_wrappe
 }
 
 __device__ __host__ void get_numerical_error_vf(
-    const CCDdata &data_in,
+    CCDdata *data_in,
     var_wrapper *vars)
 {
 
@@ -135,37 +135,37 @@ __device__ __host__ void get_numerical_error_vf(
 #else
     vars->evars.vffilter = 3.576279e-06;
 #endif
-    vars->evars.xmax = fabs(data_in.v0s[0]);
-    vars->evars.ymax = fabs(data_in.v0s[1]);
-    vars->evars.zmax = fabs(data_in.v0s[2]);
+    vars->evars.xmax = fabs(data_in->v0s[0]);
+    vars->evars.ymax = fabs(data_in->v0s[1]);
+    vars->evars.zmax = fabs(data_in->v0s[2]);
 
-    vars->evars.xmax = max(vars->evars.xmax, fabs(data_in.v1s[0]));
-    vars->evars.ymax = max(vars->evars.ymax, fabs(data_in.v1s[1]));
-    vars->evars.zmax = max(vars->evars.zmax, fabs(data_in.v1s[2]));
+    vars->evars.xmax = max(vars->evars.xmax, fabs(data_in->v1s[0]));
+    vars->evars.ymax = max(vars->evars.ymax, fabs(data_in->v1s[1]));
+    vars->evars.zmax = max(vars->evars.zmax, fabs(data_in->v1s[2]));
 
-    vars->evars.xmax = max(vars->evars.xmax, fabs(data_in.v2s[0]));
-    vars->evars.ymax = max(vars->evars.ymax, fabs(data_in.v2s[1]));
-    vars->evars.zmax = max(vars->evars.zmax, fabs(data_in.v2s[2]));
+    vars->evars.xmax = max(vars->evars.xmax, fabs(data_in->v2s[0]));
+    vars->evars.ymax = max(vars->evars.ymax, fabs(data_in->v2s[1]));
+    vars->evars.zmax = max(vars->evars.zmax, fabs(data_in->v2s[2]));
 
-    vars->evars.xmax = max(vars->evars.xmax, fabs(data_in.v3s[0]));
-    vars->evars.ymax = max(vars->evars.ymax, fabs(data_in.v3s[1]));
-    vars->evars.zmax = max(vars->evars.zmax, fabs(data_in.v3s[2]));
+    vars->evars.xmax = max(vars->evars.xmax, fabs(data_in->v3s[0]));
+    vars->evars.ymax = max(vars->evars.ymax, fabs(data_in->v3s[1]));
+    vars->evars.zmax = max(vars->evars.zmax, fabs(data_in->v3s[2]));
 
-    vars->evars.xmax = max(vars->evars.xmax, fabs(data_in.v0e[0]));
-    vars->evars.ymax = max(vars->evars.ymax, fabs(data_in.v0e[1]));
-    vars->evars.zmax = max(vars->evars.zmax, fabs(data_in.v0e[2]));
+    vars->evars.xmax = max(vars->evars.xmax, fabs(data_in->v0e[0]));
+    vars->evars.ymax = max(vars->evars.ymax, fabs(data_in->v0e[1]));
+    vars->evars.zmax = max(vars->evars.zmax, fabs(data_in->v0e[2]));
 
-    vars->evars.xmax = max(vars->evars.xmax, fabs(data_in.v1e[0]));
-    vars->evars.ymax = max(vars->evars.ymax, fabs(data_in.v1e[1]));
-    vars->evars.zmax = max(vars->evars.zmax, fabs(data_in.v1e[2]));
+    vars->evars.xmax = max(vars->evars.xmax, fabs(data_in->v1e[0]));
+    vars->evars.ymax = max(vars->evars.ymax, fabs(data_in->v1e[1]));
+    vars->evars.zmax = max(vars->evars.zmax, fabs(data_in->v1e[2]));
 
-    vars->evars.xmax = max(vars->evars.xmax, fabs(data_in.v2e[0]));
-    vars->evars.ymax = max(vars->evars.ymax, fabs(data_in.v2e[1]));
-    vars->evars.zmax = max(vars->evars.zmax, fabs(data_in.v2e[2]));
+    vars->evars.xmax = max(vars->evars.xmax, fabs(data_in->v2e[0]));
+    vars->evars.ymax = max(vars->evars.ymax, fabs(data_in->v2e[1]));
+    vars->evars.zmax = max(vars->evars.zmax, fabs(data_in->v2e[2]));
 
-    vars->evars.xmax = max(vars->evars.xmax, fabs(data_in.v3e[0]));
-    vars->evars.ymax = max(vars->evars.ymax, fabs(data_in.v3e[1]));
-    vars->evars.zmax = max(vars->evars.zmax, fabs(data_in.v3e[2]));
+    vars->evars.xmax = max(vars->evars.xmax, fabs(data_in->v3e[0]));
+    vars->evars.ymax = max(vars->evars.ymax, fabs(data_in->v3e[1]));
+    vars->evars.zmax = max(vars->evars.zmax, fabs(data_in->v3e[2]));
 
     vars->evars.xmax = max(vars->evars.xmax, Scalar(1));
     vars->evars.ymax = max(vars->evars.ymax, Scalar(1));
@@ -219,18 +219,18 @@ __device__ void calculate_tuv(var_wrapper *vars)
         vars->bp.v = vars->box.current_item.itv[2].second;
     }
 }
-__device__ Scalar calculate_vf(const CCDdata &data_in, var_wrapper *vars)
+__device__ Scalar calculate_vf(CCDdata *data_in, var_wrapper *vars)
 {
     
-    vars->ivars.v = (data_in.v0e[vars->bp.dim] - data_in.v0s[vars->bp.dim]) * vars->bp.t + data_in.v0s[vars->bp.dim];
-    vars->ivars.t0 = (data_in.v1e[vars->bp.dim] - data_in.v1s[vars->bp.dim]) * vars->bp.t + data_in.v1s[vars->bp.dim];
-    vars->ivars.t1 = (data_in.v2e[vars->bp.dim] - data_in.v2s[vars->bp.dim]) * vars->bp.t + data_in.v2s[vars->bp.dim];
-    vars->ivars.t2 = (data_in.v3e[vars->bp.dim] - data_in.v3s[vars->bp.dim]) * vars->bp.t + data_in.v3s[vars->bp.dim];
+    vars->ivars.v = (data_in->v0e[vars->bp.dim] - data_in->v0s[vars->bp.dim]) * vars->bp.t + data_in->v0s[vars->bp.dim];
+    vars->ivars.t0 = (data_in->v1e[vars->bp.dim] - data_in->v1s[vars->bp.dim]) * vars->bp.t + data_in->v1s[vars->bp.dim];
+    vars->ivars.t1 = (data_in->v2e[vars->bp.dim] - data_in->v2s[vars->bp.dim]) * vars->bp.t + data_in->v2s[vars->bp.dim];
+    vars->ivars.t2 = (data_in->v3e[vars->bp.dim] - data_in->v3s[vars->bp.dim]) * vars->bp.t + data_in->v3s[vars->bp.dim];
     vars->ivars.pt = (vars->ivars.t1 - vars->ivars.t0) * vars->bp.u + (vars->ivars.t2 - vars->ivars.t0) * vars->bp.v + vars->ivars.t0;
     return (vars->ivars.v - vars->ivars.pt);
 }
 
-__device__ bool Origin_in_vf_inclusion_function(const CCDdata &data_in, var_wrapper *vars)
+__device__ bool Origin_in_vf_inclusion_function(CCDdata *data_in, var_wrapper *vars)
 {
 
     vars->ivars.vmin = SCALAR_LIMIT;
@@ -292,7 +292,7 @@ __device__ void split_dimension(var_wrapper *vars)
     }
 }
 
-__device__ void bisect_vf_and_push(var_wrapper *vars, const CCDdata &data)
+__device__ void bisect_vf_and_push(var_wrapper *vars, CCDdata *data)
 {
     vars->bvars.halves.init(vars->box.current_item.itv[vars->box.split]); // bisected
     if (vars->bvars.halves.first.first >= vars->bvars.halves.first.second)
@@ -307,9 +307,9 @@ __device__ void bisect_vf_and_push(var_wrapper *vars, const CCDdata &data)
     }
     if (vars->box.split == 0) // split t interval
     {
-        if (data.max_t != 1)
+        if (data->max_t != 1)
         {
-            if (vars->bvars.halves.second.first <= data.max_t)
+            if (vars->bvars.halves.second.first <= data->max_t)
             {
                 vars->box.current_item.itv[vars->box.split] = vars->bvars.halves.second;
                 vars->bvars.pushed.itv[0] = vars->box.current_item.itv[0];
@@ -418,7 +418,7 @@ __device__ void bisect_vf_and_push(var_wrapper *vars, const CCDdata &data)
     }
 }
 
-__device__ bool vertexFaceCCD(const CCDdata &data_in, var_wrapper *vars)
+__device__ bool vertexFaceCCD(CCDdata *data_in, var_wrapper *vars)
 {
 
     // now when initialized, size is 1 and initialized with [0,1]^3

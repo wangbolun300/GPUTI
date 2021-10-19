@@ -79,23 +79,23 @@ void write_csv(const std::string &file, const std::vector<std::string> titles, c
 __device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, var_wrapper *vars)
 {
     vars->config.co_domain_tolerance=1e-6;
-    CCDdata data_cp;
-    for (int i = 0; i < 3; i++)
-    {
-        data_cp.v0s[i] = data->v0s[i];
-        data_cp.v1s[i] = data->v1s[i];
-        data_cp.v2s[i] = data->v2s[i];
-        data_cp.v3s[i] = data->v3s[i];
-        data_cp.v0e[i] = data->v0e[i];
-        data_cp.v1e[i] = data->v1e[i];
-        data_cp.v2e[i] = data->v2e[i];
-        data_cp.v3e[i] = data->v3e[i];
-    }
+    // CCDdata data_cp;
+    // for (int i = 0; i < 3; i++)
+    // {
+    //     data_cp.v0s[i] = data->v0s[i];
+    //     data_cp.v1s[i] = data->v1s[i];
+    //     data_cp.v2s[i] = data->v2s[i];
+    //     data_cp.v3s[i] = data->v3s[i];
+    //     data_cp.v0e[i] = data->v0e[i];
+    //     data_cp.v1e[i] = data->v1e[i];
+    //     data_cp.v2e[i] = data->v2e[i];
+    //     data_cp.v3e[i] = data->v3e[i];
+    // }
     
 #ifdef CHECK_EE
         result = true;
 #else
-        result =vertexFaceCCD(data_cp,vars);
+        result =vertexFaceCCD(data,vars);
 #endif
     // for(int i=0;i<8;i++){
     //     dbg[i]=out.dbg[i];

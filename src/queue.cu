@@ -16,65 +16,21 @@ __device__ item::item(const Singleinterval si[3], const int &lv)
 }
 
 
-__device__ item item_max()
-{
-	item it;
-	it.level = INT_MAX;
-	return it;
-}
-__device__ item item_min()
-{
-	item it;
-	it.level = INT_MIN;
-	return it;
-}
-
-// i1==i2?
-__device__ bool custom_compare_equal(const item &i1, const item &i2)
-{
-
-	bool con1 = i1.level == i2.level;
-	bool con2 = i1.itv[0].first == i2.itv[0].first;
-	return con1 && con2;
-}
-
 // i1<i2?
 __device__ bool custom_compare_less(const item &i1, const item &i2)
 {
-	if (i1.level != i2.level)
-	{
-		if (i1.level < i2.level)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+	if (i1.level < i2.level){
+		return true;
 	}
-	else
-	{
+	if(i1.level == i2.level&&i1.itv[0].first< i2.itv[0].first){
+		return true;
+	}
 
-		if (i1.itv[0].first< i2.itv[0].first)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
-	return true;
+	return false;
 }
 
-// i1<=i2?
-__device__ bool custom_compare_no_larger(const item &i1, const item &i2)
-{
-	return !custom_compare_less(i2, i1);
-}
 
-// Prototype of a utility function to swap two integers
-__device__ void swap(item *x, item *y);
+
 
 __device__ __host__ MinHeap::MinHeap()
 {
@@ -117,25 +73,26 @@ __device__ bool MinHeap::insertKey(const item &k)
 
 	// First insert the new key at the end
 
-	int i = heap_size;
+	itr = heap_size;
 
-	harr[i].itv[0].first = k.itv[0].first;
-	harr[i].itv[0].second = k.itv[0].second;
+	harr[itr].itv[0].first = k.itv[0].first;
+	harr[itr].itv[0].second = k.itv[0].second;
 
-	harr[i].itv[1].first = k.itv[1].first;
-	harr[i].itv[1].second = k.itv[1].second;
+	harr[itr].itv[1].first = k.itv[1].first;
+	harr[itr].itv[1].second = k.itv[1].second;
 
-	harr[i].itv[2].first = k.itv[2].first;
-	harr[i].itv[2].second = k.itv[2].second;
+	harr[itr].itv[2].first = k.itv[2].first;
+	harr[itr].itv[2].second = k.itv[2].second;
 	
-	harr[i].level = k.level;
+	harr[itr].level = k.level;
 	heap_size++;
 
 	// Fix the min heap property if it is violated
-	while (i != 0 && !custom_compare_no_larger(harr[parent(i)], harr[i]))
+	status=custom_compare_less(harr[itr], harr[parent(itr)]);
+	while (itr != 0 && status)
 	{
-		swap(&harr[i], &harr[parent(i)]);
-		i = parent(i);
+		swap(&harr[itr], &harr[parent(itr)]);
+		itr = parent(itr);
 	}
 	return true;
 }
@@ -149,10 +106,25 @@ __device__ item MinHeap::extractMin()
 
 	// Store the minimum value, and remove it from heap
 	
+	// un-nesting the operator "=" seems not work.
+	root.itv[0].first = harr[0].itv[0].first;
+    root.itv[0].second = harr[0].itv[0].second;
+    root.itv[1].first = harr[0].itv[1].first;
+    root.itv[1].second = harr[0].itv[1].second;
+    root.itv[2].first = harr[0].itv[2].first;
+    root.itv[2].second = harr[0].itv[2].second;
+    root.level=harr[0].level;
+	//root = harr[0];
 
-	root = harr[0];
+	harr[0].itv[0].first = harr[heap_size - 1].itv[0].first;
+    harr[0].itv[0].second = harr[heap_size - 1].itv[0].second;
+    harr[0].itv[1].first = harr[heap_size - 1].itv[1].first;
+    harr[0].itv[1].second = harr[heap_size - 1].itv[1].second;
+    harr[0].itv[2].first = harr[heap_size - 1].itv[2].first;
+    harr[0].itv[2].second = harr[heap_size - 1].itv[2].second;
+    harr[0].level=harr[heap_size - 1].level;
 
-	harr[0] = harr[heap_size - 1];
+	//harr[0] = harr[heap_size - 1];
 	heap_size--;
 
 	MinHeapify();
@@ -164,14 +136,16 @@ __device__ void MinHeap::MinHeapify()
 {
 	tmp = 0;
 
-	for (int itr = 0;; itr++)
+	for (itr = 0;; itr++)
 	{
 		l = left(tmp);
 		r = right(tmp);
 		smallest = tmp;
-		if (l < heap_size && custom_compare_less(harr[l], harr[tmp]))
+		status=custom_compare_less(harr[l], harr[tmp]);
+		if (l < heap_size && status)
 			smallest = l;
-		if (r < heap_size && custom_compare_less(harr[r], harr[smallest]))
+		status=custom_compare_less(harr[r], harr[smallest]);
+		if (r < heap_size && status)
 			smallest = r;
 		if (smallest == tmp)
 		{
@@ -190,10 +164,10 @@ __device__ bool MinHeap::empty()
 }
 
 // A utility function to swap two elements
-__device__ void swap(item *x, item *y)
+__device__ void MinHeap::swap(item *x, item *y)
 {
-	item *temp;
-	temp = x;
+	
+	itm = x;
 	x = y;
-	y = temp;
+	y = itm;
 }
