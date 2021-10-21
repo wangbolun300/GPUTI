@@ -76,27 +76,29 @@ void write_csv(const std::string &file, const std::vector<std::string> titles, c
     fout.close();
 }
 
-__device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, var_wrapper *vars)
+__device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scalar &time_impact)
 {
-    vars->config.co_domain_tolerance=1e-6;
-    // CCDdata data_cp;
-    // for (int i = 0; i < 3; i++)
-    // {
-    //     data_cp.v0s[i] = data->v0s[i];
-    //     data_cp.v1s[i] = data->v1s[i];
-    //     data_cp.v2s[i] = data->v2s[i];
-    //     data_cp.v3s[i] = data->v3s[i];
-    //     data_cp.v0e[i] = data->v0e[i];
-    //     data_cp.v1e[i] = data->v1e[i];
-    //     data_cp.v2e[i] = data->v2e[i];
-    //     data_cp.v3e[i] = data->v3e[i];
-    // }
+    CCDConfig config; // using default values, 
+    CCDOut out;
+    CCDdata data_cp;
+    for (int i = 0; i < 3; i++)
+    {
+        data_cp.v0s[i] = data->v0s[i];
+        data_cp.v1s[i] = data->v1s[i];
+        data_cp.v2s[i] = data->v2s[i];
+        data_cp.v3s[i] = data->v3s[i];
+        data_cp.v0e[i] = data->v0e[i];
+        data_cp.v1e[i] = data->v1e[i];
+        data_cp.v2e[i] = data->v2e[i];
+        data_cp.v3e[i] = data->v3e[i];
+    }
     
 #ifdef CHECK_EE
         result = true;
 #else
-        result =vertexFaceCCD(data,vars);
+        result =vertexFaceCCD(data_cp,config,  out);
 #endif
+    time_impact = out.toi;
     // for(int i=0;i<8;i++){
     //     dbg[i]=out.dbg[i];
     // }
@@ -104,34 +106,35 @@ __device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, var_
     return;
 }
 
-
-
-__global__ void run_parallel_ccd_all(CCDdata *data, bool *res, int size, Scalar *tois, var_wrapper *vars)
+__global__ void run_parallel_ccd_all(CCDdata *data, bool *res, int size, Scalar *tois
+//, Scalar *dbg
+)
 {
 
     int tx = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (tx >= size) return;
-
-    single_test_wrapper_return_toi( &data[tx], res[tx], &vars[tx]);
-    tois[tx] = vars[tx].out.toi;
-
+    // {
+    CCDdata *input = &data[tx];
+    bool result;
+    Scalar toi;
+    Scalar ddbg[8];
+    recordLaunch<CCDdata *, bool &, Scalar &>("single_test_wrapper_return_toi", single_test_wrapper_return_toi, input, result, toi);
+    res[tx] = result;
+    tois[tx] = toi;
+    // for(int i=0;i<8;i++){
+    //     dbg[i]=ddbg[i];
+    // }
 }
 
 
-int finish_nbr=0;
-double building_time=0;
-double loading_time=0;
-double post_time=0;
+
 void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, bool is_edge,
                  std::vector<bool> &result_list, double &run_time, std::vector<Scalar> &time_impact, int parallel_nbr)
 {
-    ccd::Timer timer;
-    timer.start();
     int nbr = V.size();
     result_list.resize(nbr);
     // host
-    ////////////////////////////////////////
     CCDdata *data_list = new CCDdata[nbr];
     for (int i = 0; i < nbr; i++)
     {
@@ -139,49 +142,44 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     }
     bool *res = new bool[nbr];
     Scalar *tois = new Scalar[nbr];
-    //var_wrapper *vars= new var_wrapper[nbr];
-    //////////////////////////////////////////
+    //Scalar *dbg=new Scalar[8];
+
     // device
     CCDdata *d_data_list;
     bool *d_res;
     Scalar *d_tois;
-    var_wrapper *d_vars;
-    //////////////////////////////////////////
+    //Scalar *d_dbg;
 
     int data_size = sizeof(CCDdata) * nbr;
     int result_size = sizeof(bool) * nbr;
     int time_size = sizeof(Scalar) * nbr;
-    int var_size= sizeof(var_wrapper)*nbr;
-    building_time+=timer.getElapsedTimeInSec();
-    // std::cout<<"size of one var_wrapper "<<sizeof(var_wrapper)<<std::endl; 
-    // std::cout<<"size of one CCDquery "<<sizeof(CCDdata)<<std::endl; 
-    // exit(0);
    // int dbg_size=sizeof(Scalar)*8;
-    timer.start();
+
     cudaMalloc(&d_data_list, data_size);
     cudaMalloc(&d_res, result_size);
     cudaMalloc(&d_tois, time_size);
-    cudaMalloc(&d_vars, var_size);
-    cudaMemcpy(d_data_list, data_list, data_size, cudaMemcpyHostToDevice);
-    loading_time+=timer.getElapsedTimeInSec();
+    //cudaMalloc(&d_dbg, dbg_size);
 
-    
+    cudaMemcpy(d_data_list, data_list, data_size, cudaMemcpyHostToDevice);
+
+    ccd::Timer timer;
+    cudaProfilerStart();
     timer.start();
-    run_parallel_ccd_all<<<nbr / parallel_nbr + 1, parallel_nbr>>>( d_data_list, d_res, nbr, d_tois,d_vars);
+    recordLaunch("run_parallel_ccd_all", nbr / parallel_nbr + 1, parallel_nbr, run_parallel_ccd_all, d_data_list, d_res, nbr, d_tois
+    //, d_dbg
+    );
     cudaDeviceSynchronize();
     double tt = timer.getElapsedTimeInMicroSec();
     run_time = tt;
-    timer.start();
+    cudaProfilerStop();
+
     cudaMemcpy(res, d_res, result_size, cudaMemcpyDeviceToHost);
     cudaMemcpy(tois, d_tois, time_size, cudaMemcpyDeviceToHost);
-    //cudaMemcpy(vars, d_vars, sizeof(var_wrapper)*nbr, cudaMemcpyDeviceToHost);
-#ifdef GPUTI_GO_DEAP_HEAP
-//std::cout<<"dbg info "<<vars[0].out.dbg[0]<<std::endl;
-#endif
+    //cudaMemcpy(dbg, d_dbg, dbg_size, cudaMemcpyDeviceToHost);
+
     cudaFree(d_data_list);
     cudaFree(d_res);
     cudaFree(d_tois);
-    cudaFree(d_vars);
     //cudaFree(d_dbg);
 
     for (int i = 0; i < nbr; i++)
@@ -200,17 +198,13 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     delete[] res;
     delete[] data_list;
     delete[] tois;
-    //delete[] vars;
-
+    //delete[] dbg;
     cudaError_t ct = cudaGetLastError();
-#ifdef GPUTI_GO_DEAP_HEAP
     printf("******************\n%s\n************\n", cudaGetErrorString(ct));
-#endif
-    finish_nbr+=nbr;
-    std::cout<<"finished "<<finish_nbr<<"\r";
-    post_time+=timer.getElapsedTimeInSec();
+    
     return;
 }
+
 
 bool WRITE_STATISTIC = true;
 
@@ -326,13 +320,12 @@ void run_rational_data_single_method_parallel(
     int size = queries.size();
     std::cout << "data loaded, size " << queries.size() << std::endl;
     double tavg = 0;
-    int max_query_cp_size = MAX_COPY_QUERY_NBR;
+    int max_query_cp_size = 1e7;
     int start_id = 0;
 
     result_list.resize(size);
     tois.resize(size);
-    ccd::Timer timer;
-    timer.start();
+
     while (1)
     {
         std::vector<bool> tmp_results;
@@ -364,14 +357,8 @@ void run_rational_data_single_method_parallel(
 
         start_id += tmp_nbr;
     }
-
-    std::cout<<"building time in s "<<building_time<<std::endl;
-    std::cout<<"loading time in s "<<loading_time<<std::endl;
-    std::cout<<"post time in s "<<post_time<<std::endl;
-    std::cout<<"total call time in s "<<timer.getElapsedTimeInSec()<<std::endl;
-    std::cout<<"total GPU time "<<tavg<<std::endl;
     tavg /= size;
-    std::cout << "\navg time " << tavg << std::endl;
+    std::cout << "avg time " << tavg << std::endl;
 
     if (expect_list.size() != size)
     {
