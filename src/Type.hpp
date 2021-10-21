@@ -47,40 +47,6 @@ __device__ Singleinterval& operator=(const Singleinterval& x)
     }
 };
 
-class VectorMax3d{
-public:
-    __device__ __host__ VectorMax3d(){};
-    __device__ __host__ VectorMax3d(Scalar a, Scalar b, Scalar c);
-    __device__ __host__ void init(Scalar a, Scalar b, Scalar c);
-   
-    Scalar v[3];
-__device__  __host__  friend VectorMax3d operator+(const VectorMax3d &x, const VectorMax3d &y)
-        {
-            VectorMax3d out;
-            out.v[0]=x.v[0]+y.v[0];
-            out.v[1]=x.v[1]+y.v[1];
-            out.v[2]=x.v[2]+y.v[2];
-            return out;
-        }
-__device__  __host__  friend VectorMax3d operator-(const VectorMax3d &x, const VectorMax3d &y)
-        {
-            VectorMax3d out;
-            out.v[0]=x.v[0]-y.v[0];
-            out.v[1]=x.v[1]-y.v[1];
-            out.v[2]=x.v[2]-y.v[2];
-            return out;
-        }
-__device__ __host__  VectorMax3d& operator=(const VectorMax3d& x)
-    {
-        if (this == &x)
-            return *this;
-        v[0]=x.v[0];
-        v[1]=x.v[1];
-        v[2]=x.v[2];
-        return *this;
-    }
-};
-
 class interval_pair{
     public:
     __device__ interval_pair(const Singleinterval& itv);

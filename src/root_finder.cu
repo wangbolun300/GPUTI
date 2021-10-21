@@ -19,17 +19,6 @@ CCDdata array_to_ccd(std::array<std::array<Scalar, 3>, 8> a, bool is_edge)
     }
     return data;
 }
-__device__ __host__ VectorMax3d::VectorMax3d(Scalar a, Scalar b, Scalar c)
-{
-    v[0] = a;
-    v[1] = b;
-    v[2] = c;
-}
-__device__ __host__ void VectorMax3d::init(Scalar a, Scalar b, Scalar c){
-    v[0] = a;
-    v[1] = b;
-    v[2] = c;
-}
 
 
 __device__ Singleinterval::Singleinterval(const Scalar& f, const Scalar& s)
@@ -57,58 +46,47 @@ __device__ bool sum_no_larger_1(const Scalar &num1, const Scalar &num2)
 }
 
 
-__device__ Scalar max_linf_dist(const VectorMax3d &p1, const VectorMax3d &p2)
-{
-    Scalar r = 0;
-    r = max(r, fabs(p1.v[0] - p2.v[0]));
-    r = max(r, fabs(p1.v[1] - p2.v[1]));
-    r = max(r, fabs(p1.v[2] - p2.v[2]));
-    return r;
-}
-
-__device__ Scalar max_linf_4(
-    const VectorMax3d &p1,
-    const VectorMax3d &p2,
-    const VectorMax3d &p3,
-    const VectorMax3d &p4,
-    const VectorMax3d &p1e,
-    const VectorMax3d &p2e,
-    const VectorMax3d &p3e,
-    const VectorMax3d &p4e)
-{
-    Scalar r = 0; //,temp = 0, temp2=0, temp3 = 0, temp4=0;
-    r = max(r, max_linf_dist(p4e, p4));
-    r = max(r, max_linf_dist(p3e, p3));
-    r = max(r, max_linf_dist(p2e, p2));
-    return max(r, max_linf_dist(p1e, p1));
-}
-
-
-
-
 __device__ void compute_face_vertex_tolerance(const CCDdata &data_in,const CCDConfig& config, CCDOut& out){
-    VectorMax3d v(data_in.v0s[0], data_in.v0s[1], data_in.v0s[2]);
-    VectorMax3d f0(data_in.v1s[0], data_in.v1s[1], data_in.v1s[2]);
-    VectorMax3d f1(data_in.v2s[0], data_in.v2s[1], data_in.v2s[2]);
-    VectorMax3d f2(data_in.v3s[0], data_in.v3s[1], data_in.v3s[2]);
-    VectorMax3d p000 = v - f0, p001 = v - f2,
-                p011 = v - (f1 + f2 - f0), p010 = v - f1;
-    v.init(data_in.v0e[0], data_in.v0e[1], data_in.v0e[2]);
-    f0.init(data_in.v1e[0], data_in.v1e[1], data_in.v1e[2]);
-    f1.init(data_in.v2e[0], data_in.v2e[1], data_in.v2e[2]);
-    f2.init(data_in.v3e[0], data_in.v3e[1], data_in.v3e[2]);   
-    VectorMax3d p100 = v - f0, p101 = v - f2,
-                p111 = v - (f1 + f2 - f0), p110 = v - f1;
-    
-    Scalar dl = 3 * max_linf_4(p000, p001, p011, p010, p100, p101, p111, p110);
-    Scalar edge0_length =
-        3 * max_linf_4(p000, p100, p101, p001, p010, p110, p111, p011);
-    Scalar edge1_length =
-        3 * max_linf_4(p000, p100, p110, p010, p001, p101, p111, p011);
-
+    Scalar p000[3], p001[3], p011[3], p010[3], p100[3], p101[3], p111[3], p110[3];
+    for(int i=0;i<3;i++){
+        p000[i] = data_in.v0s[i] - data_in.v1s[i]; 
+        p001[i] = data_in.v0s[i] - data_in.v3s[i];
+        p011[i] = data_in.v0s[i] - (data_in.v2s[i] + data_in.v3s[i] - data_in.v1s[i]); 
+        p010[i] = data_in.v0s[i] - data_in.v2s[i];
+        p100[i] = data_in.v0e[i] - data_in.v1e[i]; 
+        p101[i] = data_in.v0e[i] - data_in.v3e[i];
+        p111[i] = data_in.v0e[i] - (data_in.v2e[i] + data_in.v3e[i] - data_in.v1e[i]); 
+        p110[i] = data_in.v0e[i] - data_in.v2e[i];
+    }
+    Scalar dl=0;
+    for(int i=0;i<3;i++){
+        dl=max(dl,fabs(p100[i]-p000[i]));
+        dl=max(dl,fabs(p101[i]-p001[i])); 
+        dl=max(dl,fabs(p111[i]-p011[i]));
+        dl=max(dl,fabs(p110[i]-p010[i]));
+    }
+    dl*=3;
     out.tol[0] = config.co_domain_tolerance / dl;
-    out.tol[1] = config.co_domain_tolerance / edge0_length;
-    out.tol[2] = config.co_domain_tolerance / edge1_length;
+
+    dl=0;
+    for(int i=0;i<3;i++){
+        dl=max(dl,fabs(p010[i]-p000[i]));
+        dl=max(dl,fabs(p110[i]-p100[i])); 
+        dl=max(dl,fabs(p111[i]-p101[i]));
+        dl=max(dl,fabs(p011[i]-p001[i]));
+    }
+    dl*=3;
+    out.tol[1] = config.co_domain_tolerance / dl;
+    
+    dl=0;
+    for(int i=0;i<3;i++){
+        dl=max(dl,fabs(p001[i]-p000[i]));
+        dl=max(dl,fabs(p101[i]-p100[i])); 
+        dl=max(dl,fabs(p111[i]-p110[i]));
+        dl=max(dl,fabs(p011[i]-p010[i]));
+    }
+    dl*=3;
+    out.tol[2] = config.co_domain_tolerance / dl;
 }
 
 __device__ __host__ void get_numerical_error_vf(
