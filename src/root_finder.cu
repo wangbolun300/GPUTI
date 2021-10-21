@@ -339,8 +339,19 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinH
     }
 }
 
-__device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CCDOut& out){
-    
+__device__ void vertexFaceCCD(CCDdata *data,const CCDConfig& config, CCDOut& out){
+    CCDdata data_in;
+    for (int i = 0; i < 3; i++)
+    {
+        data_in.v0s[i] = data->v0s[i];
+        data_in.v1s[i] = data->v1s[i];
+        data_in.v2s[i] = data->v2s[i];
+        data_in.v3s[i] = data->v3s[i];
+        data_in.v0e[i] = data->v0e[i];
+        data_in.v1e[i] = data->v1e[i];
+        data_in.v2e[i] = data->v2e[i];
+        data_in.v3e[i] = data->v3e[i];
+    }
     MinHeap istack;// now when initialized, size is 1 and initialized with [0,1]^3
     compute_face_vertex_tolerance(data_in, config, out);
     BoxCompute box;
@@ -360,8 +371,8 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
     // LINENBR 2
     int refine = 0;
     // temp_toi is to catch the first toi of each level
-    Scalar temp_toi = out.toi;
-    Scalar skip_toi =out.toi;
+    Scalar temp_toi = SCALAR_LIMIT;
+    Scalar skip_toi =SCALAR_LIMIT;
     
     bool use_skip = false; // when tolerance is small enough or when box in epsilon, this is activated.
     int current_level = -2; // in the begining, current_level != level
@@ -395,7 +406,6 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
         refine++;
         bool zero_in =
             Origin_in_vf_inclusion_function(data_in,box, out);
-        //return zero_in;// REGSCOUNT 100
         
         if (!zero_in)
             continue;
@@ -410,14 +420,16 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
         bool condition = box.widths[0] <= out.tol[0] && box.widths[1] <= out.tol[1] && box.widths[2] <= out.tol[2];
         if(condition){
             out.toi=box.current_item.itv[0].first;
-            return true;
+            out.result=true;
+            return;
         }
         // Condition 2, zero_in = true, box inside eps-box and in this level,
         // no box whose zero_in is true but box size larger than tolerance, can return
         condition = box.box_in && this_level_less_tol;
         if(condition){
             out.toi=box.current_item.itv[0].first;
-            return true;
+            out.result= true;
+            return;
         }
 
         bool tol_condition = box.true_tol <= config.co_domain_tolerance;
@@ -433,7 +445,8 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
         condition = this_level_less_tol;
         if(condition){
             out.toi=box.current_item.itv[0].first;
-            return true;
+            out.result=true;
+            return;
         }
 
         // This is for early termination, finding the earlist root of this level in case of early termination happens
@@ -479,16 +492,18 @@ __device__ bool vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
     {
         out.toi = temp_toi;
         out.output_tolerance = temp_output_tolerance;
-        return true;
+        out.result=true;
+        return;
     }
 
     if (use_skip)
     {
         out.toi = skip_toi;
-
-        return true;
+        out.result=true;
+        return;
     }
-    return false;
+    out.result=false;
+    return;
 }
 
 

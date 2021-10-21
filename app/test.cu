@@ -76,55 +76,25 @@ void write_csv(const std::string &file, const std::vector<std::string> titles, c
     fout.close();
 }
 
-__device__ void single_test_wrapper_return_toi(CCDdata *data, bool &result, Scalar &time_impact)
-{
-    CCDConfig config; // using default values, 
-    CCDOut out;
-    CCDdata data_cp;
-    for (int i = 0; i < 3; i++)
-    {
-        data_cp.v0s[i] = data->v0s[i];
-        data_cp.v1s[i] = data->v1s[i];
-        data_cp.v2s[i] = data->v2s[i];
-        data_cp.v3s[i] = data->v3s[i];
-        data_cp.v0e[i] = data->v0e[i];
-        data_cp.v1e[i] = data->v1e[i];
-        data_cp.v2e[i] = data->v2e[i];
-        data_cp.v3e[i] = data->v3e[i];
-    }
-    
-#ifdef CHECK_EE
-        result = true;
-#else
-        result =vertexFaceCCD(data_cp,config,  out);
-#endif
-    time_impact = out.toi;
-    // for(int i=0;i<8;i++){
-    //     dbg[i]=out.dbg[i];
-    // }
-    
-    return;
-}
 
-__global__ void run_parallel_ccd_all(CCDdata *data, bool *res, int size, Scalar *tois
-//, Scalar *dbg
+__global__ void run_parallel_ccd_all(CCDdata *data,CCDConfig *config_in, bool *res, int size, Scalar *tois
 )
 {
-
     int tx = threadIdx.x + blockIdx.x * blockDim.x;
-
     if (tx >= size) return;
-    // {
-    CCDdata *input = &data[tx];
-    bool result;
-    Scalar toi;
-    Scalar ddbg[8];
-    recordLaunch<CCDdata *, bool &, Scalar &>("single_test_wrapper_return_toi", single_test_wrapper_return_toi, input, result, toi);
-    res[tx] = result;
-    tois[tx] = toi;
-    // for(int i=0;i<8;i++){
-    //     dbg[i]=ddbg[i];
-    // }
+
+    // copy the configurations to the shared memory
+    __shared__ CCDConfig config;
+    config.err_in[0]=config_in->err_in[0];
+    config.err_in[1]=config_in->err_in[1];
+    config.err_in[2]=config_in->err_in[2];
+    config.co_domain_tolerance=config_in->co_domain_tolerance; // tolerance of the co-domain
+    config.max_t=config_in->max_t; // the upper bound of the time interval
+    config.max_itr=config_in->max_itr;// the maximal nbr of iterations
+    CCDOut out;
+    vertexFaceCCD(&data[tx],config, out);
+    res[tx] = out.result;
+    tois[tx] = out.toi;
 }
 
 
@@ -142,13 +112,17 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     }
     bool *res = new bool[nbr];
     Scalar *tois = new Scalar[nbr];
-    //Scalar *dbg=new Scalar[8];
+    CCDConfig *config=new CCDConfig[1];
+    config[0].err_in[0]=-1;// the input error bound calculate from the AABB of the whole mesh
+    config[0].co_domain_tolerance=1e-6; // tolerance of the co-domain
+    config[0].max_t=1; // the upper bound of the time interval
+    config[0].max_itr=1e6;// the maximal nbr of iterations
 
     // device
     CCDdata *d_data_list;
     bool *d_res;
     Scalar *d_tois;
-    //Scalar *d_dbg;
+    CCDConfig *d_config;
 
     int data_size = sizeof(CCDdata) * nbr;
     int result_size = sizeof(bool) * nbr;
@@ -158,16 +132,16 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     cudaMalloc(&d_data_list, data_size);
     cudaMalloc(&d_res, result_size);
     cudaMalloc(&d_tois, time_size);
-    //cudaMalloc(&d_dbg, dbg_size);
+    cudaMalloc(&d_config, sizeof(CCDConfig));
 
     cudaMemcpy(d_data_list, data_list, data_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_config, config, sizeof(CCDConfig), cudaMemcpyHostToDevice);
 
     ccd::Timer timer;
     cudaProfilerStart();
     timer.start();
-    recordLaunch("run_parallel_ccd_all", nbr / parallel_nbr + 1, parallel_nbr, run_parallel_ccd_all, d_data_list, d_res, nbr, d_tois
-    //, d_dbg
-    );
+    run_parallel_ccd_all<<<nbr / parallel_nbr + 1, parallel_nbr>>>( 
+        d_data_list,d_config, d_res, nbr, d_tois);
     cudaDeviceSynchronize();
     double tt = timer.getElapsedTimeInMicroSec();
     run_time = tt;
@@ -180,6 +154,7 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     cudaFree(d_data_list);
     cudaFree(d_res);
     cudaFree(d_tois);
+    cudaFree(d_config);
     //cudaFree(d_dbg);
 
     for (int i = 0; i < nbr; i++)
@@ -198,6 +173,7 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     delete[] res;
     delete[] data_list;
     delete[] tois;
+    delete[] config;
     //delete[] dbg;
     cudaError_t ct = cudaGetLastError();
     printf("******************\n%s\n************\n", cudaGetErrorString(ct));

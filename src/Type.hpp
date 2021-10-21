@@ -125,11 +125,10 @@ public:
 // the initialized error input, solve tolerance, time interval upper bound, etc.
 class CCDConfig{
 public:
-    Scalar err_in[3]={-1,-1,-1};// the input error bound calculate from the AABB of the whole mesh
-    Scalar ms=0;// the minimum separation
-    Scalar co_domain_tolerance=1e-6; // tolerance of the co-domain
-    Scalar max_t=1; // the upper bound of the time interval
-    int max_itr=1e6;// the maximal nbr of iterations
+    Scalar err_in[3];// the input error bound calculate from the AABB of the whole mesh
+    Scalar co_domain_tolerance; // tolerance of the co-domain
+    Scalar max_t; // the upper bound of the time interval
+    int max_itr;// the maximal nbr of iterations
     
 
 };
@@ -137,7 +136,7 @@ public:
 // the output info
 class CCDOut{
 public:
-
+    bool result;
     Scalar toi=SCALAR_LIMIT;
     Scalar output_tolerance;
     int overflow_flag=NO_OVERFLOW;
