@@ -18,18 +18,7 @@ __device__ item::item()
 {
 }
 
-__device__ item item_max()
-{
-	item it;
-	it.level = INT_MAX;
-	return it;
-}
-__device__ item item_min()
-{
-	item it;
-	it.level = INT_MIN;
-	return it;
-}
+
 
 // i1==i2?
 __device__ bool custom_compare_equal(const item &i1, const item &i2)
@@ -130,9 +119,9 @@ __device__ bool MinHeap::insertKey(const item &k)
 // Method to remove minimum element (or root) from min heap
 __device__ item MinHeap::extractMin()
 {
-
-	if (heap_size <= 0)
-		return item_max();
+	// since our algorithm will detect if it is extractable, we will never return item_max()
+	// if (heap_size <= 0)
+	// 	return item_max();
 
 	// Store the minimum value, and remove it from heap
 	item root;

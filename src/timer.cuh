@@ -1,4 +1,5 @@
 #pragma once
+#include<vector>
 
 class CudaTimer {
     cudaEvent_t	_start, _end;

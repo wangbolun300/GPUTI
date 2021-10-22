@@ -4,7 +4,6 @@
 #include <iostream>
 #include <functional>
 #include <fstream>
-#include "read_rational_csv.hpp"
 #include <filesystem>
 #include <cuda/std/functional>
 
@@ -82,7 +81,19 @@ __global__ void run_parallel_ccd_all(CCDdata *data,CCDConfig *config_in, bool *r
 {
     int tx = threadIdx.x + blockIdx.x * blockDim.x;
     if (tx >= size) return;
-
+    // copy the input queries to __device__
+    CCDdata data_in;
+    for (int i = 0; i < 3; i++)
+    {
+        data_in.v0s[i] = data[tx].v0s[i];
+        data_in.v1s[i] = data[tx].v1s[i];
+        data_in.v2s[i] = data[tx].v2s[i];
+        data_in.v3s[i] = data[tx].v3s[i];
+        data_in.v0e[i] = data[tx].v0e[i];
+        data_in.v1e[i] = data[tx].v1e[i];
+        data_in.v2e[i] = data[tx].v2e[i];
+        data_in.v3e[i] = data[tx].v3e[i];
+    }
     // copy the configurations to the shared memory
     __shared__ CCDConfig config;
     config.err_in[0]=config_in->err_in[0];
@@ -92,7 +103,7 @@ __global__ void run_parallel_ccd_all(CCDdata *data,CCDConfig *config_in, bool *r
     config.max_t=config_in->max_t; // the upper bound of the time interval
     config.max_itr=config_in->max_itr;// the maximal nbr of iterations
     CCDOut out;
-    vertexFaceCCD(&data[tx],config, out);
+    vertexFaceCCD(data_in,config, out);
     res[tx] = out.result;
     tois[tx] = out.toi;
 }

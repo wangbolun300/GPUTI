@@ -339,19 +339,8 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinH
     }
 }
 
-__device__ void vertexFaceCCD(CCDdata *data,const CCDConfig& config, CCDOut& out){
-    CCDdata data_in;
-    for (int i = 0; i < 3; i++)
-    {
-        data_in.v0s[i] = data->v0s[i];
-        data_in.v1s[i] = data->v1s[i];
-        data_in.v2s[i] = data->v2s[i];
-        data_in.v3s[i] = data->v3s[i];
-        data_in.v0e[i] = data->v0e[i];
-        data_in.v1e[i] = data->v1e[i];
-        data_in.v2e[i] = data->v2e[i];
-        data_in.v3e[i] = data->v3e[i];
-    }
+__device__ void vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CCDOut& out){
+    
     MinHeap istack;// now when initialized, size is 1 and initialized with [0,1]^3
     compute_face_vertex_tolerance(data_in, config, out);
     BoxCompute box;
