@@ -166,7 +166,7 @@ public:
 __device__ void calculate_tuv(const BoxCompute& box);
 };
 
-struct CCDOutBuffer {
+struct CCDBuffer {
     CCDOut out;
-    int buffer[17];
+    CCDdata data;
 };
