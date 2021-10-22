@@ -83,18 +83,23 @@ __global__ void run_parallel_ccd_all(CCDdata *data,CCDConfig *config_in, bool *r
     int tx = threadIdx.x + blockIdx.x * blockDim.x;
     if (tx >= size) return;
 
-    // copy the configurations to the shared memory
-    __shared__ CCDConfig config;
+    // __shared__ CCDdata s_data[65];
+    // s_data[threadIdx.x] = data[tx];
+    
+    __shared__ CCDOut s_out[33];
+    CCDConfig* configPtr = reinterpret_cast<CCDConfig*>(&s_out[32]);
+
+    CCDConfig config = configPtr[0];
     config.err_in[0]=config_in->err_in[0];
     config.err_in[1]=config_in->err_in[1];
     config.err_in[2]=config_in->err_in[2];
     config.co_domain_tolerance=config_in->co_domain_tolerance; // tolerance of the co-domain
     config.max_t=config_in->max_t; // the upper bound of the time interval
     config.max_itr=config_in->max_itr;// the maximal nbr of iterations
-    CCDOut out;
-    vertexFaceCCD(&data[tx],config, out);
-    res[tx] = out.result;
-    tois[tx] = out.toi;
+
+    vertexFaceCCD(&data[tx],config, &s_out[threadIdx.x]);
+    res[tx] = s_out[threadIdx.x].result;
+    tois[tx] = s_out[threadIdx.x].toi;
 }
 
 
@@ -123,6 +128,11 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     bool *d_res;
     Scalar *d_tois;
     CCDConfig *d_config;
+
+    printf("CCDdata size: %i\n", sizeof(CCDdata));
+    printf("CCDConfig size: %i\n", sizeof(CCDConfig));
+    printf("CCDOut size: %i\n", sizeof(CCDOut));
+    printf("CCDOutBuffer size: %i\n", sizeof(CCDOutBuffer));
 
     int data_size = sizeof(CCDdata) * nbr;
     int result_size = sizeof(bool) * nbr;

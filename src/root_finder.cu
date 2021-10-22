@@ -46,7 +46,7 @@ __device__ bool sum_no_larger_1(const Scalar &num1, const Scalar &num2)
 }
 
 
-__device__ void compute_face_vertex_tolerance(const CCDdata &data_in,const CCDConfig& config, CCDOut& out){
+__device__ void compute_face_vertex_tolerance(const CCDdata &data_in,const CCDConfig& config, CCDOut* out){
     Scalar p000[3], p001[3], p011[3], p010[3], p100[3], p101[3], p111[3], p110[3];
     for(int i=0;i<3;i++){
         p000[i] = data_in.v0s[i] - data_in.v1s[i]; 
@@ -66,7 +66,7 @@ __device__ void compute_face_vertex_tolerance(const CCDdata &data_in,const CCDCo
         dl=max(dl,fabs(p110[i]-p010[i]));
     }
     dl*=3;
-    out.tol[0] = config.co_domain_tolerance / dl;
+    out->tol[0] = config.co_domain_tolerance / dl;
 
     dl=0;
     for(int i=0;i<3;i++){
@@ -76,7 +76,7 @@ __device__ void compute_face_vertex_tolerance(const CCDdata &data_in,const CCDCo
         dl=max(dl,fabs(p011[i]-p001[i]));
     }
     dl*=3;
-    out.tol[1] = config.co_domain_tolerance / dl;
+    out->tol[1] = config.co_domain_tolerance / dl;
     
     dl=0;
     for(int i=0;i<3;i++){
@@ -86,7 +86,7 @@ __device__ void compute_face_vertex_tolerance(const CCDdata &data_in,const CCDCo
         dl=max(dl,fabs(p011[i]-p010[i]));
     }
     dl*=3;
-    out.tol[2] = config.co_domain_tolerance / dl;
+    out->tol[2] = config.co_domain_tolerance / dl;
 }
 
 __device__ __host__ void get_numerical_error_vf(
@@ -187,7 +187,7 @@ __device__ Scalar calculate_vf(const CCDdata &data_in, const BoxPrimatives& bp){
         return (v - pt);
 }
 
-__device__ bool Origin_in_vf_inclusion_function(const CCDdata &data_in, BoxCompute& box, CCDOut& out){
+__device__ bool Origin_in_vf_inclusion_function(const CCDdata &data_in, BoxCompute& box, CCDOut* out){
     BoxPrimatives bp;
     Scalar vmin=SCALAR_LIMIT;
     Scalar vmax=-SCALAR_LIMIT;
@@ -229,11 +229,11 @@ __device__ bool Origin_in_vf_inclusion_function(const CCDdata &data_in, BoxCompu
     }
     return true;
 }
-__device__ void split_dimension(const CCDOut& out,BoxCompute& box){
+__device__ void split_dimension(CCDOut* out,BoxCompute& box){
     Scalar res[3];
-    res[0]=box.widths[0]/out.tol[0];
-    res[1]=box.widths[1]/out.tol[1];
-    res[2]=box.widths[2]/out.tol[2];
+    res[0]=box.widths[0]/out->tol[0];
+    res[1]=box.widths[1]/out->tol[1];
+    res[2]=box.widths[2]/out->tol[2];
     if(res[0]>=res[1]&&res[0]>=res[2]){
         box.split=0;
     }
@@ -245,17 +245,17 @@ __device__ void split_dimension(const CCDOut& out,BoxCompute& box){
     }
 }
 
-__device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinHeap& istack,CCDOut& out){
+__device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinHeap& istack,CCDOut* out){
     interval_pair halves(box.current_item.itv[box.split]);// bisected
     bool inserted;
     if (halves.first.first  >= halves.first.second)
     {
-        out.overflow_flag = BISECTION_OVERFLOW;
+        out->overflow_flag = BISECTION_OVERFLOW;
         return;
     }
     if (halves.second.first>= halves.second.second)
     {
-        out.overflow_flag = BISECTION_OVERFLOW;
+        out->overflow_flag = BISECTION_OVERFLOW;
         return;
     }
     if (box.split == 0)// split t interval
@@ -268,7 +268,7 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinH
                 inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
                 if (inserted == false)
                 {
-                    out.overflow_flag = HEAP_OVERFLOW;
+                    out->overflow_flag = HEAP_OVERFLOW;
                 }
             }
 
@@ -276,7 +276,7 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinH
             inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
             if (inserted == false)
             {
-                out.overflow_flag = HEAP_OVERFLOW;
+                out->overflow_flag = HEAP_OVERFLOW;
             }
         }
         else
@@ -285,13 +285,13 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinH
             inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
             if (inserted == false)
             {
-                out.overflow_flag = HEAP_OVERFLOW;
+                out->overflow_flag = HEAP_OVERFLOW;
             }
             box.current_item.itv[box.split] = halves.first;
             inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
             if (inserted == false)
             {
-                out.overflow_flag = HEAP_OVERFLOW;
+                out->overflow_flag = HEAP_OVERFLOW;
             }
         }
     }
@@ -307,7 +307,7 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinH
             inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
             if (inserted == false)
             {
-                out.overflow_flag = HEAP_OVERFLOW;
+                out->overflow_flag = HEAP_OVERFLOW;
             }
         }
 
@@ -315,7 +315,7 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinH
         inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
         if (inserted == false)
         {
-            out.overflow_flag = HEAP_OVERFLOW;
+            out->overflow_flag = HEAP_OVERFLOW;
         }
     }
     if (box.split == 2) // split v interval
@@ -326,7 +326,7 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinH
             inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
             if (inserted == false)
             {
-                out.overflow_flag = HEAP_OVERFLOW;
+                out->overflow_flag = HEAP_OVERFLOW;
             }
         }
 
@@ -334,12 +334,12 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinH
         inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
         if (inserted == false)
         {
-            out.overflow_flag = HEAP_OVERFLOW;
+            out->overflow_flag = HEAP_OVERFLOW;
         }
     }
 }
 
-__device__ void vertexFaceCCD(CCDdata *data,const CCDConfig& config, CCDOut& out){
+__device__ void vertexFaceCCD(CCDdata *data,const CCDConfig& config, CCDOut* out){
     CCDdata data_in;
     for (int i = 0; i < 3; i++)
     {
@@ -364,7 +364,7 @@ __device__ void vertexFaceCCD(CCDdata *data,const CCDConfig& config, CCDOut& out
     box.err[2] = config.err_in[2];
 #endif
 
-    out.output_tolerance = config.co_domain_tolerance;
+    out->output_tolerance = config.co_domain_tolerance;
 
     // this is used to catch the tolerance for each level
     Scalar temp_output_tolerance = config.co_domain_tolerance;
@@ -383,7 +383,7 @@ __device__ void vertexFaceCCD(CCDdata *data,const CCDConfig& config, CCDOut& out
 
     while (!istack.empty())
     {
-        if (out.overflow_flag != NO_OVERFLOW)
+        if (out->overflow_flag != NO_OVERFLOW)
         {
             break;
         }
@@ -417,18 +417,18 @@ __device__ void vertexFaceCCD(CCDdata *data,const CCDConfig& config, CCDOut& out
                 
         // LINENBR 15, 16
         // Condition 1, stopping condition on t, u and v is satisfied. this is useless now since we have condition 2
-        bool condition = box.widths[0] <= out.tol[0] && box.widths[1] <= out.tol[1] && box.widths[2] <= out.tol[2];
+        bool condition = box.widths[0] <= out->tol[0] && box.widths[1] <= out->tol[1] && box.widths[2] <= out->tol[2];
         if(condition){
-            out.toi=box.current_item.itv[0].first;
-            out.result=true;
+            out->toi=box.current_item.itv[0].first;
+            out->result=true;
             return;
         }
         // Condition 2, zero_in = true, box inside eps-box and in this level,
         // no box whose zero_in is true but box size larger than tolerance, can return
         condition = box.box_in && this_level_less_tol;
         if(condition){
-            out.toi=box.current_item.itv[0].first;
-            out.result= true;
+            out->toi=box.current_item.itv[0].first;
+            out->result= true;
             return;
         }
 
@@ -444,8 +444,8 @@ __device__ void vertexFaceCCD(CCDdata *data,const CCDConfig& config, CCDOut& out
         // and no other boxes whose zero-in is true in this level before this one is larger than tolerance, can return
         condition = this_level_less_tol;
         if(condition){
-            out.toi=box.current_item.itv[0].first;
-            out.result=true;
+            out->toi=box.current_item.itv[0].first;
+            out->result=true;
             return;
         }
 
@@ -470,7 +470,7 @@ __device__ void vertexFaceCCD(CCDdata *data,const CCDConfig& config, CCDOut& out
         // LINENBR 12
         if (refine > config.max_itr)
         {
-            out.overflow_flag = ITERATION_OVERFLOW;
+            out->overflow_flag = ITERATION_OVERFLOW;
             break;
         }
 
@@ -488,21 +488,21 @@ __device__ void vertexFaceCCD(CCDdata *data,const CCDConfig& config, CCDOut& out
         split_dimension(out,box);
         bisect_vf_and_push(box,config, istack,out);
     }
-    if (out.overflow_flag != NO_OVERFLOW)
+    if (out->overflow_flag != NO_OVERFLOW)
     {
-        out.toi = temp_toi;
-        out.output_tolerance = temp_output_tolerance;
-        out.result=true;
+        out->toi = temp_toi;
+        out->output_tolerance = temp_output_tolerance;
+        out->result=true;
         return;
     }
 
     if (use_skip)
     {
-        out.toi = skip_toi;
-        out.result=true;
+        out->toi = skip_toi;
+        out->result=true;
         return;
     }
-    out.result=false;
+    out->result=false;
     return;
 }
 
