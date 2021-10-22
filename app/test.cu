@@ -80,16 +80,15 @@ void write_csv(const std::string &file, const std::vector<std::string> titles, c
 __global__ void run_parallel_ccd_all(CCDdata *data,CCDConfig *config_in, bool *res, int size, Scalar *tois
 )
 {
+    extern __shared__ CCDOut s_out[];
+
     int tx = threadIdx.x + blockIdx.x * blockDim.x;
     if (tx >= size) return;
 
-    // __shared__ CCDdata s_data[65];
-    // s_data[threadIdx.x] = data[tx];
     
-    __shared__ CCDOut s_out[33];
-    CCDConfig* configPtr = reinterpret_cast<CCDConfig*>(&s_out[32]);
+    // CCDConfig* configPtr = reinterpret_cast<CCDConfig*>(&s_out[blockDim.x]);
 
-    CCDConfig config = configPtr[0];
+    CCDConfig config = config_in[0];
     config.err_in[0]=config_in->err_in[0];
     config.err_in[1]=config_in->err_in[1];
     config.err_in[2]=config_in->err_in[2];
@@ -132,7 +131,6 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     printf("CCDdata size: %i\n", sizeof(CCDdata));
     printf("CCDConfig size: %i\n", sizeof(CCDConfig));
     printf("CCDOut size: %i\n", sizeof(CCDOut));
-    printf("CCDOutBuffer size: %i\n", sizeof(CCDOutBuffer));
 
     int data_size = sizeof(CCDdata) * nbr;
     int result_size = sizeof(bool) * nbr;
@@ -150,7 +148,7 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     ccd::Timer timer;
     cudaProfilerStart();
     timer.start();
-    run_parallel_ccd_all<<<nbr / parallel_nbr + 1, parallel_nbr>>>( 
+    run_parallel_ccd_all<<<nbr / parallel_nbr + 1, parallel_nbr, parallel_nbr*sizeof(CCDOut)>>>( 
         d_data_list,d_config, d_res, nbr, d_tois);
     cudaDeviceSynchronize();
     double tt = timer.getElapsedTimeInMicroSec();
