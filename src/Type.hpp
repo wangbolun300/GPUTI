@@ -165,3 +165,8 @@ public:
     Scalar v;
 __device__ void calculate_tuv(const BoxCompute& box);
 };
+
+struct CCDOutBuffer {
+    CCDOut out;
+    int buffer[17];
+};
