@@ -9,6 +9,9 @@ src/book.h
 src/timer.cuh
 src/io.cpp
 src/io.h
+src/read_rational_csv.cpp
+src/read_rational_csv.hpp
+src/rational.hpp
 PARENT_SCOPE
 )
 ################################################################################

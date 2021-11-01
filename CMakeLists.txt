@@ -55,7 +55,7 @@ if (GPUTI_WITH_BENCHMARK)
 # find_package(Boost COMPONENTS filesystem REQUIRED)
 
 
-add_executable(test_bin app/test.cu app/read_rational_csv.cpp)
+add_executable(test_bin app/test.cu)
 set_target_properties(test_bin PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 target_link_libraries(test_bin PRIVATE gputi)
 # target_link_libraries(test_bin PUBLIC Boost::filesystem)
