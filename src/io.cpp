@@ -57,8 +57,8 @@ void read_rational_binary(
     
 
     // read the data:
-    std::vector<Scalar> vs;
-    vs.resize(fileSize/sizeof(Scalar));
+    std::vector<double> vs;
+    vs.resize(fileSize/sizeof(double));
     infile.read(reinterpret_cast<char*>(vs.data()), fileSize);
     // vs.insert(vs.begin(),
     //            std::istream_iterator<Scalar>(infile),
@@ -69,7 +69,7 @@ void read_rational_binary(
     for (size_t i=0; i < vs.size(); i+=3)
     {
         // std::cout << "vs[i]: " << vs[i] << std::endl;
-        std::array<Scalar,3> a = {vs[i],vs[i+1], vs[i+2]};
+        std::array<Scalar,3> a = {{vs[i],vs[i+1], vs[i+2]}};
         vf.push_back(a);
     }
     // infile.close();
@@ -129,14 +129,14 @@ void toBinary(
 {
     std::ofstream myFile (filename, std::ios::out | std::ios::binary);
     // Prefer container.data() over &container[0]
-    std::vector<Scalar> vs;
+    std::vector<double> vs;
     for (auto v : all_V)
         {
             vs.push_back(v[0]);
             vs.push_back(v[1]);
             vs.push_back(v[2]);
         }
-    myFile.write (reinterpret_cast<char*>(vs.data()), vs.size()*sizeof(Scalar));
+    myFile.write (reinterpret_cast<char*>(vs.data()), vs.size()*sizeof(double));
     myFile.close();
 }
 
@@ -171,5 +171,4 @@ read_rational_csv_bin(const std::string& filename, std::vector<bool>& results)
 
     return all_V;
 }
-
 
