@@ -17,7 +17,7 @@
 #ifndef __BOOK_H__
 #define __BOOK_H__
 #include <stdio.h>
- 
+ namespace ccd{
 static void HandleError( cudaError_t err,
                          const char *file,
                          int line ) {
@@ -210,7 +210,7 @@ void wait_for_threads( const CUTThread *threads, int num );
     }
  
 #endif
- 
+ }
  
  
  

@@ -1,7 +1,7 @@
 #pragma once
 #include <gputi/Type.hpp>
 
-
+namespace ccd{
 // A class for Min Heap
 class MinHeap
 {
@@ -39,3 +39,4 @@ public:
 	// Inserts a new key 'k'
 	__device__ bool insertKey(const item &k);
 };
+}

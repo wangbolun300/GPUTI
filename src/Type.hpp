@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <cuda_profiler_api.h>
 #include <cudaProfiler.h>
+namespace ccd{
 //#define GPUTI_USE_DOUBLE_PRECISION
 // #define GPUTI_GO_DEAP_HEAP
 static const int TESTING_ID = 219064;
@@ -165,3 +166,4 @@ public:
     Scalar v;
 __device__ void calculate_tuv(const BoxCompute& box);
 };
+}

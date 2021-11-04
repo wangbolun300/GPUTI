@@ -1,6 +1,6 @@
 #pragma once
 #include<vector>
-
+namespace ccd{
 class CudaTimer {
     cudaEvent_t	_start, _end;
     std::vector<std::pair<std::string, float>>	_records;
@@ -123,5 +123,5 @@ __device__ Fun recordLaunch(char* tag, Fun (*f)(Arguments...), Arguments... args
     return res;
 };
 
-
+}
 

@@ -1,7 +1,7 @@
 #include <gputi/queue.h>
 #include <iostream>
 #include <limits>
-
+namespace ccd{
 using namespace std;
 
 __device__ item::item(const Singleinterval si[3], const int &lv)
@@ -172,4 +172,5 @@ __device__ void swap(item *x, item *y)
 	temp = x;
 	x = y;
 	y = temp;
+}
 }

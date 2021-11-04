@@ -7,7 +7,7 @@
 #include <iterator>
 #include "gputi/read_rational_csv.hpp"
 
-using namespace ccd;
+namespace ccd{
 
 extern std::vector<std::string> simulation_folders, handcrafted_folders;
 
@@ -33,3 +33,4 @@ void read_rational_binary(
 
 void read_rational_binary(
    const std::string& inputFileName, std::vector<std::array<Scalar, 3>>& vs);
+}

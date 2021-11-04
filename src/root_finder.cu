@@ -1,7 +1,7 @@
 #include <gputi/root_finder.h>
 #include <gputi/queue.h>
 #include <iostream>
-
+namespace ccd{
 CCDdata array_to_ccd(std::array<std::array<Scalar, 3>, 8> a, bool is_edge)
 {
     CCDdata data;
@@ -494,5 +494,5 @@ __device__ void vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
     out.result=false;
     return;
 }
-
+}
 

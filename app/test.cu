@@ -10,7 +10,9 @@
 #include <gputi/timer.cuh>
 #include <gputi/io.h>
 
-extern std::vector<std::string> simulation_folders, handcrafted_folders;
+using namespace ccd;
+extern std::vector<std::string> simulation_folders;
+extern std::vector<std::string> handcrafted_folders;
 
 std::array<std::array<Scalar, 3>, 8> substract_ccd(const std::vector<std::array<Scalar, 3>> &data, int nbr)
 {
@@ -218,7 +220,7 @@ void run_rational_data_single_method_parallel(
     std::vector<bool> result_list;
     std::vector<bool> expect_list;
     std::vector<std::array<std::array<Scalar, 3>, 8>> queries;
-    const std::vector<std::string> &scene_names = is_simulation_data ? simulation_folders : handcrafted_folders;
+    const std::vector<std::string> &scene_names = is_simulation_data ? ccd::simulation_folders : ccd::handcrafted_folders;
     std::cout << "loading data" << std::endl;
     std::vector<std::string> bases = file_path_base();
     for (const auto &scene_name : scene_names)
