@@ -20,6 +20,7 @@ include(GPUTI_Utils)
 
 include(${PROJECT_NAME}_Dependencies)
 
+###################################################################################
 ### the library
 add_subdirectory(src)
 prepend_current_path(GPUTI_SOURCES)
@@ -48,7 +49,9 @@ set_target_properties( gputi
  --relocatable-device-code=true
  # --ptxas-options=-v
  #--maxrregcount=40
- >)  
+ >)
+ 
+ #####################################################################################
 # executable 2
 if (GPUTI_WITH_BENCHMARK)
 # set(Boost_USE_MULTITHREADED TRUE)

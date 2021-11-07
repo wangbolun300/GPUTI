@@ -12,7 +12,7 @@ namespace ccd{
 static const int TESTING_ID = 219064;
 static const int TEST_SIZE=1e6;
 static const int TEST_NBR_QUERIES=1e9;// set as large as possible to avoid truncation of reading data
-// #define CHECK_EE
+
 #define NO_CHECK_MS
 #define CALCULATE_ERROR_BOUND
 #define TIME_UPPER_IS_ONE
@@ -91,7 +91,7 @@ public:
     }
 };
 
-CCDdata array_to_ccd(std::array<std::array<Scalar,3>,8> a, bool is_edge);
+CCDdata array_to_ccd(std::array<std::array<Scalar,3>,8> a);
 __device__ void single_test_wrapper(CCDdata* vfdata, bool &result);
 void print_vector(Scalar* v, int size);
 void print_vector(int* v, int size);
