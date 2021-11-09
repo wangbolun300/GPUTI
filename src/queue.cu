@@ -168,9 +168,8 @@ __device__ bool MinHeap::empty()
 // A utility function to swap two elements
 __device__ void swap(item *x, item *y)
 {
-	item *temp;
-	temp = x;
-	x = y;
-	y = temp;
+	item temp = *x;
+    *x = *y;
+    *y = temp;
 }
 }
