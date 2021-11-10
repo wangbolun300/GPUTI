@@ -1,6 +1,7 @@
 #include <gputi/root_finder.h>
 #include <gputi/queue.h>
 #include <iostream>
+#include <float.h>
 namespace ccd{
 CCDdata array_to_ccd(std::array<std::array<Scalar, 3>, 8> a )
 {
@@ -36,13 +37,22 @@ __device__ interval_pair::interval_pair(const Singleinterval& itv){
     second.second=itv.second;
 }
 
-// TODO need to calculate error bound
+// t1+t2<=1? 
+// true, when t1 + t2 < 1 / (1 + DBL_EPSILON);
+// false, when  t1 + t2 > 1 / (1 - DBL_EPSILON);
+// unknow, otherwise. 
 __device__ bool sum_no_larger_1(const Scalar &num1, const Scalar &num2)
 {
-    if(num1+num2<=1){
-        return true;
+#ifdef GPUTI_USE_DOUBLE_PRECISION
+    if(num1+num2>1 / (1 - DBL_EPSILON)){
+        return false;
     }
-    return false;
+#else
+    if(num1+num2>1 / (1 - FLT_EPSILON)){
+        return false;
+    }
+#endif
+    return true;
 }
 
 
