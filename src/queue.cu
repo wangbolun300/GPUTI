@@ -65,7 +65,7 @@ __device__ bool custom_compare_no_larger(const item &i1, const item &i2)
 }
 
 // Prototype of a utility function to swap two integers
-__device__ void swap(item *x, item *y);
+__device__ void swap(item &x, item &y);
 
 __device__ MinHeap::MinHeap()
 {
@@ -110,7 +110,7 @@ __device__ bool MinHeap::insertKey(const item &k)
 	// Fix the min heap property if it is violated
 	while (i != 0 && !custom_compare_no_larger(harr[parent(i)], harr[i]))
 	{
-		swap(&harr[i], &harr[parent(i)]);
+		swap(harr[i], harr[parent(i)]);
 		i = parent(i);
 	}
 	return true;
@@ -155,7 +155,7 @@ __device__ void MinHeap::MinHeapify()
 		}
 		else
 		{
-			swap(&harr[tmp], &harr[smallest]);
+			swap(harr[tmp], harr[smallest]);
 			tmp = smallest;
 		}
 	}
@@ -166,10 +166,10 @@ __device__ bool MinHeap::empty()
 }
 
 // A utility function to swap two elements
-__device__ void swap(item *x, item *y)
+__device__ void swap(item &x, item &y)
 {
-	item temp = *x;
-    *x = *y;
-    *y = temp;
+	item temp = x;
+    x = y;
+    y = temp;
 }
 }

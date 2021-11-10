@@ -486,8 +486,8 @@ void run_ours_float_for_all_data(int parallel)
     arg.run_ee_dataset = true;
     arg.run_vf_dataset = false;
     
-    arg.run_simulation_dataset = false;
-    arg.run_handcrafted_dataset = true;
+    arg.run_simulation_dataset = true;
+    arg.run_handcrafted_dataset = false;
 
     run_one_method_over_all_data(arg, parallel, folder, tail);
 
