@@ -5,12 +5,11 @@ namespace ccd{
 // A class for Min Heap
 class MinHeap
 {
-	item harr[HEAP_SIZE]; // pointer to array of elements in heap
+	int harr[HEAP_SIZE]; // pointer to array of elements in heap
 	int capacity; // maximum possible size of min heap
 	int heap_size; // Current number of elements in min heap
 public:
-	// Constructor
-	//MinHeap(int capacity);
+	item Ilist[HEAP_SIZE]; // this list contains the interval3d
    __device__ MinHeap();
 	// to heapify a subtree with the root at given index
 	__device__ void MinHeapify();
@@ -25,19 +24,18 @@ public:
 	__device__ int right(int i) { return (2 * i + 2); }
 
 	// to extract the root which is the minimum element
-	__device__ item extractMin();
-
+	__device__ void extractMin(item &k);
+	__device__ bool custom_compare_no_larger(const int &i1, const int &i2);
+	__device__ bool custom_compare_less(const int &i1, const int &i2);
 	// Decreases key value of key at index i to new_val
 	// __device__ void decreaseKey(int i, item new_val);
-
-	// Returns the minimum key (key at root) from min heap
-	__device__ item getMin() { return harr[0]; }
 
 	// Deletes a key stored at index i
 	// __device__ void deleteKey(int i);
 
 	// Inserts a new key 'k'
 	__device__ bool insertKey(const item &k);
+	__device__ bool insertKey(const Singleinterval si[3], const int &lv);
 };
 
 __device__ void split_dimension(const CCDOut& out,BoxCompute& box);

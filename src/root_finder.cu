@@ -388,8 +388,8 @@ __device__ void vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
         }
 
         //LINENBR 6
-        box.current_item = istack.extractMin();// get the level and the intervals
-        
+        istack.extractMin(box.current_item); // get the level and the intervals
+
         // if this box is later than TOI_SKIP in time, we can skip this one.
         // TOI_SKIP is only updated when the box is small enough or totally contained in eps-box
         if (box.current_item.itv[0].first>=skip_toi)
