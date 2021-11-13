@@ -275,7 +275,7 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinH
             if (halves.second.first <= config.max_t)
             {
                 box.current_item.itv[box.split] = halves.second;
-                inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+                inserted = istack.insertKey(box.current_item.itv, box.current_item.level + 1);
                 if (inserted == false)
                 {
                     out.overflow_flag = HEAP_OVERFLOW;
@@ -283,7 +283,7 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinH
             }
 
             box.current_item.itv[box.split] = halves.first;
-            inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+            inserted = istack.insertKey(box.current_item.itv, box.current_item.level + 1);
             if (inserted == false)
             {
                 out.overflow_flag = HEAP_OVERFLOW;
@@ -292,13 +292,13 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinH
         else
         {
             box.current_item.itv[box.split] = halves.second;
-            inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+            inserted = istack.insertKey(box.current_item.itv, box.current_item.level + 1);
             if (inserted == false)
             {
                 out.overflow_flag = HEAP_OVERFLOW;
             }
             box.current_item.itv[box.split] = halves.first;
-            inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+            inserted = istack.insertKey(box.current_item.itv, box.current_item.level + 1);
             if (inserted == false)
             {
                 out.overflow_flag = HEAP_OVERFLOW;
@@ -314,7 +314,7 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinH
 
             box.current_item.itv[box.split] = halves.second;
             // LINENBR 20
-            inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+            inserted = istack.insertKey(box.current_item.itv, box.current_item.level + 1);
             if (inserted == false)
             {
                 out.overflow_flag = HEAP_OVERFLOW;
@@ -322,7 +322,7 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinH
         }
 
         box.current_item.itv[box.split] = halves.first;
-        inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+        inserted = istack.insertKey(box.current_item.itv, box.current_item.level + 1);
         if (inserted == false)
         {
             out.overflow_flag = HEAP_OVERFLOW;
@@ -333,7 +333,7 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinH
         if (sum_no_larger_1(halves.second.first, box.current_item.itv[1].first))
         {
             box.current_item.itv[box.split] = halves.second;
-            inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+            inserted = istack.insertKey(box.current_item.itv, box.current_item.level + 1);
             if (inserted == false)
             {
                 out.overflow_flag = HEAP_OVERFLOW;
@@ -341,7 +341,7 @@ __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinH
         }
 
         box.current_item.itv[box.split] = halves.first;
-        inserted = istack.insertKey(item(box.current_item.itv, box.current_item.level + 1));
+        inserted = istack.insertKey(box.current_item.itv, box.current_item.level + 1);
         if (inserted == false)
         {
             out.overflow_flag = HEAP_OVERFLOW;

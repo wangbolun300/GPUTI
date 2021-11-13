@@ -483,8 +483,8 @@ void run_ours_float_for_all_data(int parallel)
     arg.tight_inclusion_tolerance = 1e-6;
     arg.tight_inclusion_max_iter = 1e6;
 
-    arg.run_ee_dataset = true;
-    arg.run_vf_dataset = false;
+    arg.run_ee_dataset = false;
+    arg.run_vf_dataset = true;
     
     arg.run_simulation_dataset = true;
     arg.run_handcrafted_dataset = false;
