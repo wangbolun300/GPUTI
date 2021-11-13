@@ -82,7 +82,9 @@ __device__ MinHeap::MinHeap()
 	Ilist[0].itv[2].second = 1;
 
 	Ilist[0].level = -1;
-	harr[0]=0;
+	for(int i=0;i<HEAP_SIZE;i++){
+		harr[i]=i;
+	}
 }
 
 // Inserts a new key 'k'
@@ -162,7 +164,7 @@ __device__ void MinHeap::extractMin(item &k)
 
 	root = harr[0];
 
-	harr[0] = harr[heap_size - 1];
+	swap(harr[0], harr[heap_size - 1]);
 	heap_size--;
 
 	MinHeapify();
