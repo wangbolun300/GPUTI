@@ -11,6 +11,8 @@ src/Type.hpp
 src/root_finder.h
 src/root_finder_vf.cu
 src/root_finder_ee.cu
+src/root_finder_vf_ms.cu
+src/root_finder_ee_ms.cu
 src/read_rational_csv.cpp
 src/read_rational_csv.hpp
 src/rational.hpp

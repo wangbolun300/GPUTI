@@ -13,10 +13,13 @@ static const int TESTING_ID = 219064;
 static const int TEST_SIZE=1e6;
 static const int TEST_NBR_QUERIES=1e9;// set as large as possible to avoid truncation of reading data
 
-#define NO_CHECK_MS
+// #define NO_CHECK_MS
 #define CALCULATE_ERROR_BOUND
 #define TIME_UPPER_IS_ONE
 
+#ifndef NO_CHECK_MS
+static const Scalar MINIMUM_SEPARATION_BENCHMARK=1e-8;
+#endif
 
 // TODO next when spliting time intervals, check if overlaps the current toi, then decide if we push it into the heap
 // the reason of considerting it is that the limited heap size.

@@ -141,6 +141,79 @@ __global__ void run_parallel_ee_ccd_all(CCDdata *data,CCDConfig *config_in, bool
     tois[tx] = out.toi;
 }
 
+__global__ void run_parallel_ms_vf_ccd_all(CCDdata *data,CCDConfig *config_in, bool *res, int size, Scalar *tois
+)
+{
+    int tx = threadIdx.x + blockIdx.x * blockDim.x;
+    if (tx >= size) return;
+    // copy the input queries to __device__
+    CCDdata data_in;
+    for (int i = 0; i < 3; i++)
+    {
+        data_in.v0s[i] = data[tx].v0s[i];
+        data_in.v1s[i] = data[tx].v1s[i];
+        data_in.v2s[i] = data[tx].v2s[i];
+        data_in.v3s[i] = data[tx].v3s[i];
+        data_in.v0e[i] = data[tx].v0e[i];
+        data_in.v1e[i] = data[tx].v1e[i];
+        data_in.v2e[i] = data[tx].v2e[i];
+        data_in.v3e[i] = data[tx].v3e[i];
+    }
+    data_in.ms=data[tx].ms;
+    // copy the configurations to the shared memory
+    __shared__ CCDConfig config;
+    config.err_in[0]=config_in->err_in[0];
+    config.err_in[1]=config_in->err_in[1];
+    config.err_in[2]=config_in->err_in[2];
+    config.co_domain_tolerance=config_in->co_domain_tolerance; // tolerance of the co-domain
+    config.max_t=config_in->max_t; // the upper bound of the time interval
+    config.max_itr=config_in->max_itr;// the maximal nbr of iterations
+    CCDOut out;
+# ifdef NO_CHECK_MS
+    vertexFaceCCD(data_in,config, out);
+# else
+    vertexFaceMinimumSeparationCCD(data_in,config, out);
+#endif
+    res[tx] = out.result;
+    tois[tx] = out.toi;
+}
+__global__ void run_parallel_ms_ee_ccd_all(CCDdata *data,CCDConfig *config_in, bool *res, int size, Scalar *tois
+)
+{
+    int tx = threadIdx.x + blockIdx.x * blockDim.x;
+    if (tx >= size) return;
+    // copy the input queries to __device__
+    CCDdata data_in;
+    for (int i = 0; i < 3; i++)
+    {
+        data_in.v0s[i] = data[tx].v0s[i];
+        data_in.v1s[i] = data[tx].v1s[i];
+        data_in.v2s[i] = data[tx].v2s[i];
+        data_in.v3s[i] = data[tx].v3s[i];
+        data_in.v0e[i] = data[tx].v0e[i];
+        data_in.v1e[i] = data[tx].v1e[i];
+        data_in.v2e[i] = data[tx].v2e[i];
+        data_in.v3e[i] = data[tx].v3e[i];
+    }
+    data_in.ms=data[tx].ms;
+    // copy the configurations to the shared memory
+    __shared__ CCDConfig config;
+    config.err_in[0]=config_in->err_in[0];
+    config.err_in[1]=config_in->err_in[1];
+    config.err_in[2]=config_in->err_in[2];
+    config.co_domain_tolerance=config_in->co_domain_tolerance; // tolerance of the co-domain
+    config.max_t=config_in->max_t; // the upper bound of the time interval
+    config.max_itr=config_in->max_itr;// the maximal nbr of iterations
+    CCDOut out;
+# ifdef NO_CHECK_MS
+    edgeEdgeCCD(data_in,config, out);
+# else
+    edgeEdgeMinimumSeparationCCD(data_in,config, out);
+#endif
+    res[tx] = out.result;
+    tois[tx] = out.toi;
+}
+
 
 void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, bool is_edge,
                  std::vector<bool> &result_list, double &run_time, std::vector<Scalar> &time_impact, int parallel_nbr)
@@ -152,7 +225,11 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     for (int i = 0; i < nbr; i++)
     {
         data_list[i] = array_to_ccd( V[i]);
+#ifndef NO_CHECK_MS
+        data_list[i].ms=MINIMUM_SEPARATION_BENCHMARK;
+#endif
     }
+
     bool *res = new bool[nbr];
     Scalar *tois = new Scalar[nbr];
     CCDConfig *config=new CCDConfig[1];
@@ -183,6 +260,7 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
     ccd::Timer timer;
     cudaProfilerStart();
      timer.start();
+#ifdef NO_CHECK_MS
     if(is_edge){
         run_parallel_ee_ccd_all<<<nbr / parallel_nbr + 1, parallel_nbr>>>( 
         d_data_list,d_config, d_res, nbr, d_tois);
@@ -191,7 +269,16 @@ void all_ccd_run(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, boo
         run_parallel_vf_ccd_all<<<nbr / parallel_nbr + 1, parallel_nbr>>>( 
         d_data_list,d_config, d_res, nbr, d_tois);
     }
-   
+#else
+    if(is_edge){
+        run_parallel_ms_ee_ccd_all<<<nbr / parallel_nbr + 1, parallel_nbr>>>( 
+        d_data_list,d_config, d_res, nbr, d_tois);
+    }
+    else{
+        run_parallel_ms_vf_ccd_all<<<nbr / parallel_nbr + 1, parallel_nbr>>>( 
+        d_data_list,d_config, d_res, nbr, d_tois);
+    }
+#endif
     
     cudaDeviceSynchronize();
     double tt = timer.getElapsedTimeInMicroSec();
@@ -483,8 +570,8 @@ void run_ours_float_for_all_data(int parallel)
     arg.tight_inclusion_tolerance = 1e-6;
     arg.tight_inclusion_max_iter = 1e6;
 
-    arg.run_ee_dataset = false;
-    arg.run_vf_dataset = true;
+    arg.run_ee_dataset = true;
+    arg.run_vf_dataset = false;
     
     arg.run_simulation_dataset = true;
     arg.run_handcrafted_dataset = false;
