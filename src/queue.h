@@ -39,4 +39,25 @@ public:
 };
 
 __device__ void split_dimension(const CCDOut& out,BoxCompute& box);
+
+// t1+t2<=1? 
+// true, when t1 + t2 < 1 / (1 + DBL_EPSILON);
+// false, when  t1 + t2 > 1 / (1 - DBL_EPSILON);
+// unknow, otherwise. 
+__device__ bool sum_no_larger_1(const Scalar &num1, const Scalar &num2);
+
+__device__ void compute_face_vertex_tolerance(const CCDdata &data_in,const CCDConfig& config, CCDOut& out);
+__device__ void compute_edge_edge_tolerance(const CCDdata &data_in,const CCDConfig& config, CCDOut& out);
+__device__ __host__ void get_numerical_error_vf(
+    const CCDdata &data_in,
+    BoxCompute &box);
+__device__ __host__ void get_numerical_error_ee(
+    const CCDdata &data_in,
+    BoxCompute &box);
+
+	__device__ Scalar calculate_vf(const CCDdata &data_in, const BoxPrimatives& bp);
+	__device__ Scalar calculate_ee(const CCDdata &data_in, const BoxPrimatives& bp);
+	__device__ void split_dimension(const CCDOut& out,BoxCompute& box);
+__device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinHeap& istack,CCDOut& out);
+__device__ void bisect_ee_and_push(BoxCompute& box,const CCDConfig& config, MinHeap& istack,CCDOut& out);
 }

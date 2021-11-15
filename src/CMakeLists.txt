@@ -9,7 +9,7 @@ src/queue.cu
 src/queue.h
 src/Type.hpp
 src/root_finder.h
-src/root_finder.cu
+src/root_finder_vf.cu
 src/root_finder_ee.cu
 src/read_rational_csv.cpp
 src/read_rational_csv.hpp

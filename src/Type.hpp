@@ -73,6 +73,7 @@ public:
     Scalar v1e[3];
     Scalar v2e[3];
     Scalar v3e[3];
+    Scalar ms;// minimum separation
     __device__ __host__  CCDdata& operator=(const CCDdata& x)
     {
         if (this == &x)
@@ -87,6 +88,7 @@ public:
             v2e[i]=x.v2e[i];
             v3e[i]=x.v3e[i];
         }
+        ms=x.ms;
         return *this;
     }
 };

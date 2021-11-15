@@ -82,6 +82,7 @@ __host__ __device__ MinHeap::MinHeap()
 	Ilist[0].itv[2].second = 1;
 
 	Ilist[0].level = -1;
+	#pragma unroll
 	for(int i=0;i<HEAP_SIZE;i++){
 		harr[i]=i;
 	}
