@@ -25,7 +25,7 @@ public:
 	__host__ __device__ int right(int i) { return (2 * i + 2); }
 
 	// to extract the root which is the minimum element
-	__host__ __device__ void extractMin(item &k);
+	__device__ void extractMin(item &k);
 	__host__ __device__ bool custom_compare_no_larger(const int &i1, const int &i2);
 	__host__ __device__ bool custom_compare_less(const int &i1, const int &i2);
 	// Decreases key value of key at index i to new_val

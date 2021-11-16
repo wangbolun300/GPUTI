@@ -35,26 +35,11 @@ __host__ __device__ bool MinHeap::custom_compare_less(const int &i1, const int &
 {
 	if (Ilist[i1].level != Ilist[i2].level)
 	{
-		if (Ilist[i1].level < Ilist[i2].level)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+		return Ilist[i1].level < Ilist[i2].level;
 	}
 	else
 	{
-
-		if (Ilist[i1].itv[0].first< Ilist[i2].itv[0].first)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+		return Ilist[i1].itv[0].first< Ilist[i2].itv[0].first;
 	}
 	return true;
 }
@@ -163,7 +148,7 @@ __host__ __device__ bool MinHeap::insertKey(const Singleinterval si[3], const in
 	return true;
 }
 // Method to remove minimum element (or root) from min heap
-__host__ __device__ void MinHeap::extractMin(item &k)
+ __device__ void MinHeap::extractMin(item &k)
 {
 	// since our algorithm will detect if it is extractable, we will never return item_max()
 	// if (heap_size <= 0)
@@ -179,7 +164,8 @@ __host__ __device__ void MinHeap::extractMin(item &k)
 
 	MinHeapify();
 
-	item_equal(k,Ilist[root]);
+	k= Ilist[root];
+	//item_equal(k,Ilist[root]);
 }
 
 __device__ void MinHeap::extractMinID(int&id){
