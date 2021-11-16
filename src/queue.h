@@ -8,6 +8,7 @@ class MinHeap
 	int harr[HEAP_SIZE]; // pointer to array of elements in heap
 	int capacity; // maximum possible size of min heap
 	int heap_size; // Current number of elements in min heap
+	int size_ever;
 public:
 	item Ilist[HEAP_SIZE]; // this list contains the interval3d
    __host__ __device__ MinHeap();
@@ -36,6 +37,8 @@ public:
 	// Inserts a new key 'k'
 	__host__ __device__ bool insertKey(const item &k);
 	__host__ __device__ bool insertKey(const Singleinterval si[3], const int &lv);
+	__device__ void extractMinID(int&id);
+	__device__ void SortAfterExtractMinID();
 };
 
 __device__ void split_dimension(const CCDOut& out,BoxCompute& box);
@@ -60,4 +63,5 @@ __device__ __host__ void get_numerical_error_ee(
 	__device__ void split_dimension(const CCDOut& out,BoxCompute& box);
 __device__ void bisect_vf_and_push(BoxCompute& box,const CCDConfig& config, MinHeap& istack,CCDOut& out);
 __device__ void bisect_ee_and_push(BoxCompute& box,const CCDConfig& config, MinHeap& istack,CCDOut& out);
+__host__ __device__ void item_equal(item& a, const item&b);
 }

@@ -82,10 +82,12 @@ __host__ __device__ MinHeap::MinHeap()
 	Ilist[0].itv[2].second = 1;
 
 	Ilist[0].level = -1;
-	#pragma unroll
-	for(int i=0;i<HEAP_SIZE;i++){
-		harr[i]=i;
-	}
+	// #pragma unroll
+	// for(int i=0;i<HEAP_SIZE;i++){
+	// 	harr[i]=i;
+	// }
+	harr[0]=0;
+	size_ever=1;
 }
 
 // Inserts a new key 'k'
@@ -100,7 +102,10 @@ __host__ __device__ bool MinHeap::insertKey(const item &k)
 
 
 	int i = heap_size;
-
+	if(i+1>size_ever){
+		size_ever=i+1;
+		harr[i]=i;
+	}
 	Ilist[harr[i]].itv[0].first = k.itv[0].first;
 	Ilist[harr[i]].itv[0].second = k.itv[0].second;
 
@@ -132,6 +137,10 @@ __host__ __device__ bool MinHeap::insertKey(const Singleinterval si[3], const in
 
 
 	int i = heap_size;
+	if(i+1>size_ever){
+		size_ever=i+1;
+		harr[i]=i;
+	}
 
 	Ilist[harr[i]].itv[0].first = si[0].first;
 	Ilist[harr[i]].itv[0].second = si[0].second;
@@ -171,6 +180,19 @@ __host__ __device__ void MinHeap::extractMin(item &k)
 	MinHeapify();
 
 	item_equal(k,Ilist[root]);
+}
+
+__device__ void MinHeap::extractMinID(int&id){
+	id=harr[0];
+}
+
+__device__ void MinHeap::SortAfterExtractMinID(){
+	heap_size--;
+	
+	swap(harr[0], harr[heap_size]);
+	
+
+	MinHeapify();
 }
 
 __host__ __device__ void MinHeap::MinHeapify()
