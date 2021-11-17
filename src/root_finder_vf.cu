@@ -371,12 +371,6 @@ __device__ void vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
 
     while (!istack.empty())
     {
-        if (out.overflow_flag != NO_OVERFLOW)
-        {
-            out.result=true;
-            return;
-        }
-
         //LINENBR 6
         istack.extractMin(box.current_item); // get the level and the intervals
         // LINENBR 8
@@ -423,6 +417,11 @@ __device__ void vertexFaceCCD(const CCDdata &data_in,const CCDConfig& config, CC
         }
         split_dimension(out,box);
         bisect_vf_and_push(box,config, istack,out);
+        if (out.overflow_flag != NO_OVERFLOW)
+        {
+            out.result=true;
+            return;
+        }
     }
     out.result=false;
     return;
