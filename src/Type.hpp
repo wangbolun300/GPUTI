@@ -26,7 +26,7 @@ static const Scalar MINIMUM_SEPARATION_BENCHMARK=1e-8;
 // token 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
 
 
-static const int HEAP_SIZE=100;
+static const int HEAP_SIZE=1000;
 
 // overflow instructions
 static const int NO_OVERFLOW = 0;
@@ -143,8 +143,8 @@ public:
 class CCDOut{
 public:
     bool result;
-    Scalar toi=SCALAR_LIMIT;
-    Scalar output_tolerance;
+    //Scalar toi=SCALAR_LIMIT;
+    //Scalar output_tolerance;
     int overflow_flag=NO_OVERFLOW;
     Scalar tol[3];// conservative domain tolerance
     //Scalar dbg[8];

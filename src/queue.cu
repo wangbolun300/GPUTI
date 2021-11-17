@@ -33,15 +33,7 @@ __host__ __device__ item::item()
 // Ilist[i1] < Ilist[i2] ?
 __host__ __device__ bool MinHeap::custom_compare_less(const int &i1, const int &i2)
 {
-	if (Ilist[i1].level != Ilist[i2].level)
-	{
-		return Ilist[i1].level < Ilist[i2].level;
-	}
-	else
-	{
-		return Ilist[i1].itv[0].first< Ilist[i2].itv[0].first;
-	}
-	return true;
+	return Ilist[i1].level < Ilist[i2].level;
 }
 
 // Ilist[i1] <= Ilist[i2] ?

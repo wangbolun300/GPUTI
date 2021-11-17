@@ -107,7 +107,7 @@ __global__ void run_parallel_vf_ccd_all(CCDdata *data,CCDConfig *config_in, bool
     CCDOut out;
     vertexFaceCCD(data_in,config, out);
     res[tx] = out.result;
-    tois[tx] = out.toi;
+    tois[tx] = 0;
 }
 __global__ void run_parallel_ee_ccd_all(CCDdata *data,CCDConfig *config_in, bool *res, int size, Scalar *tois
 )
@@ -136,9 +136,9 @@ __global__ void run_parallel_ee_ccd_all(CCDdata *data,CCDConfig *config_in, bool
     config.max_t=config_in->max_t; // the upper bound of the time interval
     config.max_itr=config_in->max_itr;// the maximal nbr of iterations
     CCDOut out;
-    edgeEdgeCCD(data_in,config, out);
+    //edgeEdgeCCD(data_in,config, out);
     res[tx] = out.result;
-    tois[tx] = out.toi;
+    tois[tx] = 0;
 }
 
 __global__ void run_parallel_ms_vf_ccd_all(CCDdata *data,CCDConfig *config_in, bool *res, int size, Scalar *tois
@@ -172,10 +172,10 @@ __global__ void run_parallel_ms_vf_ccd_all(CCDdata *data,CCDConfig *config_in, b
 # ifdef NO_CHECK_MS
     vertexFaceCCD(data_in,config, out);
 # else
-    vertexFaceMinimumSeparationCCD(data_in,config, out);
+    //vertexFaceMinimumSeparationCCD(data_in,config, out);
 #endif
     res[tx] = out.result;
-    tois[tx] = out.toi;
+    tois[tx] = 0;
 }
 __global__ void run_parallel_ms_ee_ccd_all(CCDdata *data,CCDConfig *config_in, bool *res, int size, Scalar *tois
 )
@@ -206,12 +206,12 @@ __global__ void run_parallel_ms_ee_ccd_all(CCDdata *data,CCDConfig *config_in, b
     config.max_itr=config_in->max_itr;// the maximal nbr of iterations
     CCDOut out;
 # ifdef NO_CHECK_MS
-    edgeEdgeCCD(data_in,config, out);
+    //edgeEdgeCCD(data_in,config, out);
 # else
-    edgeEdgeMinimumSeparationCCD(data_in,config, out);
+   // edgeEdgeMinimumSeparationCCD(data_in,config, out);
 #endif
     res[tx] = out.result;
-    tois[tx] = out.toi;
+    tois[tx] = 0;
 }
 
 
