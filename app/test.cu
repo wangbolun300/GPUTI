@@ -136,7 +136,7 @@ __global__ void run_parallel_ee_ccd_all(CCDdata *data,CCDConfig *config_in, bool
     config.max_t=config_in->max_t; // the upper bound of the time interval
     config.max_itr=config_in->max_itr;// the maximal nbr of iterations
     CCDOut out;
-    //edgeEdgeCCD(data_in,config, out);
+    edgeEdgeCCD(data_in,config, out);
     res[tx] = out.result;
     tois[tx] = 0;
 }
@@ -172,7 +172,7 @@ __global__ void run_parallel_ms_vf_ccd_all(CCDdata *data,CCDConfig *config_in, b
 # ifdef NO_CHECK_MS
     vertexFaceCCD(data_in,config, out);
 # else
-    //vertexFaceMinimumSeparationCCD(data_in,config, out);
+    vertexFaceMinimumSeparationCCD(data_in,config, out);
 #endif
     res[tx] = out.result;
     tois[tx] = 0;
@@ -206,9 +206,9 @@ __global__ void run_parallel_ms_ee_ccd_all(CCDdata *data,CCDConfig *config_in, b
     config.max_itr=config_in->max_itr;// the maximal nbr of iterations
     CCDOut out;
 # ifdef NO_CHECK_MS
-    //edgeEdgeCCD(data_in,config, out);
+    edgeEdgeCCD(data_in,config, out);
 # else
-   // edgeEdgeMinimumSeparationCCD(data_in,config, out);
+   edgeEdgeMinimumSeparationCCD(data_in,config, out);
 #endif
     res[tx] = out.result;
     tois[tx] = 0;
@@ -570,8 +570,8 @@ void run_ours_float_for_all_data(int parallel)
     arg.tight_inclusion_tolerance = 1e-6;
     arg.tight_inclusion_max_iter = 1e6;
 
-    arg.run_ee_dataset = false;
-    arg.run_vf_dataset = true;
+    arg.run_ee_dataset = true;
+    arg.run_vf_dataset = false;
     
     arg.run_simulation_dataset = true;
     arg.run_handcrafted_dataset = false;
