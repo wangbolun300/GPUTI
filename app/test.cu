@@ -1,6 +1,6 @@
 #include <gputi/root_finder.h>
 #include <gputi/book.h>
-#include "timer.hpp"
+// #include "timer.hpp"
 #include <iostream>
 #include <functional>
 #include <fstream>
@@ -9,6 +9,7 @@
 
 #include <gputi/timer.cuh>
 #include <gputi/io.h>
+#include <gputi/timer.hpp>
 
 using namespace ccd;
 extern std::vector<std::string> simulation_folders;
