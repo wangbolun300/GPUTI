@@ -8,7 +8,7 @@
 #include <cudaProfiler.h>
 namespace ccd{
 //#define GPUTI_USE_DOUBLE_PRECISION
-// #define GPUTI_GO_DEAP_HEAP
+#define GPUTI_GO_DEAP_HEAP
 static const int TESTING_ID = 219064;
 static const int TEST_SIZE=1e6;
 static const int TEST_NBR_QUERIES=1e9;// set as large as possible to avoid truncation of reading data
@@ -23,7 +23,7 @@ static const Scalar MINIMUM_SEPARATION_BENCHMARK=1e-8;
 
 // TODO next when spliting time intervals, check if overlaps the current toi, then decide if we push it into the heap
 // the reason of considerting it is that the limited heap size.
-// token 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  
+// token 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
 
 
 static const int HEAP_SIZE=100;
