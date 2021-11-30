@@ -1,4 +1,4 @@
-set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc")
+# set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc")
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 
 project(GPUTI LANGUAGES CXX CUDA)
@@ -42,7 +42,7 @@ target_compile_features(gputi PUBLIC cxx_std_11)
 set_target_properties( gputi
                        PROPERTIES CUDA_SEPARABLE_COMPILATION ON
                       )
-
+set_property(TARGET gputi PROPERTY CUDA_ARCHITECTURES 70 75 86)
  target_compile_options(gputi PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
  --generate-line-info
  --use_fast_math
@@ -60,6 +60,7 @@ if (GPUTI_WITH_BENCHMARK)
 
 add_executable(test_bin app/test.cu)
 set_target_properties(test_bin PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+set_property(TARGET test_bin PROPERTY CUDA_ARCHITECTURES 70 75 86)
 target_link_libraries(test_bin PRIVATE gputi)
 # target_link_libraries(test_bin PUBLIC Boost::filesystem)
 # target_compile_features(test_bin PUBLIC cxx_std_14)

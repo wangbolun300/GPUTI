@@ -4,6 +4,7 @@ tools/book.h
 tools/timer.cuh
 tools/io.cpp
 tools/io.h
+tools/timer.hpp
 
 src/queue.cu
 src/queue.h
