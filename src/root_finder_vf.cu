@@ -663,112 +663,69 @@ __device__ void split_dimension_memory_pool(const CCDdata& data, Scalar width[3]
     }
 }
 
-_device__ void bisect_vf_and_push(MP_unit& unit, int split, const CCDConfig& config, Singleinterval bisected[2], int& valid_nbr){
+_device__ void bisect_vf_memory_pool(MP_unit& unit, int split, const CCDConfig& config, MP_unit bisected[2], int& valid_nbr){
     interval_pair halves(unit.itv[split]);// bisected
-    bool inserted;
+    
     if (halves.first.first  >= halves.first.second)
     {
-        out.overflow_flag = BISECTION_OVERFLOW;
+        valid_nbr=0;
         return;
     }
     if (halves.second.first>= halves.second.second)
     {
-        out.overflow_flag = BISECTION_OVERFLOW;
+        valid_nbr=0;
         return;
     }
-    if (split == 0)// split t interval
-    {
-        if (config.max_t!=1)
-        {
+    bisected[0]=unit;
+    bisected[1]=unit;
+    valid_nbr=1;
+    bisected[0].itv[split] = halves.first;
+
+    if(split==0){
+        if (config.max_t!=1){
             if (halves.second.first <= config.max_t)
             {
-                box.current_item.itv[box.split] = halves.second;
-                inserted = istack.insertKey(box.current_item.itv, box.current_item.level + 1);
-                if (inserted == false)
-                {
-                    out.overflow_flag = HEAP_OVERFLOW;
-                }
-            }
-
-            box.current_item.itv[box.split] = halves.first;
-            inserted = istack.insertKey(box.current_item.itv, box.current_item.level + 1);
-            if (inserted == false)
-            {
-                out.overflow_flag = HEAP_OVERFLOW;
+                bisected[1].itv[split] = halves.second;
+                valid_nbr=2;
             }
         }
-        else
-        {
-            box.current_item.itv[box.split] = halves.second;
-            inserted = istack.insertKey(box.current_item.itv, box.current_item.level + 1);
-            if (inserted == false)
-            {
-                out.overflow_flag = HEAP_OVERFLOW;
-            }
-            box.current_item.itv[box.split] = halves.first;
-            inserted = istack.insertKey(box.current_item.itv, box.current_item.level + 1);
-            if (inserted == false)
-            {
-                out.overflow_flag = HEAP_OVERFLOW;
-            }
+        else{
+            bisected[1].itv[split] = halves.second;
+            valid_nbr=2;
         }
     }
-
-    if (box.split == 1) // split u interval
-    {
-
+    if(split == 1){
         if (sum_no_larger_1(halves.second.first, box.current_item.itv[2].first)) // check if u+v<=1
         {
 
-            box.current_item.itv[box.split] = halves.second;
-            // LINENBR 20
-            inserted = istack.insertKey(box.current_item.itv, box.current_item.level + 1);
-            if (inserted == false)
-            {
-                out.overflow_flag = HEAP_OVERFLOW;
-            }
-        }
-
-        box.current_item.itv[box.split] = halves.first;
-        inserted = istack.insertKey(box.current_item.itv, box.current_item.level + 1);
-        if (inserted == false)
-        {
-            out.overflow_flag = HEAP_OVERFLOW;
+            bisected[1].itv[split] = halves.second;
+            valid_nbr=2;
         }
     }
-    if (box.split == 2) // split v interval
-    {
-        if (sum_no_larger_1(halves.second.first, box.current_item.itv[1].first))
+    if(split == 2){
+        if (sum_no_larger_1(halves.second.first, box.current_item.itv[1].first)) // check if u+v<=1
         {
-            box.current_item.itv[box.split] = halves.second;
-            inserted = istack.insertKey(box.current_item.itv, box.current_item.level + 1);
-            if (inserted == false)
-            {
-                out.overflow_flag = HEAP_OVERFLOW;
-            }
-        }
 
-        box.current_item.itv[box.split] = halves.first;
-        inserted = istack.insertKey(box.current_item.itv, box.current_item.level + 1);
-        if (inserted == false)
-        {
-            out.overflow_flag = HEAP_OVERFLOW;
+            bisected[1].itv[split] = halves.second;
+            valid_nbr=2;
         }
     }
+    
 }
 __global__ void vf_ccd_memory_pool(MP_unit* units, int query_size, CCDdata *data, CCDConfig* config){
 	int tx = threadIdx.x + blockIdx.x * blockDim.x;
     if (tx >= UNIT_SIZE) return;
     
-    int start;
-    int end;
-    bool mp_status=true;//meaning that the start<=end;
-    start=0;
-    end=query_size-1;
+    // int start;
+    // int end;
+    // bool mp_status=true;//meaning that the start<=end;
+    // start=0;
+    // end=query_size-1;
     int refine=0;
-    Scalar width[3];
+    Scalar widths[3];
     bool condition;
     int split;
+
     while(1){
         bool no_need_check=false;
         int box_id=units[tx].query_id;
@@ -777,14 +734,21 @@ __global__ void vf_ccd_memory_pool(MP_unit* units, int query_size, CCDdata *data
         }
         else{
             if(refine>0&&data[box_id].last_round_has_root==0){// if this query does not have root in the last step, no need to check
-                no_need_check=true;
+                no_need_check=true;// TODO think about it
             }
             if(data[box_id].sure_have_root>0){ // if it is sure that have root, then no need to check
                 no_need_check=true;
             }
         }
+        units[tx].query_id=-1;// this unit will be regarded as empty in the next iteration
+        __syncthreads();
+        if(tx<query_size){
+            data[tx].last_round_has_root=0;
+        }
+        __syncthreads();
         if(!no_need_check){
             bool zero_in=Origin_in_vf_inclusion_function_memory_pool(data_in[box_id], units[tx]);
+
             if(zero_in){
                 widths[0] = units[tx].itv[0].second - units[tx].itv[0].first;
                 widths[1] = units[tx].itv[1].second - units[tx].itv[1].first;
@@ -806,14 +770,47 @@ __global__ void vf_ccd_memory_pool(MP_unit* units, int query_size, CCDdata *data
                 if(condition){
                     atomicAdd(data[box_id].sure_have_root, 1);
                 }
+                atomicAdd(data[box_id].last_round_has_root, 1); // if contain origin, then last_round_has_root +=1 
                 split_dimension_memory_pool(data[box_id], widths, split);
-            }
-        }
-        
-        
-        atomicAdd(data[box_id], 1);
+                MP_unit bisected[2];
+                int valid_nbr;
+                bisect_vf_memory_pool(unit[tx], split, config, bisected, valid_nbr);
+                
+                bisected[0].query_id=box_id;
+                bisected[1].query_id=box_id;
+                if(valid_nbr==0){// in this case, the interval is too small that overflow happens
+                    atomicAdd(data[box_id].sure_have_root, 1);
+                }
+                if(valid_nbr==1){
+                    int unit_id=atomicAdd(config.mp_end,1);// this is the new id of the new box
+                    units[unit_id]=bisected[0];
 
-        // TODO remember to set the last_round_has_root as 0 or 1
+                }
+                if(valid_nbr==2){
+                    int unit_id=atomicAdd(config.mp_end,1);// this is the new id of the new box
+                    units[unit_id]=bisected[0];
+                    unit_id=atomicAdd(config.mp_end,1);// this is the new id of the new box
+                    units[unit_id]=bisected[1];
+                }
+            }
+            
+        }
+        refine++;
+        if(refine>config.max_itr){
+            __syncthreads();
+            if(tx<query_size){
+                if(data_in[tx].last_round_has_root>0){
+                    data_in[tx].sure_have_root=1;
+                }
+            }
+            return;
+        }
+        //atomicAdd(data[box_id], 1);
+
+        // TODO remember to set the last_round_has_root as 0 or 1 after synchronization.
+        // TODO deal with config.mp_start, modify it globally. 
+        // TODO check if the queue size is sufficient, if not, biset the data set. (maybe add a variable "uncertain", in addition to sure_have_root. and 
+        // "current_data_set_size" and "need_to_bisect_data_set")
     }
 
 
@@ -846,6 +843,9 @@ void run_memory_pool_ccd(const std::vector<std::array<std::array<Scalar, 3>, 8>>
     config[0].max_itr=1e6;// the maximal nbr of iterations
 	config[0].mp_start=0;
 	config[0].mp_end=nbr-1;// the initialized trunk is from 0 to nbr-1;
+    config[0].mp_status=true; // in the begining, start < end
+    config[0].refine=0; // the number of checks.
+    
     // device
     CCDdata *d_data_list;
     bool *d_res;

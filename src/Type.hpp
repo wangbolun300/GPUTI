@@ -108,7 +108,7 @@ public:
 	int max_itr;// the maximal nbr of iterations
 	int mp_start;
 	int mp_end;
-	bool mp_status=true;// when true, it means that 
+	bool mp_status=true;// when true, it means that the start < end
 
 };
 
@@ -154,6 +154,16 @@ public:
 	  query_id=i;
 	  box_in=true;
   }
+  __device__ MP_unit& operator=(const MP_unit& x)
+	{
+		if (this == &x)
+			return *this;
+		itv=x.itv;
+		query_id=x.query_id;
+		box_in=x.box_in;
+		true_tol=x.true_tol;
+		return *this;
+	}
 };
 
 
