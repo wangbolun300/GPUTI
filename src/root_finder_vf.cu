@@ -624,8 +624,7 @@ __global__ void compute_vf_tolerance_memory_pool(CCDdata *data, CCDConfig* confi
 	int tx = threadIdx.x + blockIdx.x * blockDim.x;
     if (tx >= query_size) return;
 	compute_face_vertex_tolerance_memory_pool(data[tx],config[0]);
-	data[tx].collide_status=-1;
-  	data[tx].itr_counter=0;
+  	
     data[tx].last_round_has_root=false;
     data[tx].sure_have_root=false;
 	
@@ -649,9 +648,9 @@ __global__ void initialize_memory_pool(MP_unit* units, int query_size){
 }
 __device__ void split_dimension_memory_pool(const CCDdata& data, Scalar width[3], int &split){// clarified in queue.h
     Scalar res[3];
-    res[0]=widths[0]/data.tol[0];
-    res[1]=widths[1]/data.tol[1];
-    res[2]=widths[2]/data.tol[2];
+    res[0]=width[0]/data.tol[0];
+    res[1]=width[1]/data.tol[1];
+    res[2]=width[2]/data.tol[2];
     if(res[0]>=res[1]&&res[0]>=res[2]){
         split=0;
     }
@@ -663,7 +662,7 @@ __device__ void split_dimension_memory_pool(const CCDdata& data, Scalar width[3]
     }
 }
 
-_device__ void bisect_vf_memory_pool(MP_unit& unit, int split, const CCDConfig& config, MP_unit bisected[2], int& valid_nbr){
+__device__ void bisect_vf_memory_pool(MP_unit& unit, int split, const CCDConfig& config, MP_unit bisected[2], int& valid_nbr){
     interval_pair halves(unit.itv[split]);// bisected
     
     if (halves.first.first  >= halves.first.second)
@@ -695,24 +694,24 @@ _device__ void bisect_vf_memory_pool(MP_unit& unit, int split, const CCDConfig& 
         }
     }
     if(split == 1){
-        if (sum_no_larger_1(halves.second.first, box.current_item.itv[2].first)) // check if u+v<=1
+        if (sum_no_larger_1(halves.second.first, bisected[1].itv[2].first)) // check if u+v<=1
         {
 
-            bisected[1].itv[split] = halves.second;
+            bisected[1].itv[1] = halves.second;
             valid_nbr=2;
         }
     }
     if(split == 2){
-        if (sum_no_larger_1(halves.second.first, box.current_item.itv[1].first)) // check if u+v<=1
+        if (sum_no_larger_1(halves.second.first, bisected[1].itv[1].first)) // check if u+v<=1
         {
 
-            bisected[1].itv[split] = halves.second;
+            bisected[1].itv[2] = halves.second;
             valid_nbr=2;
         }
     }
     
 }
-__global__ void vf_ccd_memory_pool(MP_unit* units, int query_size, CCDdata *data, CCDConfig* config){
+__global__ void vf_ccd_memory_pool(MP_unit* units, int query_size, CCDdata *data, CCDConfig* config, int* results){
 	int tx = threadIdx.x + blockIdx.x * blockDim.x;
     if (tx >= UNIT_SIZE) return;
     
@@ -729,6 +728,8 @@ __global__ void vf_ccd_memory_pool(MP_unit* units, int query_size, CCDdata *data
     while(1){
         bool no_need_check=false;
         int box_id=units[tx].query_id;
+        atomicExch(&config[0].not_empty, 0); // mark this level as empty elements
+        
         if(box_id==-1){// if this box indices no query, no need to check;
             no_need_check=true;
         }
@@ -747,7 +748,8 @@ __global__ void vf_ccd_memory_pool(MP_unit* units, int query_size, CCDdata *data
         }
         __syncthreads();
         if(!no_need_check){
-            bool zero_in=Origin_in_vf_inclusion_function_memory_pool(data_in[box_id], units[tx]);
+            atomicAdd(&config[0].not_empty, 1); // if find at least one box that is not empty, not_empty is true;
+            bool zero_in=Origin_in_vf_inclusion_function_memory_pool(data[box_id], units[tx]);
 
             if(zero_in){
                 widths[0] = units[tx].itv[0].second - units[tx].itv[0].first;
@@ -755,62 +757,90 @@ __global__ void vf_ccd_memory_pool(MP_unit* units, int query_size, CCDdata *data
                 widths[2] = units[tx].itv[2].second - units[tx].itv[2].first;
 
                 // Condition 1
-                condition = widths[0] <= data[box_id].tol[0] && box.widths[1] <= data[box_id].tol[1] && box.widths[2] <= data[box_id].tol[2];
+                condition = widths[0] <= data[box_id].tol[0] && widths[1] <= data[box_id].tol[1] && widths[2] <= data[box_id].tol[2];
                 if(condition){
-                    atomicAdd(data[box_id].sure_have_root, 1);
+                    atomicAdd(&data[box_id].sure_have_root, 1);
                 }
                 // Condition 2, the box is inside the epsilon box, have a root, return true;
-                condition = unit[tx].box_in;
+                condition = units[tx].box_in;
                 if(condition){
-                    atomicAdd(data[box_id].sure_have_root, 1);
+                    atomicAdd(&data[box_id].sure_have_root, 1);
                 }
 
         // Condition 3, real tolerance is smaller than the input tolerance, return true
-                condition = unit[tx].true_tol <= config->co_domain_tolerance;
+                condition = units[tx].true_tol <= config->co_domain_tolerance;
                 if(condition){
-                    atomicAdd(data[box_id].sure_have_root, 1);
+                    atomicAdd(&data[box_id].sure_have_root, 1);
                 }
-                atomicAdd(data[box_id].last_round_has_root, 1); // if contain origin, then last_round_has_root +=1 
+                atomicAdd(&data[box_id].last_round_has_root, 1); // if contain origin, then last_round_has_root +=1 
                 split_dimension_memory_pool(data[box_id], widths, split);
                 MP_unit bisected[2];
                 int valid_nbr;
-                bisect_vf_memory_pool(unit[tx], split, config, bisected, valid_nbr);
+                bisect_vf_memory_pool(units[tx], split, config[0], bisected, valid_nbr);
                 
                 bisected[0].query_id=box_id;
                 bisected[1].query_id=box_id;
                 if(valid_nbr==0){// in this case, the interval is too small that overflow happens
-                    atomicAdd(data[box_id].sure_have_root, 1);
+                    atomicAdd(&data[box_id].sure_have_root, 1);
                 }
+                //__syncthreads();
                 if(valid_nbr==1){
-                    int unit_id=atomicAdd(config.mp_end,1);// this is the new id of the new box
-                    units[unit_id]=bisected[0];
+                    int unit_id=atomicInc(&config[0].mp_end,(unsigned int) UNIT_SIZE);// this is the new id of the new box. end >= UNIT_SIZE? 0 : (end+1)
+                    if(units[(unit_id+1)%UNIT_SIZE].query_id != -1){// it means it is not empty
+                        atomicAdd(&config[0].mp_status,1);
+                    }
+                    units[(unit_id+1)%UNIT_SIZE]=bisected[0];
+                    
 
                 }
                 if(valid_nbr==2){
-                    int unit_id=atomicAdd(config.mp_end,1);// this is the new id of the new box
-                    units[unit_id]=bisected[0];
-                    unit_id=atomicAdd(config.mp_end,1);// this is the new id of the new box
-                    units[unit_id]=bisected[1];
+                    int unit_id=atomicInc(&config[0].mp_end,UNIT_SIZE);// this is the new id of the new box
+                    if(units[(unit_id+1)%UNIT_SIZE].query_id!=-1){
+                        atomicAdd(&config[0].mp_status,1);
+                    }
+                    units[(unit_id+1)%UNIT_SIZE]=bisected[0];
+                    
+                    unit_id=atomicInc(&config[0].mp_end,UNIT_SIZE);// this is the new id of the new box
+                    if(units[(unit_id+1)%UNIT_SIZE].query_id!=-1){
+                        atomicAdd(&config[0].mp_status,1);
+                    }
+                    units[(unit_id+1)%UNIT_SIZE]=bisected[1];
+                    
                 }
             }
             
         }
         refine++;
-        if(refine>config.max_itr){
-            __syncthreads();
+        __syncthreads();
+        if(config[0].not_empty==0){ // if all the boxes are checked, return;
+            break;
+        }
+        if(refine>HEAP_SIZE||config[0].mp_status>0){// if check too many times or exceed the size of the heap, return results according to the last step
             if(tx<query_size){
-                if(data_in[tx].last_round_has_root>0){
-                    data_in[tx].sure_have_root=1;
+                if(data[tx].last_round_has_root>0){
+                    data[tx].sure_have_root=1;
                 }
             }
-            return;
+            break;
         }
+        __syncthreads();
         //atomicAdd(data[box_id], 1);
 
         // TODO remember to set the last_round_has_root as 0 or 1 after synchronization.
         // TODO deal with config.mp_start, modify it globally. 
         // TODO check if the queue size is sufficient, if not, biset the data set. (maybe add a variable "uncertain", in addition to sure_have_root. and 
-        // "current_data_set_size" and "need_to_bisect_data_set")
+        // "current_data_set_size" and "need_to_bisect_data_set" and "queue_size_of_this_query")
+    }
+     __syncthreads();
+    if(tx<query_size){
+        if (data[tx].sure_have_root > 0)
+        {
+            results[tx] = 1; // get the results
+        }
+        else
+        {
+            results[tx] = 0;
+        }
     }
 
 
@@ -820,7 +850,7 @@ __global__ void vf_ccd_memory_pool(MP_unit* units, int query_size, CCDdata *data
 
 
 void run_memory_pool_ccd(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, bool is_edge,
-                 std::vector<bool> &result_list, int parallel_nbr)
+                 std::vector<bool> &result_list, int parallel_nbr, double &runtime)
 {
     int nbr = V.size();
     result_list.resize(nbr);
@@ -834,26 +864,24 @@ void run_memory_pool_ccd(const std::vector<std::array<std::array<Scalar, 3>, 8>>
 #endif
     }
 
-    bool *res = new bool[nbr];
+    int *res = new int[nbr];
     MP_unit *units = new MP_unit[UNIT_SIZE];
     CCDConfig *config=new CCDConfig[1];
     config[0].err_in[0]=-1;// the input error bound calculate from the AABB of the whole mesh
     config[0].co_domain_tolerance=1e-6; // tolerance of the co-domain
     config[0].max_t=1; // the upper bound of the time interval
     config[0].max_itr=1e6;// the maximal nbr of iterations
-	config[0].mp_start=0;
 	config[0].mp_end=nbr-1;// the initialized trunk is from 0 to nbr-1;
     config[0].mp_status=true; // in the begining, start < end
-    config[0].refine=0; // the number of checks.
     
     // device
     CCDdata *d_data_list;
-    bool *d_res;
+    int *d_res;
     MP_unit *d_units;
     CCDConfig *d_config;
 
     int data_size = sizeof(CCDdata) * nbr;
-    int result_size = sizeof(bool) * nbr;
+    int result_size = sizeof(int) * nbr;
     int unit_size = sizeof(MP_unit) * UNIT_SIZE;
    // int dbg_size=sizeof(Scalar)*8;
 
@@ -865,11 +893,13 @@ void run_memory_pool_ccd(const std::vector<std::array<std::array<Scalar, 3>, 8>>
     cudaMemcpy(d_data_list, data_list, data_size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_config, config, sizeof(CCDConfig), cudaMemcpyHostToDevice);
 	// all the memory copied. now firstly initialize the memory pool
-
+    ccd::Timer timer;
+    timer.start();
 	initialize_memory_pool<<<nbr / parallel_nbr + 1, parallel_nbr>>>(d_units,nbr);
 	compute_vf_tolerance_memory_pool<<<nbr / parallel_nbr + 1, parallel_nbr>>>(d_data_list, d_config, nbr);
-
-
+    vf_ccd_memory_pool<<<nbr / parallel_nbr + 1, parallel_nbr>>>(d_units, nbr, d_data_list, d_config, d_res);
+    double tt = timer.getElapsedTimeInMicroSec();
+    runtime = tt;
 
 
         
@@ -900,7 +930,8 @@ void run_memory_pool_ccd(const std::vector<std::array<std::array<Scalar, 3>, 8>>
     delete[] data_list;
     delete[] units;
     delete[] config;
-
+    cudaError_t ct = cudaGetLastError();
+    printf("******************\n%s\n************\n", cudaGetErrorString(ct));
     return;
 }
 }

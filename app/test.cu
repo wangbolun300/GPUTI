@@ -435,7 +435,7 @@ void run_rational_data_single_method_parallel(
     int size = queries.size();
     std::cout << "data loaded, size " << queries.size() << std::endl;
     double tavg = 0;
-    int max_query_cp_size = 1e7;
+    int max_query_cp_size = EACH_LAUNCH_SIZE;
     int start_id = 0;
 
     result_list.resize(size);
@@ -461,8 +461,9 @@ void run_rational_data_single_method_parallel(
         {
             tmp_queries[i] = queries[start_id + i];
         }
-        all_ccd_run(tmp_queries, is_edge_edge, tmp_results, tmp_tall, tmp_tois, parallel);
-
+        //all_ccd_run(tmp_queries, is_edge_edge, tmp_results, tmp_tall, tmp_tois, parallel);
+        run_memory_pool_ccd(tmp_queries, is_edge_edge,
+                 tmp_results, parallel, tmp_tall);
         tavg += tmp_tall;
         for (int i = 0; i < tmp_nbr; i++)
         {

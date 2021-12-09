@@ -9,8 +9,8 @@
 namespace ccd{
 ///////////////////////////////
 // here are the parameters for the memory pool
-static const int UNIT_SIZE = 1000000;
-
+static const int UNIT_SIZE = 1e7;
+static const int EACH_LAUNCH_SIZE = 1e6;
 
 ///////////////////////////////
 
@@ -106,10 +106,9 @@ public:
 	Scalar co_domain_tolerance; // tolerance of the co-domain
 	Scalar max_t; // the upper bound of the time interval
 	int max_itr;// the maximal nbr of iterations
-	int mp_start;
-	int mp_end;
-	bool mp_status=true;// when true, it means that the start < end
-
+	unsigned int mp_end;
+	int mp_status=1;// when true, it means that no overflow happens
+	int not_empty;
 };
 
 // the output info
@@ -158,7 +157,9 @@ public:
 	{
 		if (this == &x)
 			return *this;
-		itv=x.itv;
+		itv[0]=x.itv[0];
+		itv[1]=x.itv[1];
+		itv[2]=x.itv[2];
 		query_id=x.query_id;
 		box_in=x.box_in;
 		true_tol=x.true_tol;
@@ -182,9 +183,6 @@ public:
 	Scalar ms;// minimum separation
 	Scalar err[3];// error bound of each query, calculated from each scene
 	Scalar tol[3];// domain tolerance that helps to decide which dimension to split
-	int refine;// number of checks
-	int collide_status=-1; // should be initialized as -1
-  	int itr_counter;
 	int last_round_has_root=0;
 	int sure_have_root;
 	__device__ __host__  CCDdata& operator=(const CCDdata& x)
