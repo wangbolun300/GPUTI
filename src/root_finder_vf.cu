@@ -725,12 +725,11 @@ __global__ void vf_ccd_memory_pool(MP_unit* units, int query_size, CCDdata *data
     Scalar widths[3];
     bool condition;
     int split;
-
-    while(1){
+    bool break_thread=false;// to record if the for loop should break
+    for(int i=0; i<100; i++){
         bool no_need_check=false;
         int box_id=units[tx].query_id;
         atomicExch(&config[0].not_empty, 0); // mark this level as empty elements
-        
         if(box_id==-1){// if this box indices no query, no need to check;
             no_need_check=true;
         }
@@ -749,10 +748,9 @@ __global__ void vf_ccd_memory_pool(MP_unit* units, int query_size, CCDdata *data
             data[tx].last_round_has_root=0;
         }
         __syncthreads();
-        if(!no_need_check){
+        if(!no_need_check && !break_thread){ // if need check, and the for loop is not broken, do the check
             atomicAdd(&config[0].not_empty, 1); // if find at least one box that is not empty, not_empty is true;
             bool zero_in=Origin_in_vf_inclusion_function_memory_pool(data[box_id], units[tx]);
-            // __syncthreads();
             if(zero_in){
                 widths[0] = units[tx].itv[0].second - units[tx].itv[0].first;
                 widths[1] = units[tx].itv[1].second - units[tx].itv[1].first;
@@ -785,7 +783,6 @@ __global__ void vf_ccd_memory_pool(MP_unit* units, int query_size, CCDdata *data
                 if(valid_nbr==0){// in this case, the interval is too small that overflow happens
                     atomicAdd(&data[box_id].sure_have_root, 1);
                 }
-                //__syncthreads();
                 if(valid_nbr==1){
                     int unit_id=atomicInc(&config[0].mp_end,(unsigned int) UNIT_SIZE);// this is the new id of the new box. end >= UNIT_SIZE? 0 : (end+1)
                     if(units[(unit_id+1)%UNIT_SIZE].query_id != -1){// it means it is not empty
@@ -812,13 +809,13 @@ __global__ void vf_ccd_memory_pool(MP_unit* units, int query_size, CCDdata *data
             }
             
         }
-    
+        
         refine++;
         __syncthreads();
         
         if(config[0].not_empty==0){ // if all the boxes are checked, return;
         
-            break;
+            break_thread=true;
         }
         if(refine>HEAP_SIZE||config[0].mp_status>0){// if check too many times or exceed the size of the heap, return results according to the last step
             if(tx<query_size){
@@ -828,9 +825,9 @@ __global__ void vf_ccd_memory_pool(MP_unit* units, int query_size, CCDdata *data
                 }
             }
             
-            break;
+            break_thread=true;
         }
-        
+
         __syncthreads();
         //atomicAdd(data[box_id], 1);
 
@@ -839,7 +836,7 @@ __global__ void vf_ccd_memory_pool(MP_unit* units, int query_size, CCDdata *data
         // TODO check if the queue size is sufficient, if not, biset the data set. (maybe add a variable "uncertain", in addition to sure_have_root. and 
         // "current_data_set_size" and "need_to_bisect_data_set" and "queue_size_of_this_query")
     }
-     __syncthreads();
+     //__syncthreads();
     if(tx<query_size){
         if (data[tx].sure_have_root > 0)
         {
@@ -881,7 +878,7 @@ void run_memory_pool_ccd(const std::vector<std::array<std::array<Scalar, 3>, 8>>
     config[0].max_itr=1e6;// the maximal nbr of iterations
 	config[0].mp_end=nbr-1;// the initialized trunk is from 0 to nbr-1;
     config[0].mp_status=true; // in the begining, start < end
-    
+    config[0].not_empty=0;
     // device
     CCDdata *d_data_list;
     int *d_res;
@@ -937,7 +934,7 @@ void run_memory_pool_ccd(const std::vector<std::array<std::array<Scalar, 3>, 8>>
 
     // std::cout << "dbg info\n"
     //           << dbg[0] << "," << dbg[1] << "," << dbg[2] << "," << dbg[3] << "," << dbg[4] << "," << dbg[5] << "," << dbg[6] << "," << dbg[7] << std::endl;
-    //std::cout<<"dbg result "<<res[0]<<std::endl;
+    std::cout<<"dbg result "<<res[0]<<std::endl;
     delete[] res;
     delete[] data_list;
     delete[] units;

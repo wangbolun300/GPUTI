@@ -9,14 +9,14 @@
 namespace ccd{
 ///////////////////////////////
 // here are the parameters for the memory pool
-static const int UNIT_SIZE = 1e7;
+static const int UNIT_SIZE = 2e7;
 static const int EACH_LAUNCH_SIZE = 1e6;
-static const int HEAP_SIZE=4;
+static const int HEAP_SIZE=100;
 ///////////////////////////////
 
 
 //#define GPUTI_USE_DOUBLE_PRECISION
-#define GPUTI_GO_DEAP_HEAP
+// #define GPUTI_GO_DEAP_HEAP
 static const int TESTING_ID = 219064;
 static const int TEST_SIZE=1;
 static const int TEST_NBR_QUERIES=1e9;// set as large as possible to avoid truncation of reading data
