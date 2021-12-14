@@ -626,8 +626,9 @@ __global__ void compute_vf_tolerance_memory_pool(CCDdata *data, CCDConfig* confi
 	compute_face_vertex_tolerance_memory_pool(data[tx],config[0]);
   	
     data[tx].last_round_has_root=false;
+    data[tx].last_round_has_root_record=false;
     data[tx].sure_have_root=false;
-	
+	data[tx].nbr_checks=0;
 #ifdef CALCULATE_ERROR_BOUND
 	get_numerical_error_vf_memory_pool(data[tx]);
 #endif
@@ -744,13 +745,14 @@ __global__ void vf_ccd_memory_pool(MP_unit* units, int query_size, CCDdata *data
         units[tx].query_id=-1;// this unit will be regarded as empty in the next iteration
         __syncthreads();
         if(tx<query_size){
+            data[tx].last_round_has_root_record=data[tx].last_round_has_root;
             data[tx].last_round_has_root=0;
         }
         __syncthreads();
         if(!no_need_check){
             atomicAdd(&config[0].not_empty, 1); // if find at least one box that is not empty, not_empty is true;
             bool zero_in=Origin_in_vf_inclusion_function_memory_pool(data[box_id], units[tx]);
-
+            // __syncthreads();
             if(zero_in){
                 widths[0] = units[tx].itv[0].second - units[tx].itv[0].first;
                 widths[1] = units[tx].itv[1].second - units[tx].itv[1].first;
@@ -810,19 +812,25 @@ __global__ void vf_ccd_memory_pool(MP_unit* units, int query_size, CCDdata *data
             }
             
         }
+    
         refine++;
         __syncthreads();
+        
         if(config[0].not_empty==0){ // if all the boxes are checked, return;
+        
             break;
         }
         if(refine>HEAP_SIZE||config[0].mp_status>0){// if check too many times or exceed the size of the heap, return results according to the last step
             if(tx<query_size){
-                if(data[tx].last_round_has_root>0){
+                if(data[tx].last_round_has_root_record>0){
                     data[tx].sure_have_root=1;
+                    
                 }
             }
+            
             break;
         }
+        
         __syncthreads();
         //atomicAdd(data[box_id], 1);
 
@@ -895,9 +903,12 @@ void run_memory_pool_ccd(const std::vector<std::array<std::array<Scalar, 3>, 8>>
 	// all the memory copied. now firstly initialize the memory pool
     ccd::Timer timer;
     timer.start();
-	initialize_memory_pool<<<nbr / parallel_nbr + 1, parallel_nbr>>>(d_units,nbr);
-	compute_vf_tolerance_memory_pool<<<nbr / parallel_nbr + 1, parallel_nbr>>>(d_data_list, d_config, nbr);
-    vf_ccd_memory_pool<<<nbr / parallel_nbr + 1, parallel_nbr>>>(d_units, nbr, d_data_list, d_config, d_res);
+	initialize_memory_pool<<<UNIT_SIZE / parallel_nbr + 1, parallel_nbr>>>(d_units,nbr);
+	cudaDeviceSynchronize();
+    compute_vf_tolerance_memory_pool<<<UNIT_SIZE / parallel_nbr + 1, parallel_nbr>>>(d_data_list, d_config, nbr);
+    cudaDeviceSynchronize();
+    vf_ccd_memory_pool<<<UNIT_SIZE / parallel_nbr + 1, parallel_nbr>>>(d_units, nbr, d_data_list, d_config, d_res);
+    cudaDeviceSynchronize();
     double tt = timer.getElapsedTimeInMicroSec();
     runtime = tt;
 
@@ -926,12 +937,14 @@ void run_memory_pool_ccd(const std::vector<std::array<std::array<Scalar, 3>, 8>>
 
     // std::cout << "dbg info\n"
     //           << dbg[0] << "," << dbg[1] << "," << dbg[2] << "," << dbg[3] << "," << dbg[4] << "," << dbg[5] << "," << dbg[6] << "," << dbg[7] << std::endl;
+    //std::cout<<"dbg result "<<res[0]<<std::endl;
     delete[] res;
     delete[] data_list;
     delete[] units;
     delete[] config;
     cudaError_t ct = cudaGetLastError();
     printf("******************\n%s\n************\n", cudaGetErrorString(ct));
+    
     return;
 }
 }

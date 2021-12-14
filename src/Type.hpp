@@ -11,14 +11,14 @@ namespace ccd{
 // here are the parameters for the memory pool
 static const int UNIT_SIZE = 1e7;
 static const int EACH_LAUNCH_SIZE = 1e6;
-
+static const int HEAP_SIZE=4;
 ///////////////////////////////
 
 
 //#define GPUTI_USE_DOUBLE_PRECISION
 #define GPUTI_GO_DEAP_HEAP
 static const int TESTING_ID = 219064;
-static const int TEST_SIZE=1e6;
+static const int TEST_SIZE=1;
 static const int TEST_NBR_QUERIES=1e9;// set as large as possible to avoid truncation of reading data
 
 #define NO_CHECK_MS
@@ -34,7 +34,7 @@ static const Scalar MINIMUM_SEPARATION_BENCHMARK=1e-8;
 // token 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
 
 
-static const int HEAP_SIZE=100;
+
 
 // overflow instructions
 static const int NO_OVERFLOW = 0;
@@ -184,7 +184,9 @@ public:
 	Scalar err[3];// error bound of each query, calculated from each scene
 	Scalar tol[3];// domain tolerance that helps to decide which dimension to split
 	int last_round_has_root=0;
+	int last_round_has_root_record=0;// to avoid missing collisions by resetting last_round_has_root
 	int sure_have_root;
+	int nbr_checks=0;
 	__device__ __host__  CCDdata& operator=(const CCDdata& x)
 	{
 		if (this == &x)
