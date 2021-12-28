@@ -762,6 +762,16 @@ namespace ccd
             }
         }
     }
+
+    __global__ void reset_level_root_record(CCDdata *data, int query_size)
+    {
+        int tx = threadIdx.x + blockIdx.x * blockDim.x;
+        if (tx >= query_size)
+            return;
+        data[tx].last_round_has_root_record = data[tx].last_round_has_root; 
+        data[tx].last_round_has_root = 0;
+    }
+
     __global__ void vf_ccd_memory_pool(MP_unit *units, int query_size, CCDdata *data, CCDConfig *config, int *results)
     {
         int tx = threadIdx.x + blockIdx.x * blockDim.x;
@@ -812,8 +822,8 @@ namespace ccd
             // __syncthreads();
             // if (tx < query_size)
             // {
-                data[box_id].last_round_has_root_record = data[box_id].last_round_has_root ?  data[box_id].last_round_has_root :  data[box_id].last_round_has_root_record;
-                // data[box_id].last_round_has_root = 0;
+                // data[box_id].last_round_has_root_record = data[box_id].last_round_has_root ?  data[box_id].last_round_has_root :  data[box_id].last_round_has_root_record;
+                // // data[box_id].last_round_has_root = 0;
             // }
             // __syncthreads();
             if (!no_need_check) //&& !break_thread)
@@ -1026,6 +1036,8 @@ namespace ccd
         int nbr_per_loop = nbr;
         while (nbr_per_loop > 0)
         {
+            reset_level_root_record<<<nbr / parallel_nbr + 1, parallel_nbr>>>(d_data_list, nbr);
+            cudaDeviceSynchronize();
             vf_ccd_memory_pool<<<nbr_per_loop / parallel_nbr + 1, parallel_nbr>>>(d_units, nbr, d_data_list, d_config, d_res);
             cudaDeviceSynchronize();
             shift_queue_pointers<<<1,1>>>(d_config);
