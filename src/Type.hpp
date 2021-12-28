@@ -100,9 +100,9 @@ public:
   int max_itr;                // the maximal nbr of iterations
   unsigned int mp_start;
   unsigned int mp_end;
-  unsigned int mp_remaining;
-  int mp_status = 1; // when true, it means that no overflow happens
-  int not_empty;
+  int mp_remaining;
+  // int mp_status = 1; // when true, it means that no overflow happens
+  // int not_empty;
 };
 
 // the output info
@@ -143,7 +143,7 @@ public:
     itv[2].first = 0;
     itv[2].second = 1;
     query_id = i;
-    box_in = true;
+    box_in = true; // same result if true or false
   }
   __device__ MP_unit &operator=(const MP_unit &x) {
     if (this == &x)

@@ -817,6 +817,11 @@ namespace ccd
                 { // if it is sure that have root, then no need to check
                     no_need_check = true;
                 }
+                if (config[0].mp_remaining > UNIT_SIZE / 2)
+                {
+                    no_need_check = true;
+                    data[box_id].sure_have_root = 1;
+                }
             // }
             // units[tx].query_id = -1; // this unit will be regarded as empty in the next iteration
             // __syncthreads();
@@ -844,14 +849,14 @@ namespace ccd
                     condition = widths[0] <= data[box_id].tol[0] && widths[1] <= data[box_id].tol[1] && widths[2] <= data[box_id].tol[2];
                     if (condition)
                     {
-                        atomicAdd(&data[box_id].sure_have_root, 1);
+                        data[box_id].sure_have_root = 1;
                     }
                     // Condition 2, the box is inside the epsilon box, have a root, return true;
                     // condition = units[tx].box_in;
                     condition = units[qid].box_in;
                     if (condition)
                     {
-                        atomicAdd(&data[box_id].sure_have_root, 1);
+                        data[box_id].sure_have_root = 1;
                     }
 
                     // Condition 3, real tolerance is smaller than the input tolerance, return true
@@ -859,9 +864,9 @@ namespace ccd
                     condition = units[qid].true_tol <= config->co_domain_tolerance;
                     if (condition)
                     {
-                        atomicAdd(&data[box_id].sure_have_root, 1);
+                        data[box_id].sure_have_root = 1;
                     }
-                    atomicAdd(&data[box_id].last_round_has_root, 1); // if contain origin, then last_round_has_root +=1
+                    data[box_id].last_round_has_root = 1; // if contain origin, then last_round_has_root +=1
                     split_dimension_memory_pool(data[box_id], widths, split);
                     MP_unit bisected[2];
                     int valid_nbr;
@@ -872,7 +877,7 @@ namespace ccd
                     bisected[1].query_id = box_id;
                     if (valid_nbr == 0)
                     { // in this case, the interval is too small that overflow happens
-                        atomicAdd(&data[box_id].sure_have_root, 1);
+                        data[box_id].sure_have_root = 1;
                     }
                     if (valid_nbr == 1)
                     {
@@ -914,10 +919,10 @@ namespace ccd
             // { // if check too many times or exceed the size of the heap, return results according to the last step
                 // if (tx < query_size)
                 // {
-                    if (data[box_id].last_round_has_root_record > 0)
-                    {
-                        data[box_id].sure_have_root = 1;
-                    }
+                    // if (data[box_id].last_round_has_root_record > 0)
+                    // {
+                    //     data[box_id].sure_have_root = 1;
+                    // }
                 // }
 
                 // break_thread = true;
@@ -983,8 +988,8 @@ namespace ccd
         config[0].mp_end = nbr;     
         config[0].mp_start = 0;
         config[0].mp_remaining = nbr;   
-        config[0].mp_status = true;           // in the begining, start < end
-        config[0].not_empty = 0;
+        // config[0].mp_status = true;           // in the begining, start < end
+        // config[0].not_empty = 0;
         // device
         CCDdata *d_data_list;
         int *d_res;
@@ -1033,6 +1038,8 @@ namespace ccd
         // set the initial level to 0
         // cudaMemset(&d_config[0].not_empty, 0, sizeof(int));
 
+        printf("sizeof(CCDdata): %i\n", sizeof(CCDdata));
+        printf("sizeof(MP_unit): %i\n", sizeof(MP_unit));
         int nbr_per_loop = nbr;
         while (nbr_per_loop > 0)
         {
