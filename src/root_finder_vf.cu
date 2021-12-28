@@ -763,14 +763,14 @@ namespace ccd
         }
     }
 
-    __global__ void reset_level_root_record(CCDdata *data, int query_size)
-    {
-        int tx = threadIdx.x + blockIdx.x * blockDim.x;
-        if (tx >= query_size)
-            return;
-        data[tx].last_round_has_root_record = data[tx].last_round_has_root; 
-        data[tx].last_round_has_root = 0;
-    }
+    // __global__ void reset_level_root_record(CCDdata *data, int query_size)
+    // {
+    //     int tx = threadIdx.x + blockIdx.x * blockDim.x;
+    //     if (tx >= query_size)
+    //         return;
+    //     data[tx].last_round_has_root_record = data[tx].last_round_has_root; 
+    //     data[tx].last_round_has_root = 0;
+    // }
 
     __global__ void vf_ccd_memory_pool(MP_unit *units, int query_size, CCDdata *data, CCDConfig *config, int *results)
     {
@@ -870,7 +870,6 @@ namespace ccd
                     split_dimension_memory_pool(data[box_id], widths, split);
                     MP_unit bisected[2];
                     int valid_nbr;
-                    // bisect_vf_memory_pool(units[tx], split, config[0], bisected, valid_nbr);
                     bisect_vf_memory_pool(units[qid], split, config[0], bisected, valid_nbr);
 
                     bisected[0].query_id = box_id;
@@ -881,27 +880,15 @@ namespace ccd
                     }
                     if (valid_nbr == 1)
                     {
-                        int unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1); // this is the new id of the new box. end >= UNIT_SIZE? 0 : (end+1)
-                        // if (units[unit_id].query_id != -1)
-                        // { // it means it is not empty
-                        //     atomicAdd(&config[0].mp_status, 1);
-                        // }
+                        int unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1); 
                         units[unit_id] = bisected[0];
                     }
                     if (valid_nbr == 2)
                     {
-                        int unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1); // this is the new id of the new box
-                        // if (units[unit_id].query_id != -1)
-                        // {
-                        //     atomicAdd(&config[0].mp_status, 1);
-                        // }
+                        int unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
                         units[unit_id] = bisected[0];
 
-                        unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1); // this is the new id of the new box
-                        // if (units[unit_id].query_id != -1)
-                        // {
-                        //     atomicAdd(&config[0].mp_status, 1);
-                        // }
+                        unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1); 
                         units[unit_id] = bisected[1];
                     }
                 }
@@ -1038,13 +1025,12 @@ namespace ccd
         // set the initial level to 0
         // cudaMemset(&d_config[0].not_empty, 0, sizeof(int));
 
-        printf("sizeof(CCDdata): %i\n", sizeof(CCDdata));
-        printf("sizeof(MP_unit): %i\n", sizeof(MP_unit));
+        
         int nbr_per_loop = nbr;
         while (nbr_per_loop > 0)
         {
-            reset_level_root_record<<<nbr / parallel_nbr + 1, parallel_nbr>>>(d_data_list, nbr);
-            cudaDeviceSynchronize();
+            // reset_level_root_record<<<nbr / parallel_nbr + 1, parallel_nbr>>>(d_data_list, nbr);
+            // cudaDeviceSynchronize();
             vf_ccd_memory_pool<<<nbr_per_loop / parallel_nbr + 1, parallel_nbr>>>(d_units, nbr, d_data_list, d_config, d_res);
             cudaDeviceSynchronize();
             shift_queue_pointers<<<1,1>>>(d_config);
