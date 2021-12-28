@@ -10,7 +10,8 @@
 namespace ccd {
 ///////////////////////////////
 // here are the parameters for the memory pool
-static const int UNIT_SIZE = 2e7;
+// static const int UNIT_SIZE = 2e7;
+static const int UNIT_SIZE = 2e6;
 static const int EACH_LAUNCH_SIZE = 1e6;
 static const int HEAP_SIZE = 100;
 ///////////////////////////////
@@ -97,7 +98,9 @@ public:
   Scalar co_domain_tolerance; // tolerance of the co-domain
   Scalar max_t;               // the upper bound of the time interval
   int max_itr;                // the maximal nbr of iterations
+  unsigned int mp_start;
   unsigned int mp_end;
+  unsigned int mp_remaining;
   int mp_status = 1; // when true, it means that no overflow happens
   int not_empty;
 };
