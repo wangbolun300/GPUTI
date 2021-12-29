@@ -820,7 +820,7 @@ namespace ccd
                 if (config[0].mp_remaining > UNIT_SIZE / 2)
                 {
                     no_need_check = true;
-                    data[box_id].sure_have_root = 1;
+                    atomicAdd(&data[box_id].sure_have_root, 1);
                 }
             // }
             // units[tx].query_id = -1; // this unit will be regarded as empty in the next iteration
@@ -849,14 +849,14 @@ namespace ccd
                     condition = widths[0] <= data[box_id].tol[0] && widths[1] <= data[box_id].tol[1] && widths[2] <= data[box_id].tol[2];
                     if (condition)
                     {
-                        data[box_id].sure_have_root = 1;
+                        atomicAdd(&data[box_id].sure_have_root, 1);
                     }
                     // Condition 2, the box is inside the epsilon box, have a root, return true;
                     // condition = units[tx].box_in;
                     condition = units[qid].box_in;
                     if (condition)
                     {
-                        data[box_id].sure_have_root = 1;
+                        atomicAdd(&data[box_id].sure_have_root, 1);
                     }
 
                     // Condition 3, real tolerance is smaller than the input tolerance, return true
@@ -864,9 +864,9 @@ namespace ccd
                     condition = units[qid].true_tol <= config->co_domain_tolerance;
                     if (condition)
                     {
-                        data[box_id].sure_have_root = 1;
+                        atomicAdd(&data[box_id].sure_have_root, 1);
                     }
-                    data[box_id].last_round_has_root = 1; // if contain origin, then last_round_has_root +=1
+                    atomicAdd(&data[box_id].last_round_has_root, 1); // if contain origin, then last_round_has_root +=1
                     split_dimension_memory_pool(data[box_id], widths, split);
                     MP_unit bisected[2];
                     int valid_nbr;
