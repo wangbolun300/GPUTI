@@ -853,7 +853,7 @@ namespace ccd
 		}
 		else if (config[0].mp_remaining > UNIT_SIZE / 2) // overflow
 		{
-			printf("Overflow\n");
+			// printf("Overflow\n"); //better to set overflow flag
 			results[box_id] = 1;
 			return;
 		}
