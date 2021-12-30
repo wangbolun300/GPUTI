@@ -11,9 +11,10 @@ namespace ccd {
 ///////////////////////////////
 // here are the parameters for the memory pool
 // static const int UNIT_SIZE = 2e7;
-static const int UNIT_SIZE = 2e6;
-static const int EACH_LAUNCH_SIZE = 1e6;
+static const long UNIT_SIZE = 1e8;
+static const long EACH_LAUNCH_SIZE = 2e8;
 static const int HEAP_SIZE = 100;
+static const int MAX_CHECKS = 1e4;
 ///////////////////////////////
 
 //#define GPUTI_USE_DOUBLE_PRECISION
@@ -174,10 +175,10 @@ public:
   Scalar err[3]; // error bound of each query, calculated from each scene
   Scalar
       tol[3]; // domain tolerance that helps to decide which dimension to split
-  int last_round_has_root = 0;
-  int last_round_has_root_record =
-      0; // to avoid missing collisions by resetting last_round_has_root
-  int sure_have_root;
+  // int last_round_has_root = 0;
+  // int last_round_has_root_record =
+  //     0; // to avoid missing collisions by resetting last_round_has_root
+  // int sure_have_root;
   int nbr_checks = 0;
   __device__ __host__ CCDdata &operator=(const CCDdata &x) {
     if (this == &x)
