@@ -1013,7 +1013,7 @@ namespace ccd
 			cudaMemcpy(&end, &d_config[0].mp_end, sizeof(int),
 					   cudaMemcpyDeviceToHost);
 			printf("Start %i, End %i, Queue size: %i\n", start, end, nbr_per_loop);
-			break;
+			// break;
 		}
 		timer.stop();
 		runtime = timer.getElapsedTimeInMicroSec();
