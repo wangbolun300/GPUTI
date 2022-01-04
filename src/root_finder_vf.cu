@@ -992,7 +992,7 @@ namespace ccd
 		}
 
 		int *res = new int[nbr];
-		MP_unit *units = new MP_unit[UNIT_SIZE];
+		// MP_unit *units = new MP_unit[UNIT_SIZE];
 		CCDConfig *config = new CCDConfig[1];
 		config[0].err_in[0] =
 			-1;                               // the input error bound calculate from the AABB of the whole mesh
@@ -1100,7 +1100,7 @@ namespace ccd
 		std::cout << "dbg result " << res[0] << std::endl;
 		delete[] res;
 		delete[] data_list;
-		delete[] units;
+		// delete[] units;
 		delete[] config;
 		cudaError_t ct = cudaGetLastError();
 		printf("******************\n%s\n************\n", cudaGetErrorString(ct));
