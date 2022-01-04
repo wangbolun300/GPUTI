@@ -851,11 +851,11 @@ namespace ccd
 		// cuda::binary_semaphore<cuda::thread_scope_device> mutex;
 		// mutex.release();
 
-		if (tx == 0)
-			printf("Running vf_ccd_memory_pool on start %i, end %i, size: %i\n",
-				   config[0].mp_start,
-				   config[0].mp_end,
-				   config[0].mp_remaining);
+		// if (tx == 0)
+		// 	printf("Running vf_ccd_memory_pool on start %i, end %i, size: %i\n",
+		//    config[0].mp_start,
+		//    config[0].mp_end,
+		//    config[0].mp_remaining);
 
 		int qid = (tx + config[0].mp_start) % UNIT_SIZE;
 
