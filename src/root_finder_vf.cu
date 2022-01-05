@@ -413,6 +413,7 @@ namespace ccd
 												MP_unit &unit, Scalar &true_tol, bool &box_in)
 	{
 		box_in = true;
+		true_tol = 0.0;
 		BoxPrimatives bp;
 		Scalar vmin = SCALAR_LIMIT;
 		Scalar vmax = -SCALAR_LIMIT;
@@ -441,7 +442,7 @@ namespace ccd
 			// get the min and max in one dimension
 			true_tol = max(true_tol, vmax - vmin);
 
-			if (vmin > data_in.err[bp.dim] || vmax + +data_in.ms < -data_in.err[bp.dim])
+			if (vmin > data_in.err[bp.dim] || vmax + data_in.ms < -data_in.err[bp.dim])
 			{
 				return false;
 			}
@@ -449,7 +450,6 @@ namespace ccd
 			if (vmin < -data_in.err[bp.dim] || vmax - data_in.ms > data_in.err[bp.dim])
 			{
 				box_in = false;
-				return true;
 			}
 		}
 		return true;
@@ -786,7 +786,7 @@ namespace ccd
 		{
 			// if (config.max_t != 1)
 			// {
-			if (halves.second.first <= config[0].toi)
+			// if (halves.second.first <= config[0].toi)
 			{
 				unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
 				out[unit_id] = unit;
@@ -872,15 +872,15 @@ namespace ccd
 		const Scalar time_left = units_in.itv[0].first; // the time of this unit
 
 		// if the time is larger than toi, return
-		if (time_left >= config[0].toi)
-		{
-			return;
-		}
-		// else if (results[box_id] > 0)
+		// if (time_left >= config[0].toi)
+		// {
+		// 	return;
+		// }
+		// if (results[box_id] > 0)
 		// { // if it is sure that have root, then no need to check
 		// 	return;
 		// }
-		else if (data_in.nbr_checks > MAX_CHECKS) // max checks
+		if (data_in.nbr_checks > MAX_CHECKS) // max checks
 		{
 			results[box_id] = 1;
 			return;
@@ -938,6 +938,7 @@ namespace ccd
 			{
 				mutex_update_min(config[0].mutex, config[0].toi, time_left);
 				// atomicMin(&config[0].toi, time_left);
+				results[box_id] = 1;
 				return;
 			}
 			// bisected[0].query_id = box_id;
