@@ -842,7 +842,7 @@ namespace ccd
 	}
 
 	__global__ void vf_ccd_memory_pool(MP_unit *units, int query_size,
-									   CCDdata *data, CCDConfig *config, int *results)
+									   CCDdata *data, CCDConfig *config)
 	{
 		int tx = threadIdx.x + blockIdx.x * blockDim.x;
 		if (tx >= config[0].mp_remaining)
@@ -872,23 +872,23 @@ namespace ccd
 		const Scalar time_left = units_in.itv[0].first; // the time of this unit
 
 		// if the time is larger than toi, return
-		// if (time_left >= config[0].toi)
-		// {
-		// 	return;
-		// }
+		if (time_left >= config[0].toi)
+		{
+			return;
+		}
 		// if (results[box_id] > 0)
 		// { // if it is sure that have root, then no need to check
 		// 	return;
 		// }
 		if (data_in.nbr_checks > MAX_CHECKS) // max checks
 		{
-			results[box_id] = 1;
+			// results[box_id] = 1;
 			return;
 		}
 		else if (config[0].mp_remaining > UNIT_SIZE / 2) // overflow
 		{
 			// printf("Overflow\n"); //better to set overflow flag
-			results[box_id] = 1;
+			// results[box_id] = 1;
 			return;
 		}
 
@@ -907,7 +907,7 @@ namespace ccd
 			if (condition)
 			{
 				mutex_update_min(config[0].mutex, config[0].toi, time_left);
-				results[box_id] = 1;
+				// results[box_id] = 1;
 				return;
 			}
 			// Condition 2, the box is inside the epsilon box, have a root, return true;
@@ -915,7 +915,7 @@ namespace ccd
 			if (box_in)
 			{
 				mutex_update_min(config[0].mutex, config[0].toi, time_left);
-				results[box_id] = 1;
+				// results[box_id] = 1;
 				return;
 			}
 
@@ -925,7 +925,7 @@ namespace ccd
 			if (condition)
 			{
 				mutex_update_min(config[0].mutex, config[0].toi, time_left);
-				results[box_id] = 1;
+				// results[box_id] = 1;
 				return;
 			}
 			const int split = split_dimension_memory_pool(data_in, widths);
@@ -936,9 +936,11 @@ namespace ccd
 
 			if (sure_in) // in this case, the interval is too small that overflow happens. it should be rare to happen
 			{
+				// if (time_left < config[0].toi)
+				// 	printf("condition4 %.6f %.6f\n", config[0].toi, time_left);
 				mutex_update_min(config[0].mutex, config[0].toi, time_left);
 				// atomicMin(&config[0].toi, time_left);
-				results[box_id] = 1;
+				// results[box_id] = 1;
 				return;
 			}
 			// bisected[0].query_id = box_id;
@@ -992,7 +994,7 @@ namespace ccd
 #endif
 		}
 
-		int *res = new int[nbr];
+		// int *res = new int[nbr];
 		// MP_unit *units = new MP_unit[UNIT_SIZE];
 		CCDConfig *config = new CCDConfig[1];
 		config[0].err_in[0] =
@@ -1011,18 +1013,18 @@ namespace ccd
 		// config[0].not_empty = 0;
 		// device
 		CCDdata *d_data_list;
-		int *d_res;
+		// int *d_res;
 		MP_unit *d_units;
 		CCDConfig *d_config;
 
 		size_t data_size = sizeof(CCDdata) * nbr;
 		printf("data_size %llu\n", data_size);
-		size_t result_size = sizeof(int) * nbr;
+		// size_t result_size = sizeof(int) * nbr;
 		size_t unit_size = sizeof(MP_unit) * UNIT_SIZE;
 		// int dbg_size=sizeof(Scalar)*8;
 
 		gpuErrchk(cudaMalloc(&d_data_list, data_size));
-		cudaMalloc(&d_res, result_size);
+		// cudaMalloc(&d_res, result_size);
 		cudaMalloc(&d_units, unit_size);
 		cudaMalloc(&d_config, sizeof(CCDConfig));
 		gpuErrchk(cudaGetLastError());
@@ -1051,7 +1053,7 @@ namespace ccd
 		while (nbr_per_loop > 0)
 		{
 			vf_ccd_memory_pool<<<nbr_per_loop / parallel_nbr + 1, parallel_nbr>>>(
-				d_units, nbr, d_data_list, d_config, d_res);
+				d_units, nbr, d_data_list, d_config);
 			cudaDeviceSynchronize();
 
 			shift_queue_pointers<<<1, 1>>>(d_config);
@@ -1077,29 +1079,29 @@ namespace ccd
 
 		cudaProfilerStop();
 
-		cudaMemcpy(res, d_res, result_size, cudaMemcpyDeviceToHost);
+		// cudaMemcpy(res, d_res, result_size, cudaMemcpyDeviceToHost);
 		// cudaMemcpy(tois, d_tois, time_size, cudaMemcpyDeviceToHost);
 		// cudaMemcpy(dbg, d_dbg, dbg_size, cudaMemcpyDeviceToHost);
 
 		cudaMemcpy(&toi, &d_config[0].toi, sizeof(Scalar), cudaMemcpyDeviceToHost);
 
 		cudaFree(d_data_list);
-		cudaFree(d_res);
+		// cudaFree(d_res);
 		cudaFree(d_units);
 		cudaFree(d_config);
 		// cudaFree(d_dbg);
 
-		for (size_t i = 0; i < nbr; i++)
-		{
-			result_list[i] = res[i];
-		}
+		// for (size_t i = 0; i < nbr; i++)
+		// {
+		// 	result_list[i] = res[i];
+		// }
 
 		// std::cout << "dbg info\n"
 		//           << dbg[0] << "," << dbg[1] << "," << dbg[2] << "," << dbg[3] <<
 		//           "," << dbg[4] << "," << dbg[5] << "," << dbg[6] << "," << dbg[7]
 		//           << std::endl;
-		std::cout << "dbg result " << res[0] << std::endl;
-		delete[] res;
+		// std::cout << "dbg result " << res[0] << std::endl;
+		// delete[] res;
 		delete[] data_list;
 		// delete[] units;
 		delete[] config;
