@@ -439,7 +439,7 @@ namespace ccd
 			}
 
 			// get the min and max in one dimension
-			true_tol = vmax - vmin;
+			true_tol = max(true_tol, vmax - vmin);
 
 			if (vmin > data_in.err[bp.dim] || vmax + +data_in.ms < -data_in.err[bp.dim])
 			{
@@ -842,7 +842,7 @@ namespace ccd
 	}
 
 	__global__ void vf_ccd_memory_pool(MP_unit *units, int query_size,
-									   CCDdata *data, CCDConfig *config)
+									   CCDdata *data, CCDConfig *config, int *results)
 	{
 		int tx = threadIdx.x + blockIdx.x * blockDim.x;
 		if (tx >= config[0].mp_remaining)
@@ -882,13 +882,13 @@ namespace ccd
 		// }
 		else if (data_in.nbr_checks > MAX_CHECKS) // max checks
 		{
-			// results[box_id] = 1;
+			results[box_id] = 1;
 			return;
 		}
 		else if (config[0].mp_remaining > UNIT_SIZE / 2) // overflow
 		{
 			// printf("Overflow\n"); //better to set overflow flag
-			// results[box_id] = 1;
+			results[box_id] = 1;
 			return;
 		}
 
@@ -907,7 +907,7 @@ namespace ccd
 			if (condition)
 			{
 				mutex_update_min(config[0].mutex, config[0].toi, time_left);
-				// results[box_id] = 1;
+				results[box_id] = 1;
 				return;
 			}
 			// Condition 2, the box is inside the epsilon box, have a root, return true;
@@ -915,7 +915,7 @@ namespace ccd
 			if (box_in)
 			{
 				mutex_update_min(config[0].mutex, config[0].toi, time_left);
-				// results[box_id] = 1;
+				results[box_id] = 1;
 				return;
 			}
 
@@ -925,7 +925,7 @@ namespace ccd
 			if (condition)
 			{
 				mutex_update_min(config[0].mutex, config[0].toi, time_left);
-				// results[box_id] = 1;
+				results[box_id] = 1;
 				return;
 			}
 			const int split = split_dimension_memory_pool(data_in, widths);
@@ -1050,7 +1050,7 @@ namespace ccd
 		while (nbr_per_loop > 0)
 		{
 			vf_ccd_memory_pool<<<nbr_per_loop / parallel_nbr + 1, parallel_nbr>>>(
-				d_units, nbr, d_data_list, d_config);
+				d_units, nbr, d_data_list, d_config, d_res);
 			cudaDeviceSynchronize();
 
 			shift_queue_pointers<<<1, 1>>>(d_config);
