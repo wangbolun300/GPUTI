@@ -1,14 +1,14 @@
 
-#include<gputi/queue.h>
-#include<iostream>
+#include <gputi/queue.h>
+#include <iostream>
 
 // A C++ program to demonstrate common Binary Heap Operations
-#include<iostream>
-#include<climits>
-#include<gputi/root_finder.h>
+#include <iostream>
+#include <climits>
+#include <gputi/root_finder.cuh>
 
 // // __device__ void get_array(MinHeap heap, int n, ptest& out){
-  
+
 // //     for(int i=0;i<n;i++){
 // //         out[i]=heap.extractMin().key;
 // //     }
@@ -27,7 +27,6 @@
 // //        }
 // //     }
 // // }
-
 
 // // void test_heap(){
 // //     const int m=1024;// nbr of heaps
@@ -86,14 +85,14 @@
 // __device__ void check_width(Singleinterval *s, Scalar* v, int dim){
 //     VectorMax3d w=width(s);
 //     for(int i=0;i<8;i++){
-        
+
 //         v[i]=w.v[dim];
 //     }
 // }
 // __device__ Scalar* pter(){
 //     Scalar *p=new Scalar[8];
 //     for(int i=0;i<8;i++){
-        
+
 //         p[i]=i*0.5;
 //     }
 //     return p;
@@ -103,10 +102,10 @@
 //     Scalar* tem=pter();
 //     //*v=*tem=;
 //     // for(int i=0;i<8;i++){
-        
+
 //     //     v[i]=tem[i];
 //     // }
-// }   
+// }
 // __device__ void ptr_to_ptr(Singleinterval* p1, int* v){
 //     Singleinterval *tmp=&p1[1];
 //     for(int i=0;i<8;i++){
@@ -147,8 +146,7 @@
 //     i0=new Singleinterval(zero,one);
 //     i1=new Singleinterval(zero,one);
 //     i2=new Singleinterval(zero,one);
-    
-    
+
 //     // v6[0]=1;
 //     // v6[1]=1;
 //     // check_width(itv,v0,0);
@@ -159,13 +157,12 @@
 //     //check_return_pointer(v0);
 //     //ptr_to_ptr(itv,v6);
 //     test_bool_1(0,v6);
-    
-// }
 
+// }
 
 // void run_test(){
 //     Singleinterval itv[3];
-    
+
 //     Scalar v0[8];Scalar v1[8];Scalar v2[8];Scalar v3[8];Scalar v4[8];Scalar v5[8]; int v6[8];
 //     Scalar* d_v0;Scalar* d_v1;Scalar* d_v2;Scalar* d_v3;Scalar* d_v4;Scalar* d_v5;
 //     int *d_v6;
@@ -213,7 +210,7 @@
 // }
 
 // __device__ void vf_test_wrapper(CCDdata* vfdata, bool &result){
-    
+
 //     Scalar* err=new Scalar[3]; err[0]=-1;err[1]=-1;err[2]=-1;
 //     Scalar ms=0;
 //     Scalar toi;
@@ -236,18 +233,17 @@
 //         CCDdata* input=&data[tx];
 //         vf_test_wrapper(input,res[tx]);
 //     }
-// } 
-
+// }
 
 // void test_single_ccd(){
 //     int dnbr=1;
-    
+
 //     std::array<std::array<Scalar,3>,8> adata;
 //     adata[0]={{0,0,0}};
 //     adata[1]={{0,0,0}};
 //     adata[2]={{1,0,0}};
 //     adata[3]={{0,1,0}};
-    
+
 //     adata[4]={{-1,-1,-1}};
 //     adata[5]={{0,0,0}};
 //     adata[6]={{1,0,0}};
@@ -259,7 +255,6 @@
 //         CCDdata* temp=&vfdata[0];
 //         std::cout<<"testing "<<vfdata->v0e[0]<<std::endl;
 //     }
-
 
 //     CCDdata* d_data;
 //     Scalar* debug=new Scalar[8];
@@ -283,27 +278,27 @@
 //     print_vector(debug,8);
 // }
 
+int main(int argc, char **argv)
+{
+	//test_single_ccd();
+	//run_test();
+	//test_heap();
+	// MinHeap h;
+	//MinHeap h;
 
-int main(int argc, char ** argv){
-    //test_single_ccd();
-    //run_test();
-    //test_heap();
-    // MinHeap h;
-    //MinHeap h;
-
-    // h.insertKey(item(3));
+	// h.insertKey(item(3));
 	// h.insertKey(item(2));
 	// h.deleteKey(1);
 	// h.insertKey(item(15));
 	// h.insertKey(item(5));
 	// h.insertKey(item(4));
 	// h.insertKey(item(45));
-    // std::cout << h.extractMin().key << " ";
-    // std::cout << h.getMin().key << " ";
-    // h.decreaseKey(2, 1);
-    // std::cout << h.getMin().key;
+	// std::cout << h.extractMin().key << " ";
+	// std::cout << h.getMin().key << " ";
+	// h.decreaseKey(2, 1);
+	// std::cout << h.getMin().key;
 
-    //std::cout<<"size "<<sizeof(MinHeap)<<std::endl;
-    std::cout<<"done!"<<std::endl;
-    return 1;
+	//std::cout<<"size "<<sizeof(MinHeap)<<std::endl;
+	std::cout << "done!" << std::endl;
+	return 1;
 }

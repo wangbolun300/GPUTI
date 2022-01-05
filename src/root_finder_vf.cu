@@ -1,7 +1,7 @@
 #include <array>
 #include <float.h>
 #include <gputi/queue.h>
-#include <gputi/root_finder.h>
+#include <gputi/root_finder.cuh>
 #include <iostream>
 #include <vector>
 

@@ -9,7 +9,7 @@ tools/timer.hpp
 src/queue.cu
 src/queue.h
 src/Type.hpp
-src/root_finder.h
+src/root_finder.cuh
 src/root_finder_vf.cu
 # src/root_finder_ee.cu
 src/root_finder_vf_ms.cu

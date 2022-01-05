@@ -1,4 +1,4 @@
-#include <gputi/root_finder.h>
+#include <gputi/root_finder.cuh>
 #include <gputi/book.h>
 // #include "timer.hpp"
 #include <iostream>
