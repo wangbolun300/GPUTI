@@ -62,20 +62,20 @@ if (GPUTI_WITH_BENCHMARK)
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -DGPUTI_USE_DOUBLE_PRECISION")
 
 
-add_executable(test_bin app/test.cu)
-set_target_properties(test_bin PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-set_property(TARGET test_bin PROPERTY CUDA_ARCHITECTURES 70 75 86)
-target_link_libraries(test_bin PRIVATE gputi)
-# target_link_libraries(test_bin PUBLIC Boost::filesystem)
-# target_compile_features(test_bin PUBLIC cxx_std_14)
+add_executable(testgpu_bin app/test.cu)
+set_target_properties(testgpu_bin PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+set_property(TARGET testgpu_bin PROPERTY CUDA_ARCHITECTURES 70 75 86)
+target_link_libraries(testgpu_bin PRIVATE gputi)
+# target_link_libraries(testgpu_bin PUBLIC Boost::filesystem)
+# target_compile_features(testgpu_bin PUBLIC cxx_std_14)
 # gmp
 find_package(GMP)
 IF(NOT ${GMP_FOUND})
         MESSAGE(FATAL_ERROR "Cannot find GMP")
 ENDIF()
-target_include_directories(test_bin PUBLIC ${GMP_INCLUDE_DIRS})
-target_link_libraries(test_bin PUBLIC ${GMP_LIBRARIES})
-target_compile_options(test_bin PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
+target_include_directories(testgpu_bin PUBLIC ${GMP_INCLUDE_DIRS})
+target_link_libraries(testgpu_bin PUBLIC ${GMP_LIBRARIES})
+target_compile_options(testgpu_bin PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
                        --generate-line-info
                        --use_fast_math
                        --relocatable-device-code=true
@@ -85,7 +85,7 @@ target_compile_options(test_bin PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
 if(APPLE)
 # We need to add the default path to the driver (libcuda.dylib) as an rpath,
 # so that the static cuda runtime can find it at runtime.
-set_property( test_bin PROPERTY BUILD_RPATH ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+set_property( testgpu_bin PROPERTY BUILD_RPATH ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 endif()
 
 endif()
