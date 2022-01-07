@@ -1,15 +1,10 @@
 #pragma once
-
-#include <vector>
-#include <array>
-// #include <gputi/CType.hpp>
-#include <string>
-#include <cuda_runtime.h>
+#include <cfloat>
 #include <cuda.h>
+#include <cuda_runtime.h>
 
 namespace ccd
 {
-
 #ifdef GPUTI_USE_DOUBLE_PRECISION
 	typedef double3 Scalar3;
 	typedef double2 Scalar2;
@@ -29,8 +24,4 @@ namespace ccd
 	__host__ __device__ Scalar2 make_Scalar2(const Scalar a, const Scalar b);
 #define SCALAR_LIMIT INT_MAX;
 #endif
-
-	std::vector<std::array<ccd::Scalar, 3>>
-	read_rational_csv(const std::string &inputFileName, std::vector<bool> &results);
-
 } // namespace ccd
