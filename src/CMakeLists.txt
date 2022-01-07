@@ -1,5 +1,5 @@
 set(GPUTI_SOURCES
-tools/CType.hpp
+# tools/CType.hpp
 tools/book.h
 tools/timer.cuh
 tools/io.cpp
