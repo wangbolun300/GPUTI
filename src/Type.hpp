@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <cudaProfiler.h>
 #include <cuda_profiler_api.h>
-#include <gputi/read_rational_csv.hpp>
+#include <gputi/read_rational_csv.cuh>
 #include <limits>
 #include <utility>
 #include <cuda/semaphore>
