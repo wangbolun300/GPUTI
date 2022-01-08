@@ -27,7 +27,7 @@ namespace ccd
 	static const int TEST_NBR_QUERIES =
 		1e9; // set as large as possible to avoid truncation of reading data
 
-#define NO_CHECK_MS
+// #define NO_CHECK_MS
 #define CALCULATE_ERROR_BOUND
 #define TIME_UPPER_IS_ONE
 
