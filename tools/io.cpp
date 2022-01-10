@@ -1,4 +1,4 @@
-#include <gputi/io.h>
+#include "io.h"
 
 namespace ccd{
 std::vector<std::string> simulation_folders = {{"chain", "cow-heads", "golf-ball", "mat-twist"}};

@@ -8,7 +8,7 @@
 #include <cuda/std/functional>
 
 #include <gputi/timer.cuh>
-#include <gputi/io.h>
+#include "../tools/io.h"
 #include <gputi/timer.hpp>
 
 using namespace ccd;
@@ -367,10 +367,6 @@ void run_rational_data_single_method_parallel(
 
 			// std::cout<<"filename "<<filename<<std::endl;
 			// exit(0);
-			if (queries.size() > TEST_NBR_QUERIES)
-			{
-				break;
-			}
 			// all_V = ccd::read_rational_csv(filename, results);
 			// all_V = read_rational_csv_bin(filename, results);
 
@@ -405,10 +401,6 @@ void run_rational_data_single_method_parallel(
 			int v_size = all_V.size() / 8;
 			for (int i = 0; i < v_size; i++)
 			{
-				if (queries.size() > TEST_NBR_QUERIES)
-				{
-					break;
-				}
 				total_number += 1;
 
 				std::array<std::array<Scalar, 3>, 8> V = substract_ccd(all_V, i);

@@ -62,7 +62,10 @@ if (GPUTI_WITH_BENCHMARK)
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -DGPUTI_USE_DOUBLE_PRECISION")
 
 
-add_executable(testgpu_bin app/test.cu)
+add_executable(testgpu_bin app/test.cu tools/read_rational_csv.cpp
+tools/read_rational_csv.cpp
+tools/rational.hpp
+tools/io.cpp)
 set_target_properties(testgpu_bin PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 set_property(TARGET testgpu_bin PROPERTY CUDA_ARCHITECTURES 70 75 86)
 target_link_libraries(testgpu_bin PRIVATE gputi)

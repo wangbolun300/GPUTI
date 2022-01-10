@@ -15,17 +15,15 @@ namespace ccd
 	// here are the parameters for the memory pool
 	// static const int UNIT_SIZE = 2e7;
 	static const long UNIT_SIZE = 1e8;
-	static const long EACH_LAUNCH_SIZE = 2e8;
+	static const long EACH_LAUNCH_SIZE = 1e7;
 	static const int HEAP_SIZE = 100;
 	static const int MAX_CHECKS = 1e4;
 	///////////////////////////////
 
-	//#define GPUTI_USE_DOUBLE_PRECISION
+	// THE FOLLOWING VALUES ARE JUST FOR DEBUGGING
 	// #define GPUTI_GO_DEAP_HEAP
-	static const int TESTING_ID = 219064;
-	static const int TEST_SIZE = 1;
-	static const int TEST_NBR_QUERIES =
-		1e9; // set as large as possible to avoid truncation of reading data
+	// static const int TESTING_ID = 219064;
+	// static const int TEST_SIZE = 1;
 
 // #define NO_CHECK_MS
 #define CALCULATE_ERROR_BOUND
@@ -74,30 +72,6 @@ namespace ccd
 	void print_vector(Scalar *v, int size);
 	void print_vector(int *v, int size);
 
-	class item
-	{
-	public:
-		int level;
-		Singleinterval itv[3];
-		__device__ item(const Singleinterval si[3], const int &level);
-		__device__ item();
-		__device__ item &operator=(const item &x)
-		{
-			if (this == &x)
-				return *this;
-			// itv[0]=x.itv[0];
-			// itv[1]=x.itv[1];
-			// itv[2]=x.itv[2];
-			itv[0].first = x.itv[0].first;
-			itv[0].second = x.itv[0].second;
-			itv[1].first = x.itv[1].first;
-			itv[1].second = x.itv[1].second;
-			itv[2].first = x.itv[2].first;
-			itv[2].second = x.itv[2].second;
-			level = x.level;
-			return *this;
-		}
-	};
 
 	// the initialized error input, solve tolerance, time interval upper bound, etc.
 	class CCDConfig
@@ -107,7 +81,6 @@ namespace ccd
 									// whole mesh
 		Scalar co_domain_tolerance; // tolerance of the co-domain
 		// Scalar max_t;               // the upper bound of the time interval
-		int max_itr; // the maximal nbr of iterations
 		unsigned int mp_start;
 		unsigned int mp_end;
 		int mp_remaining;
@@ -117,29 +90,7 @@ namespace ccd
 		// int not_empty;
 	};
 
-	// the output info
-	class CCDOut
-	{
-	public:
-		bool result;
-		// Scalar toi=SCALAR_LIMIT;
-		// Scalar output_tolerance;
-		int overflow_flag = NO_OVERFLOW;
-		Scalar tol[3]; // conservative domain tolerance
-					   // Scalar dbg[8];
-	};
-
 	// this is to record the interval related info
-	class BoxCompute
-	{
-	public:
-		item current_item;   // containing 3 intervals and the level
-		Scalar err[3];       // the error bound
-		bool box_in = true;  // if the inclusion function is inside the error bound
-		Scalar true_tol = 0; // the actual solving tolerance of the co-domain
-		Scalar widths[3];
-		int split;
-	};
 
 	class MP_unit
 	{
@@ -227,7 +178,6 @@ namespace ccd
 		Scalar t;
 		Scalar u;
 		Scalar v;
-		__device__ void calculate_tuv(const BoxCompute &box);
 		__device__ void calculate_tuv(const MP_unit &unit);
 	};
 	CCDdata array_to_ccd(std::array<std::array<Scalar, 3>, 8> a);

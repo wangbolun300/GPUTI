@@ -1,6 +1,5 @@
 #include <array>
 #include <float.h>
-#include <gputi/queue.h>
 #include <gputi/root_finder.cuh>
 #include <iostream>
 #include <vector>
@@ -75,58 +74,6 @@ namespace ccd
 		}
 #endif
 		return true;
-	}
-
-	__device__ void compute_face_vertex_tolerance(const CCDdata &data_in,
-												  const CCDConfig &config,
-												  CCDOut &out)
-	{
-		Scalar p000[3], p001[3], p011[3], p010[3], p100[3], p101[3], p111[3], p110[3];
-		for (int i = 0; i < 3; i++)
-		{
-			p000[i] = data_in.v0s[i] - data_in.v1s[i];
-			p001[i] = data_in.v0s[i] - data_in.v3s[i];
-			p011[i] =
-				data_in.v0s[i] - (data_in.v2s[i] + data_in.v3s[i] - data_in.v1s[i]);
-			p010[i] = data_in.v0s[i] - data_in.v2s[i];
-			p100[i] = data_in.v0e[i] - data_in.v1e[i];
-			p101[i] = data_in.v0e[i] - data_in.v3e[i];
-			p111[i] =
-				data_in.v0e[i] - (data_in.v2e[i] + data_in.v3e[i] - data_in.v1e[i]);
-			p110[i] = data_in.v0e[i] - data_in.v2e[i];
-		}
-		Scalar dl = 0;
-		for (int i = 0; i < 3; i++)
-		{
-			dl = max(dl, fabs(p100[i] - p000[i]));
-			dl = max(dl, fabs(p101[i] - p001[i]));
-			dl = max(dl, fabs(p111[i] - p011[i]));
-			dl = max(dl, fabs(p110[i] - p010[i]));
-		}
-		dl *= 3;
-		out.tol[0] = config.co_domain_tolerance / dl;
-
-		dl = 0;
-		for (int i = 0; i < 3; i++)
-		{
-			dl = max(dl, fabs(p010[i] - p000[i]));
-			dl = max(dl, fabs(p110[i] - p100[i]));
-			dl = max(dl, fabs(p111[i] - p101[i]));
-			dl = max(dl, fabs(p011[i] - p001[i]));
-		}
-		dl *= 3;
-		out.tol[1] = config.co_domain_tolerance / dl;
-
-		dl = 0;
-		for (int i = 0; i < 3; i++)
-		{
-			dl = max(dl, fabs(p001[i] - p000[i]));
-			dl = max(dl, fabs(p101[i] - p100[i]));
-			dl = max(dl, fabs(p111[i] - p110[i]));
-			dl = max(dl, fabs(p011[i] - p010[i]));
-		}
-		dl *= 3;
-		out.tol[2] = config.co_domain_tolerance / dl;
 	}
 	__device__ void
 	compute_face_vertex_tolerance_memory_pool(CCDdata &data_in,
@@ -227,57 +174,7 @@ namespace ccd
 		data_in.tol[2] = config.co_domain_tolerance / dl;
 	}
 
-	__device__ __host__ void get_numerical_error_vf(const CCDdata &data_in,
-													BoxCompute &box)
-	{
-		Scalar vffilter;
-
-#ifdef GPUTI_USE_DOUBLE_PRECISION
-		vffilter = 6.661338147750939e-15;
-#else
-		vffilter = 3.576279e-06;
-#endif
-		Scalar xmax = fabs(data_in.v0s[0]);
-		Scalar ymax = fabs(data_in.v0s[1]);
-		Scalar zmax = fabs(data_in.v0s[2]);
-
-		xmax = max(xmax, fabs(data_in.v1s[0]));
-		ymax = max(ymax, fabs(data_in.v1s[1]));
-		zmax = max(zmax, fabs(data_in.v1s[2]));
-
-		xmax = max(xmax, fabs(data_in.v2s[0]));
-		ymax = max(ymax, fabs(data_in.v2s[1]));
-		zmax = max(zmax, fabs(data_in.v2s[2]));
-
-		xmax = max(xmax, fabs(data_in.v3s[0]));
-		ymax = max(ymax, fabs(data_in.v3s[1]));
-		zmax = max(zmax, fabs(data_in.v3s[2]));
-
-		xmax = max(xmax, fabs(data_in.v0e[0]));
-		ymax = max(ymax, fabs(data_in.v0e[1]));
-		zmax = max(zmax, fabs(data_in.v0e[2]));
-
-		xmax = max(xmax, fabs(data_in.v1e[0]));
-		ymax = max(ymax, fabs(data_in.v1e[1]));
-		zmax = max(zmax, fabs(data_in.v1e[2]));
-
-		xmax = max(xmax, fabs(data_in.v2e[0]));
-		ymax = max(ymax, fabs(data_in.v2e[1]));
-		zmax = max(zmax, fabs(data_in.v2e[2]));
-
-		xmax = max(xmax, fabs(data_in.v3e[0]));
-		ymax = max(ymax, fabs(data_in.v3e[1]));
-		zmax = max(zmax, fabs(data_in.v3e[2]));
-
-		xmax = max(xmax, Scalar(1));
-		ymax = max(ymax, Scalar(1));
-		zmax = max(zmax, Scalar(1));
-
-		box.err[0] = xmax * xmax * xmax * vffilter;
-		box.err[1] = ymax * ymax * ymax * vffilter;
-		box.err[2] = zmax * zmax * zmax * vffilter;
-		return;
-	}
+	
 	__device__ __host__ void get_numerical_error_vf_memory_pool(CCDdata &data_in)
 	{
 		Scalar vffilter;
@@ -393,35 +290,6 @@ namespace ccd
 	//     const Scalar ms,
 	//     bool &box_in_eps,
 	//     Scalar *tolerance)
-	__device__ void BoxPrimatives::calculate_tuv(const BoxCompute &box)
-	{
-		if (b[0] == 0)
-		{ // t0
-			t = box.current_item.itv[0].first;
-		}
-		else
-		{ // t1
-			t = box.current_item.itv[0].second;
-		}
-
-		if (b[1] == 0)
-		{ // u0
-			u = box.current_item.itv[1].first;
-		}
-		else
-		{ // u1
-			u = box.current_item.itv[1].second;
-		}
-
-		if (b[2] == 0)
-		{ // v0
-			v = box.current_item.itv[2].first;
-		}
-		else
-		{ // v1
-			v = box.current_item.itv[2].second;
-		}
-	}
 	__device__ void BoxPrimatives::calculate_tuv(const MP_unit &unit)
 	{
 		if (b[0] == 0)
@@ -608,26 +476,6 @@ namespace ccd
 			}
 		}
 		return true;
-	}
-	inline __device__ void split_dimension(const CCDOut &out,
-										   BoxCompute &box)
-	{ // clarified in queue.h
-		Scalar res[3];
-		res[0] = box.widths[0] / out.tol[0];
-		res[1] = box.widths[1] / out.tol[1];
-		res[2] = box.widths[2] / out.tol[2];
-		if (res[0] >= res[1] && res[0] >= res[2])
-		{
-			box.split = 0;
-		}
-		if (res[1] >= res[0] && res[1] >= res[2])
-		{
-			box.split = 1;
-		}
-		if (res[2] >= res[1] && res[2] >= res[0])
-		{
-			box.split = 2;
-		}
 	}
 
 	// __device__ void bisect_vf_and_push(BoxCompute &box, const CCDConfig &config,
