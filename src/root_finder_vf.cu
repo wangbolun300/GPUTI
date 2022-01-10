@@ -462,7 +462,6 @@ namespace ccd
 		pt = (t1 - t0) * bp.u + (t2 - t0) * bp.v + t0;
 		return (v - pt);
 	}
-
 	__device__ Scalar calculate_ee(const CCDdata &data_in, const BoxPrimatives &bp)
 	{
 		Scalar edge0_vertex0 = (data_in.v0e[bp.dim] - data_in.v0s[bp.dim]) * bp.t + data_in.v0s[bp.dim];
@@ -958,21 +957,12 @@ namespace ccd
 
 		if (split == 0)
 		{
-			// if (config.max_t != 1)
-			// {
-			// if (halves.second.first <= config[0].toi)
+			if (halves.second.first <= config[0].toi)
 			{
 				unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
 				out[unit_id] = unit;
 				out[unit_id].itv[split] = halves.second;
-				// valid_nbr = 2;
 			}
-			// // }
-			// else
-			// {
-			// 	bisected[1].itv[split] = halves.second;
-			// 	valid_nbr = 2;
-			// }
 		}
 		else if (split == 1)
 		{
@@ -1023,21 +1013,27 @@ namespace ccd
 		out[unit_id] = unit;
 		out[unit_id].itv[split] = halves.first;
 
+
 		if (split == 0) // split the time interval
 		{
 			if (halves.second.first <= config[0].toi)
 			{
-				int unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
+				unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
 				out[unit_id] = unit;
 				out[unit_id].itv[split] = halves.second;
 			}
 		}
-		else
+		else 
 		{
-			int unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
+
+			unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
 			out[unit_id] = unit;
 			out[unit_id].itv[split] = halves.second;
+			// valid_nbr = 2;
+			
 		}
+		
+
 		return false;
 	}
 
