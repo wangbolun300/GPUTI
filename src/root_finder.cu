@@ -861,7 +861,6 @@ namespace ccd
 		out[unit_id] = unit;
 		out[unit_id].itv[split] = halves.first;
 
-
 		if (split == 0) // split the time interval
 		{
 			if (halves.second.first <= config[0].toi)
@@ -871,16 +870,14 @@ namespace ccd
 				out[unit_id].itv[split] = halves.second;
 			}
 		}
-		else 
+		else
 		{
 
 			unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
 			out[unit_id] = unit;
 			out[unit_id].itv[split] = halves.second;
 			// valid_nbr = 2;
-			
 		}
-		
 
 		return false;
 	}
@@ -1172,8 +1169,8 @@ namespace ccd
 		// int *res = new int[nbr];
 		// MP_unit *units = new MP_unit[UNIT_SIZE];
 		CCDConfig *config = new CCDConfig[1];
-		config[0].err_in[0] =
-			-1;                               // the input error bound calculate from the AABB of the whole mesh
+		// config[0].err_in[0] =
+		// 	-1;                               // the input error bound calculate from the AABB of the whole mesh
 		config[0].co_domain_tolerance = 1e-6; // tolerance of the co-domain
 		config[0].toi = 1;
 		// config[0].max_t = 1;                  // the upper bound of the time interval

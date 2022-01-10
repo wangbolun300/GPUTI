@@ -16,8 +16,7 @@ namespace ccd
 	// static const int UNIT_SIZE = 2e7;
 	static const long UNIT_SIZE = 1e8;
 	static const long EACH_LAUNCH_SIZE = 1e7;
-	static const int HEAP_SIZE = 100;
-	static const int MAX_CHECKS = 1e4;
+	static const int MAX_CHECKS = 1e6;
 	///////////////////////////////
 
 	// THE FOLLOWING VALUES ARE JUST FOR DEBUGGING
@@ -77,8 +76,8 @@ namespace ccd
 	class CCDConfig
 	{
 	public:
-		Scalar err_in[3];           // the input error bound calculate from the AABB of the
-									// whole mesh
+		// Scalar err_in[3];           // the input error bound calculate from the AABB of the
+		// whole mesh
 		Scalar co_domain_tolerance; // tolerance of the co-domain
 		// Scalar max_t;               // the upper bound of the time interval
 		unsigned int mp_start;
