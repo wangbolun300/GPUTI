@@ -1010,18 +1010,16 @@ namespace ccd
 		// { // if it is sure that have root, then no need to check
 		// 	return;
 		// }
-		bool overflow = false;
-		if (data_in.nbr_checks > MAX_CHECKS && !overflow) // max checks
+		if (data_in.nbr_checks > MAX_CHECKS) // max checks
 		{
-			overflow = true;
-			printf("OVER MAX_CHECKS\n");
-			// results[box_id] = 1;
+			if (!config[0].overflow_flag)
+				atomicAdd(&config[0].overflow_flag, 1);
 			return;
 		}
-		else if (config[0].mp_remaining > UNIT_SIZE / 2 && !overflow) // overflow
+		else if (config[0].mp_remaining > UNIT_SIZE / 2) // overflow
 		{
-			overflow = true;
-			printf("OVERFLOW\n");
+			if (!config[0].overflow_flag)
+				atomicAdd(&config[0].overflow_flag, 1);
 			return;
 		}
 
@@ -1139,13 +1137,14 @@ namespace ccd
 		// }
 		if (data_in.nbr_checks > MAX_CHECKS) // max checks
 		{
-			// results[box_id] = 1;
+			if (!config[0].overflow_flag)
+				atomicAdd(&config[0].overflow_flag, 1);
 			return;
 		}
 		else if (config[0].mp_remaining > UNIT_SIZE / 2) // overflow
 		{
-			// printf("Overflow\n"); //better to set overflow flag
-			// results[box_id] = 1;
+			if (!config[0].overflow_flag)
+				atomicAdd(&config[0].overflow_flag, 1);
 			return;
 		}
 
@@ -1271,6 +1270,7 @@ namespace ccd
 			.mp_end = nbr;
 		config[0].mp_start = 0;
 		config[0].mp_remaining = nbr;
+		config[0].overflow_flag = 0;
 		// config[0].mp_status = true;           // in the begining, start < end
 		// config[0].not_empty = 0;
 		// device
@@ -1371,6 +1371,11 @@ namespace ccd
 		// cudaMemcpy(dbg, d_dbg, dbg_size, cudaMemcpyDeviceToHost);
 
 		cudaMemcpy(&toi, &d_config[0].toi, sizeof(Scalar), cudaMemcpyDeviceToHost);
+
+		int overflow;
+		cudaMemcpy(&overflow, &d_config[0].overflow_flag, sizeof(int), cudaMemcpyDeviceToHost);
+		if (overflow)
+			printf("OVERFLOW!!!!\n");
 
 		cudaFree(d_data_list);
 		// cudaFree(d_res);

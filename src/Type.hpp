@@ -67,7 +67,6 @@ namespace ccd
 	void print_vector(Scalar *v, int size);
 	void print_vector(int *v, int size);
 
-
 	// the initialized error input, solve tolerance, time interval upper bound, etc.
 	class CCDConfig
 	{
@@ -83,6 +82,7 @@ namespace ccd
 		cuda::binary_semaphore<cuda::thread_scope_device> mutex;
 		// int mp_status = 1; // when true, it means that no overflow happens
 		// int not_empty;
+		int overflow_flag;
 	};
 
 	// this is to record the interval related info
