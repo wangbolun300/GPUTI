@@ -296,6 +296,70 @@ namespace ccd
 		data_in.err[2] = zmax * zmax * zmax * vffilter;
 		return;
 	}
+	std::array<Scalar, 3> get_numerical_error(
+        const std::vector<std::array<Scalar, 3>> &vertices,
+        const bool &check_vf,
+        const bool using_minimum_separation)
+    {
+        Scalar eefilter;
+        Scalar vffilter;
+        if (!using_minimum_separation)
+        {
+#ifdef TIGHT_INCLUSION_DOUBLE
+            eefilter = 6.217248937900877e-15;
+            vffilter = 6.661338147750939e-15;
+#else
+            eefilter = 3.337861e-06;
+			vffilter = 3.576279e-06;
+#endif
+        }
+        else // using minimum separation
+        {
+#ifdef TIGHT_INCLUSION_DOUBLE
+            eefilter = 7.105427357601002e-15;
+            vffilter = 7.549516567451064e-15;
+#else
+            eefilter = 3.814698e-06; 
+            vffilter = 4.053116e-06;
+#endif
+        }
+
+        Scalar xmax = fabs(vertices[0][0]);
+        Scalar ymax = fabs(vertices[0][1]);
+        Scalar zmax = fabs(vertices[0][2]);
+        for (int i = 0; i < vertices.size(); i++)
+        {
+            if (xmax < fabs(vertices[i][0]))
+            {
+                xmax = fabs(vertices[i][0]);
+            }
+            if (ymax < fabs(vertices[i][1]))
+            {
+                ymax = fabs(vertices[i][1]);
+            }
+            if (zmax < fabs(vertices[i][2]))
+            {
+                zmax = fabs(vertices[i][2]);
+            }
+        }
+        Scalar delta_x = xmax > 1 ? xmax : 1;
+        Scalar delta_y = ymax > 1 ? ymax : 1;
+        Scalar delta_z = zmax > 1 ? zmax : 1;
+        std::array<Scalar, 3> result;
+        if (!check_vf)
+        {
+            result[0] = delta_x * delta_x * delta_x * eefilter;
+            result[1] = delta_y * delta_y * delta_y * eefilter;
+            result[2] = delta_z * delta_z * delta_z * eefilter;
+        }
+        else
+        {
+            result[0] = delta_x * delta_x * delta_x * vffilter;
+            result[1] = delta_y * delta_y * delta_y * vffilter;
+            result[2] = delta_z * delta_z * delta_z * vffilter;
+        }
+        return result;
+    }
 	// Singleinterval *paras,
 	//     const Scalar *a0s,
 	//     const Scalar *a1s,
@@ -743,7 +807,7 @@ namespace ccd
 		compute_face_vertex_tolerance_memory_pool(data[tx], config[0]);
 
 		data[tx].nbr_checks = 0;
-#ifdef CALCULATE_ERROR_BOUND
+#ifdef CALCULATE_QUERY_ERROR_BOUND
 		get_numerical_error_vf_memory_pool(data[tx]);
 #endif
 		// __syncthreads();
@@ -762,7 +826,7 @@ namespace ccd
 		compute_edge_edge_tolerance_memory_pool(data[tx], config[0]);
 
 		data[tx].nbr_checks = 0;
-#ifdef CALCULATE_ERROR_BOUND
+#ifdef CALCULATE_QUERY_ERROR_BOUND
 		get_numerical_error_ee_memory_pool(data[tx]);
 #endif
 		// __syncthreads();
@@ -1220,6 +1284,9 @@ namespace ccd
 #ifdef GPUTI_BENCHMARK_MINIMUM_SEPARATION
 		printf("benchmark minimum separation %d\n", MINIMUM_SEPARATION_BENCHMARK);
 #endif
+#ifdef CALCULATE_QUERY_ERROR_BOUND
+		printf("calculate error bound for each individual query\n");
+#endif
 		// size_t result_size = sizeof(int) * nbr;
 		size_t unit_size = sizeof(MP_unit) * UNIT_SIZE;
 		// int dbg_size=sizeof(Scalar)*8;
@@ -1330,4 +1397,6 @@ namespace ccd
 
 		return;
 	}
+
+	
 } // namespace ccd

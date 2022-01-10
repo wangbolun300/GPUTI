@@ -24,8 +24,6 @@ namespace ccd
 	// static const int TESTING_ID = 219064;
 	// static const int TEST_SIZE = 1;
 
-#define CALCULATE_ERROR_BOUND
-
 #ifdef GPUTI_BENCHMARK_MINIMUM_SEPARATION //use benchmark value as input
 	static const Scalar MINIMUM_SEPARATION_BENCHMARK = 1e-8;
 #endif

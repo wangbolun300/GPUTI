@@ -13,6 +13,8 @@ endif()
 OPTION(GPUTI_WITH_BENCHMARK          "run benchmark for testing"   ON)
 OPTION(GPUTI_WITH_DOUBLE_PRECISION   "use double precision calculation" ON)
 OPTION(GPUTI_BENCHMARK_MINIMUM_SEPARATION   "set minimum separation as benchmark value" ON)
+OPTION(GPUTI_EACH_QUERY_ERROR_BOUND   "calculate error bound for each individual query" ON)
+
 
 ### Configuration
 set(GPUTI_EXTERNAL "${CMAKE_CURRENT_SOURCE_DIR}/external")
@@ -40,6 +42,9 @@ if(GPUTI_WITH_DOUBLE_PRECISION)
 endif()
 if(GPUTI_BENCHMARK_MINIMUM_SEPARATION)
   target_compile_definitions(gputi PUBLIC -DGPUTI_BENCHMARK_MINIMUM_SEPARATION)
+endif()
+if(GPUTI_EACH_QUERY_ERROR_BOUND)
+  target_compile_definitions(gputi PUBLIC -DCALCULATE_QUERY_ERROR_BOUND)
 endif()
 
 # Request that gputi be built with -std=c++11

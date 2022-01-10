@@ -22,4 +22,11 @@ bool is_edge,
 	__global__ void vf_ccd_memory_pool(MP_unit *units, int query_size, CCDdata *data, CCDConfig *config);
 	__global__ void ee_ccd_memory_pool(MP_unit *units, int query_size, CCDdata *data, CCDConfig *config);
 	__global__ void compute_ee_tolerance_memory_pool(CCDdata *data, CCDConfig *config, const int query_size);
+	
+	// get the filter of ccd. the inputs are the vertices of the bounding box of the simulation scene
+	// this function is directly copied from https://github.com/Continuous-Collision-Detection/Tight-Inclusion/ 
+	std::array<Scalar, 3> get_numerical_error(
+        const std::vector<std::array<Scalar, 3>> &vertices,
+        const bool &check_vf,
+        const bool using_minimum_separation);
 } // namespace ccd
