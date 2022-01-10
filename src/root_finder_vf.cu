@@ -957,21 +957,12 @@ namespace ccd
 
 		if (split == 0)
 		{
-			// if (config.max_t != 1)
-			// {
-			// if (halves.second.first <= config[0].toi)
+			if (halves.second.first <= config[0].toi)
 			{
 				unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
 				out[unit_id] = unit;
 				out[unit_id].itv[split] = halves.second;
-				// valid_nbr = 2;
 			}
-			// // }
-			// else
-			// {
-			// 	bisected[1].itv[split] = halves.second;
-			// 	valid_nbr = 2;
-			// }
 		}
 		else if (split == 1)
 		{
