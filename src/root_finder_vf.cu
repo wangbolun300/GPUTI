@@ -473,6 +473,7 @@ namespace ccd
 
 		return result;
 	}
+
 	// __device__ bool Origin_in_vf_inclusion_function(const CCDdata &data_in,
 	// 												BoxCompute &box, CCDOut &out)
 	// {
@@ -996,7 +997,7 @@ namespace ccd
 		}
 		return false;
 	}
-inline __device__ bool bisect_ee_memory_pool(const MP_unit &unit, int split,
+	inline __device__ bool bisect_ee_memory_pool(const MP_unit &unit, int split,
 												 CCDConfig *config,
 												 //   MP_unit bisected[2])
 												 MP_unit *out)
@@ -1021,16 +1022,14 @@ inline __device__ bool bisect_ee_memory_pool(const MP_unit &unit, int split,
 		out[unit_id] = unit;
 		out[unit_id].itv[split] = halves.first;
 
-		if (split == 0)
+
+		if (split == 0) // split the time interval
 		{
-			// if (config.max_t != 1)
-			// {
-			// if (halves.second.first <= config[0].toi)
+			if (halves.second.first <= config[0].toi)
 			{
 				unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
 				out[unit_id] = unit;
 				out[unit_id].itv[split] = halves.second;
-				// valid_nbr = 2;
 			}
 		}
 		else 
@@ -1043,16 +1042,9 @@ inline __device__ bool bisect_ee_memory_pool(const MP_unit &unit, int split,
 			
 		}
 		
+
 		return false;
 	}
-	// __global__ void reset_level_root_record(CCDdata *data, int query_size)
-	// {
-	//     int tx = threadIdx.x + blockIdx.x * blockDim.x;
-	//     if (tx >= query_size)
-	//         return;
-	//     data[tx].last_round_has_root_record = data[tx].last_round_has_root;
-	//     data[tx].last_round_has_root = 0;
-	// }
 
 	inline __device__ void mutex_update_min(cuda::binary_semaphore<cuda::thread_scope_device> &mutex, Scalar &value, const Scalar &compare)
 	{
@@ -1185,7 +1177,7 @@ inline __device__ bool bisect_ee_memory_pool(const MP_unit &unit, int split,
 			// }
 		}
 	}
-__global__ void ee_ccd_memory_pool(MP_unit *units, int query_size,
+	__global__ void ee_ccd_memory_pool(MP_unit *units, int query_size,
 									   CCDdata *data, CCDConfig *config)
 	{
 		int tx = threadIdx.x + blockIdx.x * blockDim.x;
@@ -1383,15 +1375,17 @@ __global__ void ee_ccd_memory_pool(MP_unit *units, int query_size,
 																		 nbr);
 		gpuErrchk(cudaGetLastError());
 		gpuErrchk(cudaDeviceSynchronize());
-		if(is_edge){
+		if (is_edge)
+		{
 			compute_ee_tolerance_memory_pool<<<nbr / parallel_nbr + 1, parallel_nbr>>>(
 				d_data_list, d_config, nbr);
 		}
-		else{
+		else
+		{
 			compute_vf_tolerance_memory_pool<<<nbr / parallel_nbr + 1, parallel_nbr>>>(
 				d_data_list, d_config, nbr);
 		}
-		
+
 		gpuErrchk(cudaDeviceSynchronize());
 
 		printf("UNIT_SIZE: %llu\n", UNIT_SIZE);
@@ -1404,15 +1398,17 @@ __global__ void ee_ccd_memory_pool(MP_unit *units, int query_size,
 		timer.start();
 		while (nbr_per_loop > 0)
 		{
-			if(is_edge){
+			if (is_edge)
+			{
 				ee_ccd_memory_pool<<<nbr_per_loop / parallel_nbr + 1, parallel_nbr>>>(
 					d_units, nbr, d_data_list, d_config);
 			}
-			else{
+			else
+			{
 				vf_ccd_memory_pool<<<nbr_per_loop / parallel_nbr + 1, parallel_nbr>>>(
 					d_units, nbr, d_data_list, d_config);
 			}
-			
+
 			cudaDeviceSynchronize();
 
 			shift_queue_pointers<<<1, 1>>>(d_config);
