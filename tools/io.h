@@ -5,7 +5,7 @@
 #include <string>
 #include <fstream>
 #include <iterator>
-#include "read_rational_csv.hpp"
+#include <gputi/read_rational_csv.hpp>
 
 namespace ccd
 {

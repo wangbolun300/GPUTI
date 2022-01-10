@@ -1,4 +1,4 @@
-#include "read_rational_csv.hpp"
+#include <gputi/read_rational_csv.hpp>
 
 #include <array>
 #include <fstream>
