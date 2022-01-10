@@ -22,7 +22,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort =
 
 namespace ccd
 {
-	CCDdata array_to_ccd(std::array<std::array<Scalar, 3>, 8> a)
+	CCDdata array_to_ccd(const std::array<std::array<Scalar, 3>, 8> &a)
 	{
 		CCDdata data;
 #pragma unroll
@@ -37,6 +37,26 @@ namespace ccd
 			data.v2e[i] = a[6][i];
 			data.v3e[i] = a[7][i];
 		}
+		return data;
+	}
+
+	CCDdata array_to_ccd(const std::array<std::array<Scalar, 3>, 8> &a, const Scalar ms)
+	{
+		CCDdata data;
+#pragma unroll
+		for (int i = 0; i < 3; i++)
+		{
+			data.v0s[i] = a[0][i];
+			data.v1s[i] = a[1][i];
+			data.v2s[i] = a[2][i];
+			data.v3s[i] = a[3][i];
+			data.v0e[i] = a[4][i];
+			data.v1e[i] = a[5][i];
+			data.v2e[i] = a[6][i];
+			data.v3e[i] = a[7][i];
+			
+		}
+		data.ms=ms;
 		return data;
 	}
 
@@ -1150,7 +1170,11 @@ namespace ccd
 	}
 
 	void run_memory_pool_ccd(
-		const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, bool is_edge,
+		const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, 
+#ifndef GPUTI_BENCHMARK_MINIMUM_SEPARATION //do not use benchmark ms as input
+		const Scalar ms,
+#endif
+		bool is_edge,
 		std::vector<int> &result_list, int parallel_nbr, double &runtime, Scalar &toi)
 	{
 		int nbr = V.size();
@@ -1160,10 +1184,12 @@ namespace ccd
 		CCDdata *data_list = new CCDdata[nbr];
 		for (int i = 0; i < nbr; i++)
 		{
-			data_list[i] = array_to_ccd(V[i]);
-#ifndef NO_CHECK_MS
-			data_list[i].ms = MINIMUM_SEPARATION_BENCHMARK;
+#ifdef GPUTI_BENCHMARK_MINIMUM_SEPARATION //use benchmark ms value as input
+			data_list[i] = array_to_ccd(V[i],MINIMUM_SEPARATION_BENCHMARK);
+#else
+			data_list[i] = array_to_ccd(V[i], ms);
 #endif
+
 		}
 
 		// int *res = new int[nbr];
@@ -1191,6 +1217,9 @@ namespace ccd
 
 		size_t data_size = sizeof(CCDdata) * nbr;
 		printf("data_size %llu\n", data_size);
+#ifdef GPUTI_BENCHMARK_MINIMUM_SEPARATION
+		printf("benchmark minimum separation %d\n", MINIMUM_SEPARATION_BENCHMARK);
+#endif
 		// size_t result_size = sizeof(int) * nbr;
 		size_t unit_size = sizeof(MP_unit) * UNIT_SIZE;
 		// int dbg_size=sizeof(Scalar)*8;

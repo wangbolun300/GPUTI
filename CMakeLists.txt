@@ -8,8 +8,11 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 else()
   set(GPUTI_TOPLEVEL_PROJECT OFF)
 endif()
-OPTION(GPUTI_WITH_BENCHMARK          "run benchmark for testing"   ON)
 
+
+OPTION(GPUTI_WITH_BENCHMARK          "run benchmark for testing"   ON)
+OPTION(GPUTI_WITH_DOUBLE_PRECISION   "use double precision calculation" ON)
+OPTION(GPUTI_BENCHMARK_MINIMUM_SEPARATION   "set minimum separation as benchmark value" ON)
 
 ### Configuration
 set(GPUTI_EXTERNAL "${CMAKE_CURRENT_SOURCE_DIR}/external")
@@ -31,7 +34,13 @@ gputi_set_source_group(${GPUTI_SOURCES})
 add_library(gputi STATIC ${GPUTI_SOURCES})
 target_include_directories(gputi PUBLIC ${PROJECT_BINARY_DIR}/include)
 # target_link_libraries(gputi PRIVATE warnings::all)
-target_compile_definitions(gputi PUBLIC NOMINMAX -DGPUTI_USE_DOUBLE_PRECISION)
+target_compile_definitions(gputi PUBLIC NOMINMAX)
+if(GPUTI_WITH_DOUBLE_PRECISION)
+  target_compile_definitions(gputi PUBLIC -DGPUTI_USE_DOUBLE_PRECISION)
+endif()
+if(GPUTI_BENCHMARK_MINIMUM_SEPARATION)
+  target_compile_definitions(gputi PUBLIC -DGPUTI_BENCHMARK_MINIMUM_SEPARATION)
+endif()
 
 # Request that gputi be built with -std=c++11
 # As this is a public compile feature anything that links to gputi
@@ -58,9 +67,9 @@ set_property(TARGET gputi PROPERTY CUDA_ARCHITECTURES 70 75 86)
 if (GPUTI_WITH_BENCHMARK)
 # set(Boost_USE_MULTITHREADED TRUE)
 # find_package(Boost COMPONENTS filesystem REQUIRED)
-
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -DGPUTI_USE_DOUBLE_PRECISION")
-
+if(GPUTI_WITH_DOUBLE_PRECISION)
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -DGPUTI_USE_DOUBLE_PRECISION")
+endif()
 
 add_executable(testgpu_bin app/test.cu tools/read_rational_csv.cpp
 tools/read_rational_csv.cpp

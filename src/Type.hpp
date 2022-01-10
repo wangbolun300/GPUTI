@@ -24,11 +24,9 @@ namespace ccd
 	// static const int TESTING_ID = 219064;
 	// static const int TEST_SIZE = 1;
 
-// #define NO_CHECK_MS
 #define CALCULATE_ERROR_BOUND
-#define TIME_UPPER_IS_ONE
 
-#ifndef NO_CHECK_MS
+#ifdef GPUTI_BENCHMARK_MINIMUM_SEPARATION //use benchmark value as input
 	static const Scalar MINIMUM_SEPARATION_BENCHMARK = 1e-8;
 #endif
 
@@ -179,7 +177,7 @@ namespace ccd
 		Scalar v;
 		__device__ void calculate_tuv(const MP_unit &unit);
 	};
-	CCDdata array_to_ccd(std::array<std::array<Scalar, 3>, 8> a);
+	CCDdata array_to_ccd(const std::array<std::array<Scalar, 3>, 8> &a);
 	__device__ void single_test_wrapper(CCDdata *vfdata, bool &result);
 	__device__ Scalar calculate_ee(const CCDdata &data_in, const BoxPrimatives &bp);
 } // namespace ccd

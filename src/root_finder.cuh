@@ -6,7 +6,11 @@
 // #include <gputi/book.h>
 namespace ccd
 {
-	void run_memory_pool_ccd(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, bool is_edge,
+	void run_memory_pool_ccd(const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, 
+#ifndef GPUTI_BENCHMARK_MINIMUM_SEPARATION //do not use benchmark ms as input
+		const Scalar ms,
+#endif
+bool is_edge,
 							 std::vector<int> &result_list, int parallel_nbr, double &runtime, Scalar &toi);
 
 	// can be removed once device-only run_memory_pool_ccd copied over

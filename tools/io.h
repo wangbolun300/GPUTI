@@ -15,7 +15,7 @@ namespace ccd
 	struct Args
 	{
 		std::string data_dir;
-		double minimum_separation = 0;
+		Scalar minimum_separation = 0;
 		double tight_inclusion_tolerance = 1e-6;
 		long tight_inclusion_max_iter = 1e6;
 		bool run_ee_dataset = true;
