@@ -19,4 +19,5 @@ namespace ccd
 	__global__ void shift_queue_pointers(CCDConfig *config);
 	// __global__ void vf_ccd_memory_pool(MP_unit *units, int query_size, CCDdata *data, CCDConfig *config, int *results);
 	__global__ void vf_ccd_memory_pool(MP_unit *units, int query_size, CCDdata *data, CCDConfig *config);
+	
 } // namespace ccd

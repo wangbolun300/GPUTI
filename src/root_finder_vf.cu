@@ -462,7 +462,17 @@ namespace ccd
 		pt = (t1 - t0) * bp.u + (t2 - t0) * bp.v + t0;
 		return (v - pt);
 	}
+	__device__ Scalar calculate_ee(const CCDdata &data_in, const BoxPrimatives &bp)
+	{
+		Scalar edge0_vertex0 = (data_in.v0e[bp.dim] - data_in.v0s[bp.dim]) * bp.t + data_in.v0s[bp.dim];
+		Scalar edge0_vertex1 = (data_in.v1e[bp.dim] - data_in.v1s[bp.dim]) * bp.t + data_in.v1s[bp.dim];
+		Scalar edge1_vertex0 = (data_in.v2e[bp.dim] - data_in.v2s[bp.dim]) * bp.t + data_in.v2s[bp.dim];
+		Scalar edge1_vertex1 = (data_in.v3e[bp.dim] - data_in.v3s[bp.dim]) * bp.t + data_in.v3s[bp.dim];
+		Scalar result = ((edge0_vertex1 - edge0_vertex0) * bp.u + edge0_vertex0)
+						- ((edge1_vertex1 - edge1_vertex0) * bp.v + edge1_vertex0);
 
+		return result;
+	}
 	// __device__ bool Origin_in_vf_inclusion_function(const CCDdata &data_in,
 	// 												BoxCompute &box, CCDOut &out)
 	// {
@@ -991,53 +1001,49 @@ inline __device__ bool bisect_ee_memory_pool(const MP_unit &unit, int split,
 												 //   MP_unit bisected[2])
 												 MP_unit *out)
 	{
-		interval_pair halves(box.current_item.itv[box.split]); // bisected
-		bool inserted;
+		interval_pair halves(unit.itv[split]); // bisected
+
 		if (halves.first.first >= halves.first.second)
 		{
-			out.overflow_flag = BISECTION_OVERFLOW;
-			return;
+			// valid_nbr = 0;
+			return true;
 		}
 		if (halves.second.first >= halves.second.second)
 		{
-			out.overflow_flag = BISECTION_OVERFLOW;
-			return;
+			// valid_nbr = 0;
+			return true;
 		}
+		// bisected[0] = unit;
+		// bisected[1] = unit;
+		// valid_nbr = 1;
 
-		if (config.max_t != 1 && box.split == 0)
-		{
-			if (halves.second.first <= config.max_t)
-			{
-				box.current_item.itv[box.split] = halves.second;
-				inserted = istack.insertKey(box.current_item.itv, box.current_item.level + 1);
-				if (inserted == false)
-				{
-					out.overflow_flag = HEAP_OVERFLOW;
-				}
-			}
+		int unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
+		out[unit_id] = unit;
+		out[unit_id].itv[split] = halves.first;
 
-			box.current_item.itv[box.split] = halves.first;
-			inserted = istack.insertKey(box.current_item.itv, box.current_item.level + 1);
-			if (inserted == false)
-			{
-				out.overflow_flag = HEAP_OVERFLOW;
-			}
-		}
-		else
+		if (split == 0)
 		{
-			box.current_item.itv[box.split] = halves.second;
-			inserted = istack.insertKey(box.current_item.itv, box.current_item.level + 1);
-			if (inserted == false)
+			// if (config.max_t != 1)
+			// {
+			// if (halves.second.first <= config[0].toi)
 			{
-				out.overflow_flag = HEAP_OVERFLOW;
-			}
-			box.current_item.itv[box.split] = halves.first;
-			inserted = istack.insertKey(box.current_item.itv, box.current_item.level + 1);
-			if (inserted == false)
-			{
-				out.overflow_flag = HEAP_OVERFLOW;
+				unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
+				out[unit_id] = unit;
+				out[unit_id].itv[split] = halves.second;
+				// valid_nbr = 2;
 			}
 		}
+		else 
+		{
+
+			unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
+			out[unit_id] = unit;
+			out[unit_id].itv[split] = halves.second;
+			// valid_nbr = 2;
+			
+		}
+		
+		return false;
 	}
 	// __global__ void reset_level_root_record(CCDdata *data, int query_size)
 	// {

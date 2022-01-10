@@ -232,4 +232,5 @@ namespace ccd
 	};
 	CCDdata array_to_ccd(std::array<std::array<Scalar, 3>, 8> a);
 	__device__ void single_test_wrapper(CCDdata *vfdata, bool &result);
+	__device__ Scalar calculate_ee(const CCDdata &data_in, const BoxPrimatives &bp);
 } // namespace ccd

@@ -102,17 +102,7 @@ namespace ccd
 		box.err[2] = zmax * zmax * zmax * vffilter;
 		return;
 	}
-	__device__ Scalar calculate_ee(const CCDdata &data_in, const BoxPrimatives &bp)
-	{
-		Scalar edge0_vertex0 = (data_in.v0e[bp.dim] - data_in.v0s[bp.dim]) * bp.t + data_in.v0s[bp.dim];
-		Scalar edge0_vertex1 = (data_in.v1e[bp.dim] - data_in.v1s[bp.dim]) * bp.t + data_in.v1s[bp.dim];
-		Scalar edge1_vertex0 = (data_in.v2e[bp.dim] - data_in.v2s[bp.dim]) * bp.t + data_in.v2s[bp.dim];
-		Scalar edge1_vertex1 = (data_in.v3e[bp.dim] - data_in.v3s[bp.dim]) * bp.t + data_in.v3s[bp.dim];
-		Scalar result = ((edge0_vertex1 - edge0_vertex0) * bp.u + edge0_vertex0)
-						- ((edge1_vertex1 - edge1_vertex0) * bp.v + edge1_vertex0);
-
-		return result;
-	}
+	
 
 	__device__ bool Origin_in_ee_inclusion_function(const CCDdata &data_in, BoxCompute &box, CCDOut &out)
 	{
