@@ -54,9 +54,8 @@ namespace ccd
 			data.v1e[i] = a[5][i];
 			data.v2e[i] = a[6][i];
 			data.v3e[i] = a[7][i];
-			
 		}
-		data.ms=ms;
+		data.ms = ms;
 		return data;
 	}
 
@@ -194,7 +193,6 @@ namespace ccd
 		data_in.tol[2] = config.co_domain_tolerance / dl;
 	}
 
-	
 	__device__ __host__ void get_numerical_error_vf_memory_pool(CCDdata &data_in)
 	{
 		Scalar vffilter;
@@ -297,69 +295,69 @@ namespace ccd
 		return;
 	}
 	std::array<Scalar, 3> get_numerical_error(
-        const std::vector<std::array<Scalar, 3>> &vertices,
-        const bool &check_vf,
-        const bool using_minimum_separation)
-    {
-        Scalar eefilter;
-        Scalar vffilter;
-        if (!using_minimum_separation)
-        {
+		const std::vector<std::array<Scalar, 3>> &vertices,
+		const bool &check_vf,
+		const bool using_minimum_separation)
+	{
+		Scalar eefilter;
+		Scalar vffilter;
+		if (!using_minimum_separation)
+		{
 #ifdef TIGHT_INCLUSION_DOUBLE
-            eefilter = 6.217248937900877e-15;
-            vffilter = 6.661338147750939e-15;
+			eefilter = 6.217248937900877e-15;
+			vffilter = 6.661338147750939e-15;
 #else
-            eefilter = 3.337861e-06;
+			eefilter = 3.337861e-06;
 			vffilter = 3.576279e-06;
 #endif
-        }
-        else // using minimum separation
-        {
+		}
+		else // using minimum separation
+		{
 #ifdef TIGHT_INCLUSION_DOUBLE
-            eefilter = 7.105427357601002e-15;
-            vffilter = 7.549516567451064e-15;
+			eefilter = 7.105427357601002e-15;
+			vffilter = 7.549516567451064e-15;
 #else
-            eefilter = 3.814698e-06; 
-            vffilter = 4.053116e-06;
+			eefilter = 3.814698e-06;
+			vffilter = 4.053116e-06;
 #endif
-        }
+		}
 
-        Scalar xmax = fabs(vertices[0][0]);
-        Scalar ymax = fabs(vertices[0][1]);
-        Scalar zmax = fabs(vertices[0][2]);
-        for (int i = 0; i < vertices.size(); i++)
-        {
-            if (xmax < fabs(vertices[i][0]))
-            {
-                xmax = fabs(vertices[i][0]);
-            }
-            if (ymax < fabs(vertices[i][1]))
-            {
-                ymax = fabs(vertices[i][1]);
-            }
-            if (zmax < fabs(vertices[i][2]))
-            {
-                zmax = fabs(vertices[i][2]);
-            }
-        }
-        Scalar delta_x = xmax > 1 ? xmax : 1;
-        Scalar delta_y = ymax > 1 ? ymax : 1;
-        Scalar delta_z = zmax > 1 ? zmax : 1;
-        std::array<Scalar, 3> result;
-        if (!check_vf)
-        {
-            result[0] = delta_x * delta_x * delta_x * eefilter;
-            result[1] = delta_y * delta_y * delta_y * eefilter;
-            result[2] = delta_z * delta_z * delta_z * eefilter;
-        }
-        else
-        {
-            result[0] = delta_x * delta_x * delta_x * vffilter;
-            result[1] = delta_y * delta_y * delta_y * vffilter;
-            result[2] = delta_z * delta_z * delta_z * vffilter;
-        }
-        return result;
-    }
+		Scalar xmax = fabs(vertices[0][0]);
+		Scalar ymax = fabs(vertices[0][1]);
+		Scalar zmax = fabs(vertices[0][2]);
+		for (int i = 0; i < vertices.size(); i++)
+		{
+			if (xmax < fabs(vertices[i][0]))
+			{
+				xmax = fabs(vertices[i][0]);
+			}
+			if (ymax < fabs(vertices[i][1]))
+			{
+				ymax = fabs(vertices[i][1]);
+			}
+			if (zmax < fabs(vertices[i][2]))
+			{
+				zmax = fabs(vertices[i][2]);
+			}
+		}
+		Scalar delta_x = xmax > 1 ? xmax : 1;
+		Scalar delta_y = ymax > 1 ? ymax : 1;
+		Scalar delta_z = zmax > 1 ? zmax : 1;
+		std::array<Scalar, 3> result;
+		if (!check_vf)
+		{
+			result[0] = delta_x * delta_x * delta_x * eefilter;
+			result[1] = delta_y * delta_y * delta_y * eefilter;
+			result[2] = delta_z * delta_z * delta_z * eefilter;
+		}
+		else
+		{
+			result[0] = delta_x * delta_x * delta_x * vffilter;
+			result[1] = delta_y * delta_y * delta_y * vffilter;
+			result[2] = delta_z * delta_z * delta_z * vffilter;
+		}
+		return result;
+	}
 	// Singleinterval *paras,
 	//     const Scalar *a0s,
 	//     const Scalar *a1s,
@@ -1012,15 +1010,18 @@ namespace ccd
 		// { // if it is sure that have root, then no need to check
 		// 	return;
 		// }
-		if (data_in.nbr_checks > MAX_CHECKS) // max checks
+		bool overflow = false;
+		if (data_in.nbr_checks > MAX_CHECKS && !overflow) // max checks
 		{
+			overflow = true;
+			printf("OVER MAX_CHECKS\n");
 			// results[box_id] = 1;
 			return;
 		}
-		else if (config[0].mp_remaining > UNIT_SIZE / 2) // overflow
+		else if (config[0].mp_remaining > UNIT_SIZE / 2 && !overflow) // overflow
 		{
-			// printf("Overflow\n"); //better to set overflow flag
-			// results[box_id] = 1;
+			overflow = true;
+			printf("OVERFLOW\n");
 			return;
 		}
 
@@ -1234,7 +1235,7 @@ namespace ccd
 	}
 
 	void run_memory_pool_ccd(
-		const std::vector<std::array<std::array<Scalar, 3>, 8>> &V, 
+		const std::vector<std::array<std::array<Scalar, 3>, 8>> &V,
 #ifndef GPUTI_BENCHMARK_MINIMUM_SEPARATION //do not use benchmark ms as input
 		const Scalar ms,
 #endif
@@ -1249,11 +1250,10 @@ namespace ccd
 		for (int i = 0; i < nbr; i++)
 		{
 #ifdef GPUTI_BENCHMARK_MINIMUM_SEPARATION //use benchmark ms value as input
-			data_list[i] = array_to_ccd(V[i],MINIMUM_SEPARATION_BENCHMARK);
+			data_list[i] = array_to_ccd(V[i], MINIMUM_SEPARATION_BENCHMARK);
 #else
 			data_list[i] = array_to_ccd(V[i], ms);
 #endif
-
 		}
 
 		// int *res = new int[nbr];
@@ -1398,5 +1398,4 @@ namespace ccd
 		return;
 	}
 
-	
 } // namespace ccd
