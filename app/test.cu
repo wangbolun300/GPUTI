@@ -8,7 +8,7 @@
 #include <cuda/std/functional>
 
 #include <gputi/timer.cuh>
-#include "../tools/io.h"
+#include <gputi/io.h>
 #include <gputi/timer.hpp>
 
 using namespace ccd;
@@ -458,11 +458,11 @@ void run_rational_data_single_method_parallel(
 		{
 			tmp_queries[i] = queries[start_id + i];
 		}
-		run_memory_pool_ccd(tmp_queries, 
-#ifndef GPUTI_BENCHMARK_MINIMUM_SEPARATION //don't use benchmark value as input		
-		args.minimum_separation,
+		run_memory_pool_ccd(tmp_queries,
+#ifndef GPUTI_BENCHMARK_MINIMUM_SEPARATION //don't use benchmark value as input
+							args.minimum_separation,
 #endif
-		is_edge_edge,
+							is_edge_edge,
 							tmp_results, parallel, tmp_tall, toi);
 		tavg += tmp_tall;
 		for (int i = 0; i < tmp_nbr; i++)
