@@ -1,8 +1,9 @@
 #pragma once
-#include <gputi/queue.h>
+// #include <gputi/queue.h>
 #include <vector>
 #include <array>
 #include <gputi/timer.hpp>
+#include <gputi/Type.hpp>
 // #include <gputi/book.h>
 namespace ccd
 {
