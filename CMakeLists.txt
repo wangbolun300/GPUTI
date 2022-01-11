@@ -58,6 +58,8 @@ target_compile_features(gputi PUBLIC cxx_std_11)
 set_target_properties( gputi
                        PROPERTIES CUDA_SEPARABLE_COMPILATION ON
                       )
+find_package(CUDA REQUIRED)
+include_directories("${CUDA_INCLUDE_DIRS}")
 set_property(TARGET gputi PROPERTY CUDA_ARCHITECTURES 70 75 86)
  target_compile_options(gputi PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
  --generate-line-info
