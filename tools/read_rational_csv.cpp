@@ -5,7 +5,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
-#include "rational.hpp"
+#include <gputi/rational.hpp>
 
 namespace ccd
 {
