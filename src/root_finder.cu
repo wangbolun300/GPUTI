@@ -1016,7 +1016,7 @@ namespace ccd
 				atomicAdd(&config[0].overflow_flag, 1);
 			return;
 		}
-		else if (config[0].mp_remaining > UNIT_SIZE / 2) // overflow
+		else if (config[0].mp_remaining > config[0].unit_size / 2) // overflow
 		{
 			if (!config[0].overflow_flag)
 				atomicAdd(&config[0].overflow_flag, 1);
@@ -1121,7 +1121,7 @@ namespace ccd
 				atomicAdd(&config[0].overflow_flag, 1);
 			return;
 		}
-		else if (config[0].mp_remaining > UNIT_SIZE / 2) // overflow
+		else if (config[0].mp_remaining > config[0].unit_size / 2) // overflow
 		{
 			if (!config[0].overflow_flag)
 				atomicAdd(&config[0].overflow_flag, 1);
@@ -1252,7 +1252,7 @@ namespace ccd
 		printf("calculate error bound for each individual query\n");
 #endif
 		// size_t result_size = sizeof(int) * nbr;
-		size_t unit_size = sizeof(MP_unit) * nbr * 4;
+		size_t unit_size = sizeof(MP_unit) * nbr * 8;
 		// int dbg_size=sizeof(Scalar)*8;
 
 		gpuErrchk(cudaMalloc(&d_data_list, data_size));
