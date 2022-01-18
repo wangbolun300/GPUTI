@@ -14,7 +14,7 @@ namespace ccd
 	///////////////////////////////
 	// here are the parameters for the memory pool
 	// static const int UNIT_SIZE = 2e7;
-	static const long UNIT_SIZE = 2e7;
+	static const long UNIT_SIZE = 2e8;
 	static const long EACH_LAUNCH_SIZE = 1e7;
 	static const int MAX_CHECKS = 1e6;
 #define NO_CHECK_MS
@@ -79,6 +79,7 @@ namespace ccd
 		unsigned int mp_start;
 		unsigned int mp_end;
 		int mp_remaining;
+		long unit_size;
 		Scalar toi;
 		cuda::binary_semaphore<cuda::thread_scope_device> mutex;
 		// int mp_status = 1; // when true, it means that no overflow happens

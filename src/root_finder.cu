@@ -881,7 +881,7 @@ namespace ccd
 		// bisected[1] = unit;
 		// valid_nbr = 1;
 
-		int unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
+		int unit_id = atomicInc(&config[0].mp_end, config[0].unit_size - 1);
 		out[unit_id] = unit;
 		out[unit_id].itv[split] = halves.first;
 
@@ -889,7 +889,7 @@ namespace ccd
 		{
 			if (halves.second.first <= config[0].toi)
 			{
-				unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
+				unit_id = atomicInc(&config[0].mp_end, config[0].unit_size - 1);
 				out[unit_id] = unit;
 				out[unit_id].itv[split] = halves.second;
 			}
@@ -899,7 +899,7 @@ namespace ccd
 			if (sum_no_larger_1(halves.second.first,
 								unit.itv[2].first)) // check if u+v<=1
 			{
-				unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
+				unit_id = atomicInc(&config[0].mp_end, config[0].unit_size - 1);
 				out[unit_id] = unit;
 				out[unit_id].itv[1] = halves.second;
 				// valid_nbr = 2;
@@ -910,7 +910,7 @@ namespace ccd
 			if (sum_no_larger_1(halves.second.first,
 								unit.itv[1].first)) // check if u+v<=1
 			{
-				unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
+				unit_id = atomicInc(&config[0].mp_end, config[0].unit_size - 1);
 				out[unit_id] = unit;
 				out[unit_id].itv[2] = halves.second;
 				// valid_nbr = 2;
@@ -939,7 +939,7 @@ namespace ccd
 		// bisected[1] = unit;
 		// valid_nbr = 1;
 
-		int unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
+		int unit_id = atomicInc(&config[0].mp_end, config[0].unit_size - 1);
 		out[unit_id] = unit;
 		out[unit_id].itv[split] = halves.first;
 
@@ -947,7 +947,7 @@ namespace ccd
 		{
 			if (halves.second.first <= config[0].toi)
 			{
-				unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
+				unit_id = atomicInc(&config[0].mp_end, config[0].unit_size - 1);
 				out[unit_id] = unit;
 				out[unit_id].itv[split] = halves.second;
 			}
@@ -955,7 +955,7 @@ namespace ccd
 		else
 		{
 
-			unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
+			unit_id = atomicInc(&config[0].mp_end, config[0].unit_size - 1);
 			out[unit_id] = unit;
 			out[unit_id].itv[split] = halves.second;
 			// valid_nbr = 2;
@@ -987,7 +987,7 @@ namespace ccd
 		//    config[0].mp_end,
 		//    config[0].mp_remaining);
 
-		int qid = (tx + config[0].mp_start) % UNIT_SIZE;
+		int qid = (tx + config[0].mp_start) % config[0].unit_size;
 
 		Scalar widths[3];
 		bool condition;
@@ -1074,26 +1074,6 @@ namespace ccd
 				// results[box_id] = 1;
 				return;
 			}
-			// bisected[0].query_id = box_id;
-			// bisected[1].query_id = box_id;
-			// if (valid_nbr == 0)
-			// { // in this case, the interval is too small that overflow happens
-			// 	results[box_id] = 1;
-			// 	return;
-			// }
-			// else if (valid_nbr == 1)
-			// {
-			// 	int unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
-			// 	units[unit_id] = bisected[0];
-			// }
-			// else // (valid_nbr == 2)
-			// {
-			// 	int unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
-			// 	units[unit_id] = bisected[0];
-
-			// 	unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
-			// 	units[unit_id] = bisected[1];
-			// }
 		}
 	}
 	__global__ void ee_ccd_memory_pool(MP_unit *units, int query_size,
@@ -1112,7 +1092,7 @@ namespace ccd
 		//    config[0].mp_end,
 		//    config[0].mp_remaining);
 
-		int qid = (tx + config[0].mp_start) % UNIT_SIZE;
+		int qid = (tx + config[0].mp_start) % config[0].unit_size;
 
 		Scalar widths[3];
 		bool condition;
@@ -1199,38 +1179,23 @@ namespace ccd
 				// results[box_id] = 1;
 				return;
 			}
-			// bisected[0].query_id = box_id;
-			// bisected[1].query_id = box_id;
-			// if (valid_nbr == 0)
-			// { // in this case, the interval is too small that overflow happens
-			// 	results[box_id] = 1;
-			// 	return;
-			// }
-			// else if (valid_nbr == 1)
-			// {
-			// 	int unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
-			// 	units[unit_id] = bisected[0];
-			// }
-			// else // (valid_nbr == 2)
-			// {
-			// 	int unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
-			// 	units[unit_id] = bisected[0];
-
-			// 	unit_id = atomicInc(&config[0].mp_end, UNIT_SIZE - 1);
-			// 	units[unit_id] = bisected[1];
-			// }
 		}
 	}
 
 	__global__ void shift_queue_pointers(CCDConfig *config)
 	{
 		config[0].mp_start += config[0].mp_remaining;
-		config[0].mp_start = config[0].mp_start % UNIT_SIZE;
+		config[0].mp_start = config[0].mp_start % config[0].unit_size;
 		config[0].mp_remaining = (config[0].mp_end - config[0].mp_start);
 		config[0].mp_remaining =
 			config[0].mp_remaining < 0
-				? config[0].mp_end + UNIT_SIZE - config[0].mp_start
+				? config[0].mp_end + config[0].unit_size - config[0].mp_start
 				: config[0].mp_remaining;
+		// if (2 * config[0].mp_remaining > config[0].unit_size)
+		// {
+		// 	config[0].unit_size = 2 * config[0].mp_remaining;
+		// 	printf("new unit_size : %llu\n", config[0].unit_size);
+		// }
 	}
 
 	void run_memory_pool_ccd(
@@ -1256,7 +1221,6 @@ namespace ccd
 		}
 
 		// int *res = new int[nbr];
-		// MP_unit *units = new MP_unit[UNIT_SIZE];
 		CCDConfig *config = new CCDConfig[1];
 		// config[0].err_in[0] =
 		// 	-1;                               // the input error bound calculate from the AABB of the whole mesh
@@ -1288,7 +1252,7 @@ namespace ccd
 		printf("calculate error bound for each individual query\n");
 #endif
 		// size_t result_size = sizeof(int) * nbr;
-		size_t unit_size = sizeof(MP_unit) * UNIT_SIZE;
+		size_t unit_size = sizeof(MP_unit) * nbr * 4;
 		// int dbg_size=sizeof(Scalar)*8;
 
 		gpuErrchk(cudaMalloc(&d_data_list, data_size));
@@ -1320,7 +1284,6 @@ namespace ccd
 
 		gpuErrchk(cudaDeviceSynchronize());
 
-		printf("UNIT_SIZE: %llu\n", UNIT_SIZE);
 		printf("EACH_LAUNCH_SIZE: %llu\n", EACH_LAUNCH_SIZE);
 
 		int start = -1;
