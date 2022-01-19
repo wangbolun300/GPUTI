@@ -196,23 +196,23 @@ namespace ccd
 	__device__ __host__ void get_numerical_error_vf_memory_pool(CCDdata &data_in)
 	{
 		Scalar vffilter;
-#ifdef GPUTI_NO_MINIMUM_SEPARATION // ms = 0
-
+		bool use_ms = false;
+		if (use_ms)
+		{
 #ifdef GPUTI_USE_DOUBLE_PRECISION
-		vffilter = 6.661338147750939e-15;
+			vffilter = 6.661338147750939e-15;
 #else
-		vffilter = 3.576279e-06;
+			vffilter = 3.576279e-06;
 #endif
-
-#else // ms != 0
-
+		}
+		else
+		{
 #ifdef GPUTI_USE_DOUBLE_PRECISION
-		vffilter = 7.549516567451064e-15;
+			vffilter = 7.549516567451064e-15;
 #else
-		vffilter = 4.053116e-06;
+			vffilter = 4.053116e-06;
 #endif
-
-#endif
+		}
 		Scalar xmax = fabs(data_in.v0s[0]);
 		Scalar ymax = fabs(data_in.v0s[1]);
 		Scalar zmax = fabs(data_in.v0s[2]);
@@ -258,23 +258,24 @@ namespace ccd
 		CCDdata &data_in)
 	{
 		Scalar vffilter;
-#ifdef GPUTI_NO_MINIMUM_SEPARATION // ms = 0
+		bool use_ms = false;
+		if (use_ms)
+		{
 
 #ifdef GPUTI_USE_DOUBLE_PRECISION
-		vffilter = 6.217248937900877e-15;
+			vffilter = 6.217248937900877e-15;
 #else
-		vffilter = 3.337861e-06;
+			vffilter = 3.337861e-06;
 #endif
-
-#else // ms != 0
-
+		}
+		else
+		{
 #ifdef GPUTI_USE_DOUBLE_PRECISION
-		vffilter = 7.105427357601002e-15;;
+			vffilter = 7.105427357601002e-15;
 #else
-		vffilter = 3.814698e-06;
+			vffilter = 3.814698e-06;
 #endif
-
-#endif
+		}
 		Scalar xmax = fabs(data_in.v0s[0]);
 		Scalar ymax = fabs(data_in.v0s[1]);
 		Scalar zmax = fabs(data_in.v0s[2]);
@@ -316,70 +317,70 @@ namespace ccd
 		data_in.err[2] = zmax * zmax * zmax * vffilter;
 		return;
 	}
-	std::array<Scalar, 3> get_numerical_error(
-		const std::vector<std::array<Scalar, 3>> &vertices,
-		const bool &check_vf,
-		const bool using_minimum_separation)
-	{
-		Scalar eefilter;
-		Scalar vffilter;
-		if (!using_minimum_separation)
-		{
-#ifdef GPUTI_USE_DOUBLE_PRECISION
-			eefilter = 6.217248937900877e-15;
-			vffilter = 6.661338147750939e-15;
-#else
-			eefilter = 3.337861e-06;
-			vffilter = 3.576279e-06;
-#endif
-		}
-		else // using minimum separation
-		{
-#ifdef GPUTI_USE_DOUBLE_PRECISION
-			eefilter = 7.105427357601002e-15;
-			vffilter = 7.549516567451064e-15;
-#else
-			eefilter = 3.814698e-06;
-			vffilter = 4.053116e-06;
-#endif
-		}
+	// 	std::array<Scalar, 3> get_numerical_error(
+	// 		const std::vector<std::array<Scalar, 3>> &vertices,
+	// 		const bool &check_vf,
+	// 		const bool using_minimum_separation)
+	// 	{
+	// 		Scalar eefilter;
+	// 		Scalar vffilter;
+	// 		if (!using_minimum_separation)
+	// 		{
+	// #ifdef GPUTI_USE_DOUBLE_PRECISION
+	// 			eefilter = 6.217248937900877e-15;
+	// 			vffilter = 6.661338147750939e-15;
+	// #else
+	// 			eefilter = 3.337861e-06;
+	// 			vffilter = 3.576279e-06;
+	// #endif
+	// 		}
+	// 		else // using minimum separation
+	// 		{
+	// #ifdef GPUTI_USE_DOUBLE_PRECISION
+	// 			eefilter = 7.105427357601002e-15;
+	// 			vffilter = 7.549516567451064e-15;
+	// #else
+	// 			eefilter = 3.814698e-06;
+	// 			vffilter = 4.053116e-06;
+	// #endif
+	// 		}
 
-		Scalar xmax = fabs(vertices[0][0]);
-		Scalar ymax = fabs(vertices[0][1]);
-		Scalar zmax = fabs(vertices[0][2]);
-		for (int i = 0; i < vertices.size(); i++)
-		{
-			if (xmax < fabs(vertices[i][0]))
-			{
-				xmax = fabs(vertices[i][0]);
-			}
-			if (ymax < fabs(vertices[i][1]))
-			{
-				ymax = fabs(vertices[i][1]);
-			}
-			if (zmax < fabs(vertices[i][2]))
-			{
-				zmax = fabs(vertices[i][2]);
-			}
-		}
-		Scalar delta_x = xmax > 1 ? xmax : 1;
-		Scalar delta_y = ymax > 1 ? ymax : 1;
-		Scalar delta_z = zmax > 1 ? zmax : 1;
-		std::array<Scalar, 3> result;
-		if (!check_vf)
-		{
-			result[0] = delta_x * delta_x * delta_x * eefilter;
-			result[1] = delta_y * delta_y * delta_y * eefilter;
-			result[2] = delta_z * delta_z * delta_z * eefilter;
-		}
-		else
-		{
-			result[0] = delta_x * delta_x * delta_x * vffilter;
-			result[1] = delta_y * delta_y * delta_y * vffilter;
-			result[2] = delta_z * delta_z * delta_z * vffilter;
-		}
-		return result;
-	}
+	// 		Scalar xmax = fabs(vertices[0][0]);
+	// 		Scalar ymax = fabs(vertices[0][1]);
+	// 		Scalar zmax = fabs(vertices[0][2]);
+	// 		for (int i = 0; i < vertices.size(); i++)
+	// 		{
+	// 			if (xmax < fabs(vertices[i][0]))
+	// 			{
+	// 				xmax = fabs(vertices[i][0]);
+	// 			}
+	// 			if (ymax < fabs(vertices[i][1]))
+	// 			{
+	// 				ymax = fabs(vertices[i][1]);
+	// 			}
+	// 			if (zmax < fabs(vertices[i][2]))
+	// 			{
+	// 				zmax = fabs(vertices[i][2]);
+	// 			}
+	// 		}
+	// 		Scalar delta_x = xmax > 1 ? xmax : 1;
+	// 		Scalar delta_y = ymax > 1 ? ymax : 1;
+	// 		Scalar delta_z = zmax > 1 ? zmax : 1;
+	// 		std::array<Scalar, 3> result;
+	// 		if (!check_vf)
+	// 		{
+	// 			result[0] = delta_x * delta_x * delta_x * eefilter;
+	// 			result[1] = delta_y * delta_y * delta_y * eefilter;
+	// 			result[2] = delta_z * delta_z * delta_z * eefilter;
+	// 		}
+	// 		else
+	// 		{
+	// 			result[0] = delta_x * delta_x * delta_x * vffilter;
+	// 			result[1] = delta_y * delta_y * delta_y * vffilter;
+	// 			result[2] = delta_z * delta_z * delta_z * vffilter;
+	// 		}
+	// 		return result;
+	// 	}
 	// Singleinterval *paras,
 	//     const Scalar *a0s,
 	//     const Scalar *a1s,
@@ -827,9 +828,9 @@ namespace ccd
 		compute_face_vertex_tolerance_memory_pool(data[tx], config[0]);
 
 		data[tx].nbr_checks = 0;
-#ifdef CALCULATE_QUERY_ERROR_BOUND
+		// #ifdef CALCULATE_QUERY_ERROR_BOUND
 		get_numerical_error_vf_memory_pool(data[tx]);
-#endif
+		// #endif
 		// __syncthreads();
 	}
 	__global__ void compute_ee_tolerance_memory_pool(CCDdata *data,
@@ -846,9 +847,9 @@ namespace ccd
 		compute_edge_edge_tolerance_memory_pool(data[tx], config[0]);
 
 		data[tx].nbr_checks = 0;
-#ifdef CALCULATE_QUERY_ERROR_BOUND
+		// #ifdef CALCULATE_QUERY_ERROR_BOUND
 		get_numerical_error_ee_memory_pool(data[tx]);
-#endif
+		// #endif
 		// __syncthreads();
 	}
 	// the size of units is UNIT_SIZE;
@@ -1000,15 +1001,7 @@ namespace ccd
 		if (tx >= config[0].mp_remaining)
 			return;
 
-		// cuda::binary_semaphore<cuda::thread_scope_device> mutex;
-		// mutex.release();
-
-		// if (tx == 0)
-		// 	printf("Running vf_ccd_memory_pool on start %i, end %i, size: %i\n",
-		//    config[0].mp_start,
-		//    config[0].mp_end,
-		//    config[0].mp_remaining);
-
+		bool allow_zero_toi = true;
 		int qid = (tx + config[0].mp_start) % config[0].unit_size;
 
 		Scalar widths[3];
@@ -1066,31 +1059,22 @@ namespace ccd
 			// Condition 2, the box is inside the epsilon box, have a root, return true;
 			// condition = units_in.box_in;
 
-#ifdef GPUTI_NO_ZERO_TOI // when requring toi > 0, only do the check when time_left > 0
-			if (time_left > 0)
+			if (box_in && (allow_zero_toi || time_left > 0))
 			{
-#endif
-				if (box_in)
-				{
-					mutex_update_min(config[0].mutex, config[0].toi, time_left);
-					return;
-				}
-
-				// Condition 3, real tolerance is smaller than the input tolerance, return
-				// true
-				condition = true_tol <= config->co_domain_tolerance;
-				if (condition)
-				{
-					mutex_update_min(config[0].mutex, config[0].toi, time_left);
-					// results[box_id] = 1;
-					return;
-				}
-#ifdef GPUTI_NO_ZERO_TOI // when requring toi > 0,
+				mutex_update_min(config[0].mutex, config[0].toi, time_left);
+				// results[box_id] = 1;
+				return;
 			}
-#endif
 
-
-			
+			// Condition 3, real tolerance is smaller than the input tolerance, return
+			// true
+			condition = true_tol <= config->co_domain_tolerance;
+			if (condition && (allow_zero_toi || time_left > 0))
+			{
+				mutex_update_min(config[0].mutex, config[0].toi, time_left);
+				// results[box_id] = 1;
+				return;
+			}
 			const int split = split_dimension_memory_pool(data_in, widths);
 			// MP_unit bisected[2];
 			// int valid_nbr;
@@ -1111,6 +1095,8 @@ namespace ccd
 	__global__ void ee_ccd_memory_pool(MP_unit *units, int query_size,
 									   CCDdata *data, CCDConfig *config)
 	{
+		bool allow_zero_toi = true;
+
 		int tx = threadIdx.x + blockIdx.x * blockDim.x;
 		if (tx >= config[0].mp_remaining)
 			return;
@@ -1180,29 +1166,22 @@ namespace ccd
 			}
 			// Condition 2, the box is inside the epsilon box, have a root, return true;
 			// condition = units_in.box_in;
-#ifdef GPUTI_NO_ZERO_TOI // when requring toi > 0, only do the check when time_left > 0
-			if (time_left > 0)
+			if (box_in && (allow_zero_toi || time_left > 0))
 			{
-#endif
-				if (box_in)
-				{
-					mutex_update_min(config[0].mutex, config[0].toi, time_left);
-					// results[box_id] = 1;
-					return;
-				}
-
-				// Condition 3, real tolerance is smaller than the input tolerance, return
-				// true
-				condition = true_tol <= config->co_domain_tolerance;
-				if (condition)
-				{
-					mutex_update_min(config[0].mutex, config[0].toi, time_left);
-					// results[box_id] = 1;
-					return;
-				}
-#ifdef GPUTI_NO_ZERO_TOI // when requring toi > 0, only do the check when time_left > 0
+				mutex_update_min(config[0].mutex, config[0].toi, time_left);
+				// results[box_id] = 1;
+				return;
 			}
-#endif
+
+			// Condition 3, real tolerance is smaller than the input tolerance, return
+			// true
+			condition = true_tol <= config->co_domain_tolerance;
+			if (condition && (allow_zero_toi || time_left > 0))
+			{
+				mutex_update_min(config[0].mutex, config[0].toi, time_left);
+				// results[box_id] = 1;
+				return;
+			}
 			const int split = split_dimension_memory_pool(data_in, widths);
 			// MP_unit bisected[2];
 			// int valid_nbr;
@@ -1232,16 +1211,14 @@ namespace ccd
 				: config[0].mp_remaining;
 		// if (2 * config[0].mp_remaining > config[0].unit_size)
 		// {
-		// 	config[0].unit_size = 2 * config[0].mp_remaining;
+		// 	config[0].unit_size *= 2;
 		// 	printf("new unit_size : %llu\n", config[0].unit_size);
 		// }
 	}
 
 	void run_memory_pool_ccd(
 		const std::vector<std::array<std::array<Scalar, 3>, 8>> &V,
-#ifndef GPUTI_BENCHMARK_MINIMUM_SEPARATION //do not use benchmark ms as input
 		const Scalar ms,
-#endif
 		bool is_edge,
 		std::vector<int> &result_list, int parallel_nbr, double &runtime, Scalar &toi)
 	{
@@ -1252,11 +1229,7 @@ namespace ccd
 		CCDdata *data_list = new CCDdata[nbr];
 		for (int i = 0; i < nbr; i++)
 		{
-#ifdef GPUTI_BENCHMARK_MINIMUM_SEPARATION //use benchmark ms value as input
-			data_list[i] = array_to_ccd(V[i], MINIMUM_SEPARATION_BENCHMARK);
-#else
 			data_list[i] = array_to_ccd(V[i], ms);
-#endif
 		}
 
 		// int *res = new int[nbr];
@@ -1284,12 +1257,7 @@ namespace ccd
 
 		size_t data_size = sizeof(CCDdata) * nbr;
 		printf("data_size %llu\n", data_size);
-#ifdef GPUTI_BENCHMARK_MINIMUM_SEPARATION
-		printf("benchmark minimum separation %d\n", MINIMUM_SEPARATION_BENCHMARK);
-#endif
-#ifdef CALCULATE_QUERY_ERROR_BOUND
-		printf("calculate error bound for each individual query\n");
-#endif
+
 		// size_t result_size = sizeof(int) * nbr;
 		size_t unit_size = sizeof(MP_unit) * nbr * 8;
 		// int dbg_size=sizeof(Scalar)*8;
@@ -1323,7 +1291,7 @@ namespace ccd
 
 		gpuErrchk(cudaDeviceSynchronize());
 
-		printf("EACH_LAUNCH_SIZE: %llu\n", EACH_LAUNCH_SIZE);
+		printf("MAX_OVERLAP_SIZE: %llu\n", MAX_OVERLAP_SIZE);
 
 		int start = -1;
 		int end;

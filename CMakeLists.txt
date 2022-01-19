@@ -10,16 +10,9 @@ else()
 endif()
 
 
-OPTION(GPUTI_WITH_BENCHMARK          "run benchmark for testing"   ON)
+OPTION(GPUTI_WITH_BENCHMARK          "run benchmark for testing"   OFF)
 OPTION(GPUTI_WITH_DOUBLE_PRECISION   "use double precision calculation" ON)
-OPTION(GPUTI_BENCHMARK_MINIMUM_SEPARATION   "set minimum separation as benchmark value" ON)
-OPTION(GPUTI_EACH_QUERY_ERROR_BOUND   "calculate error bound for each individual query" ON)
-if(NOT GPUTI_BENCHMARK_MINIMUM_SEPARATION)
-  OPTION(GPUTI_NO_MINIMUM_SEPARATION   "input minimum separation = 0" ON)
-else()
-  OPTION(GPUTI_NO_MINIMUM_SEPARATION   "input minimum separation = 0" oFF)
-endif()
-OPTION(GPUTI_NO_ZERO_TOI "enable it when requiring toi != 0" OFF)
+
 
 
 
@@ -47,19 +40,7 @@ target_compile_definitions(gputi PUBLIC NOMINMAX)
 if(GPUTI_WITH_DOUBLE_PRECISION)
   target_compile_definitions(gputi PUBLIC -DGPUTI_USE_DOUBLE_PRECISION)
 endif()
-if(GPUTI_BENCHMARK_MINIMUM_SEPARATION)
-  target_compile_definitions(gputi PUBLIC -DGPUTI_BENCHMARK_MINIMUM_SEPARATION)
-endif()
-if(GPUTI_NO_MINIMUM_SEPARATION AND NOT GPUTI_BENCHMARK_MINIMUM_SEPARATION)
-  target_compile_definitions(gputi PUBLIC -DGPUTI_NO_MINIMUM_SEPARATION)
-  MESSAGE("WARNING: GPUTI_NO_MINIMUM_SEPARATION = ON: please set input minimum separation as 0")
-endif()
-if(GPUTI_EACH_QUERY_ERROR_BOUND)
-  target_compile_definitions(gputi PUBLIC -DCALCULATE_QUERY_ERROR_BOUND)
-endif()
-if(GPUTI_NO_ZERO_TOI)
-  target_compile_definitions(gputi PUBLIC -DGPUTI_NO_ZERO_TOI)
-endif()
+
 
 # Request that gputi be built with -std=c++11
 # As this is a public compile feature anything that links to gputi

@@ -15,7 +15,7 @@ namespace ccd
 	// here are the parameters for the memory pool
 	// static const int UNIT_SIZE = 2e7;
 	static const long UNIT_SIZE = 2e8;
-	static const long EACH_LAUNCH_SIZE = 1e7;
+	static const int MAX_OVERLAP_SIZE = 1e7;
 	static const int MAX_CHECKS = 1e6;
 
 	///////////////////////////////
@@ -24,10 +24,6 @@ namespace ccd
 	// #define GPUTI_GO_DEAP_HEAP
 	// static const int TESTING_ID = 219064;
 	// static const int TEST_SIZE = 1;
-
-#ifdef GPUTI_BENCHMARK_MINIMUM_SEPARATION //use benchmark value as input
-	static const Scalar MINIMUM_SEPARATION_BENCHMARK = 1e-8;
-#endif
 
 	// TODO next when spliting time intervals, check if overlaps the current toi,
 	// then decide if we push it into the heap the reason of considerting it is that
