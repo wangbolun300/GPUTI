@@ -17,7 +17,7 @@ namespace ccd
 	static const long UNIT_SIZE = 2e8;
 	static const long EACH_LAUNCH_SIZE = 1e7;
 	static const int MAX_CHECKS = 1e6;
-#define NO_CHECK_MS
+
 	///////////////////////////////
 
 	// THE FOLLOWING VALUES ARE JUST FOR DEBUGGING

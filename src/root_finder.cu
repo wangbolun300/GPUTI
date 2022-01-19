@@ -196,11 +196,22 @@ namespace ccd
 	__device__ __host__ void get_numerical_error_vf_memory_pool(CCDdata &data_in)
 	{
 		Scalar vffilter;
+#ifdef GPUTI_NO_MINIMUM_SEPARATION // ms = 0
 
 #ifdef GPUTI_USE_DOUBLE_PRECISION
 		vffilter = 6.661338147750939e-15;
 #else
 		vffilter = 3.576279e-06;
+#endif
+
+#else // ms != 0
+
+#ifdef GPUTI_USE_DOUBLE_PRECISION
+		vffilter = 7.549516567451064e-15;
+#else
+		vffilter = 4.053116e-06;
+#endif
+
 #endif
 		Scalar xmax = fabs(data_in.v0s[0]);
 		Scalar ymax = fabs(data_in.v0s[1]);
@@ -247,11 +258,22 @@ namespace ccd
 		CCDdata &data_in)
 	{
 		Scalar vffilter;
+#ifdef GPUTI_NO_MINIMUM_SEPARATION // ms = 0
 
 #ifdef GPUTI_USE_DOUBLE_PRECISION
 		vffilter = 6.217248937900877e-15;
 #else
 		vffilter = 3.337861e-06;
+#endif
+
+#else // ms != 0
+
+#ifdef GPUTI_USE_DOUBLE_PRECISION
+		vffilter = 7.105427357601002e-15;;
+#else
+		vffilter = 3.814698e-06;;
+#endif
+
 #endif
 		Scalar xmax = fabs(data_in.v0s[0]);
 		Scalar ymax = fabs(data_in.v0s[1]);
@@ -303,7 +325,7 @@ namespace ccd
 		Scalar vffilter;
 		if (!using_minimum_separation)
 		{
-#ifdef TIGHT_INCLUSION_DOUBLE
+#ifdef GPUTI_USE_DOUBLE_PRECISION
 			eefilter = 6.217248937900877e-15;
 			vffilter = 6.661338147750939e-15;
 #else
@@ -313,7 +335,7 @@ namespace ccd
 		}
 		else // using minimum separation
 		{
-#ifdef TIGHT_INCLUSION_DOUBLE
+#ifdef GPUTI_USE_DOUBLE_PRECISION
 			eefilter = 7.105427357601002e-15;
 			vffilter = 7.549516567451064e-15;
 #else
