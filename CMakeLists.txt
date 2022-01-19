@@ -16,7 +16,12 @@ OPTION(GPUTI_BENCHMARK_MINIMUM_SEPARATION   "set minimum separation as benchmark
 OPTION(GPUTI_EACH_QUERY_ERROR_BOUND   "calculate error bound for each individual query" ON)
 if(NOT GPUTI_BENCHMARK_MINIMUM_SEPARATION)
   OPTION(GPUTI_NO_MINIMUM_SEPARATION   "input minimum separation = 0" ON)
+else()
+  OPTION(GPUTI_NO_MINIMUM_SEPARATION   "input minimum separation = 0" oFF)
 endif()
+OPTION(GPUTI_NO_ZERO_TOI "enable it when requiring toi != 0" OFF)
+
+
 
 ### Configuration
 set(GPUTI_EXTERNAL "${CMAKE_CURRENT_SOURCE_DIR}/external")
@@ -45,12 +50,15 @@ endif()
 if(GPUTI_BENCHMARK_MINIMUM_SEPARATION)
   target_compile_definitions(gputi PUBLIC -DGPUTI_BENCHMARK_MINIMUM_SEPARATION)
 endif()
-if(GPUTI_NO_MINIMUM_SEPARATION)
+if(GPUTI_NO_MINIMUM_SEPARATION AND NOT GPUTI_BENCHMARK_MINIMUM_SEPARATION)
   target_compile_definitions(gputi PUBLIC -DGPUTI_NO_MINIMUM_SEPARATION)
-  MESSAGE("GPUTI_NO_MINIMUM_SEPARATION = ON: please set input minimum separation as 0")
+  MESSAGE("WARNING: GPUTI_NO_MINIMUM_SEPARATION = ON: please set input minimum separation as 0")
 endif()
 if(GPUTI_EACH_QUERY_ERROR_BOUND)
   target_compile_definitions(gputi PUBLIC -DCALCULATE_QUERY_ERROR_BOUND)
+endif()
+if(GPUTI_NO_ZERO_TOI)
+  target_compile_definitions(gputi PUBLIC -DGPUTI_NO_ZERO_TOI)
 endif()
 
 # Request that gputi be built with -std=c++11

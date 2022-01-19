@@ -271,7 +271,7 @@ namespace ccd
 #ifdef GPUTI_USE_DOUBLE_PRECISION
 		vffilter = 7.105427357601002e-15;;
 #else
-		vffilter = 3.814698e-06;;
+		vffilter = 3.814698e-06;
 #endif
 
 #endif
@@ -1065,22 +1065,32 @@ namespace ccd
 			}
 			// Condition 2, the box is inside the epsilon box, have a root, return true;
 			// condition = units_in.box_in;
-			if (box_in)
-			{
-				mutex_update_min(config[0].mutex, config[0].toi, time_left);
-				// results[box_id] = 1;
-				return;
-			}
 
-			// Condition 3, real tolerance is smaller than the input tolerance, return
-			// true
-			condition = true_tol <= config->co_domain_tolerance;
-			if (condition)
+#ifdef GPUTI_NO_ZERO_TOI // when requring toi > 0, only do the check when time_left > 0
+			if (time_left > 0)
 			{
-				mutex_update_min(config[0].mutex, config[0].toi, time_left);
-				// results[box_id] = 1;
-				return;
+#endif
+				if (box_in)
+				{
+					mutex_update_min(config[0].mutex, config[0].toi, time_left);
+					return;
+				}
+
+				// Condition 3, real tolerance is smaller than the input tolerance, return
+				// true
+				condition = true_tol <= config->co_domain_tolerance;
+				if (condition)
+				{
+					mutex_update_min(config[0].mutex, config[0].toi, time_left);
+					// results[box_id] = 1;
+					return;
+				}
+#ifdef GPUTI_NO_ZERO_TOI // when requring toi > 0,
 			}
+#endif
+
+
+			
 			const int split = split_dimension_memory_pool(data_in, widths);
 			// MP_unit bisected[2];
 			// int valid_nbr;
@@ -1170,22 +1180,29 @@ namespace ccd
 			}
 			// Condition 2, the box is inside the epsilon box, have a root, return true;
 			// condition = units_in.box_in;
-			if (box_in)
+#ifdef GPUTI_NO_ZERO_TOI // when requring toi > 0, only do the check when time_left > 0
+			if (time_left > 0)
 			{
-				mutex_update_min(config[0].mutex, config[0].toi, time_left);
-				// results[box_id] = 1;
-				return;
-			}
+#endif
+				if (box_in)
+				{
+					mutex_update_min(config[0].mutex, config[0].toi, time_left);
+					// results[box_id] = 1;
+					return;
+				}
 
-			// Condition 3, real tolerance is smaller than the input tolerance, return
-			// true
-			condition = true_tol <= config->co_domain_tolerance;
-			if (condition)
-			{
-				mutex_update_min(config[0].mutex, config[0].toi, time_left);
-				// results[box_id] = 1;
-				return;
+				// Condition 3, real tolerance is smaller than the input tolerance, return
+				// true
+				condition = true_tol <= config->co_domain_tolerance;
+				if (condition)
+				{
+					mutex_update_min(config[0].mutex, config[0].toi, time_left);
+					// results[box_id] = 1;
+					return;
+				}
+#ifdef GPUTI_NO_ZERO_TOI // when requring toi > 0, only do the check when time_left > 0
 			}
+#endif
 			const int split = split_dimension_memory_pool(data_in, widths);
 			// MP_unit bisected[2];
 			// int valid_nbr;
