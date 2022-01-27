@@ -197,7 +197,7 @@ namespace ccd
 	{
 		Scalar vffilter;
 		bool use_ms = false;
-		if (use_ms)
+		if (!use_ms)
 		{
 #ifdef GPUTI_USE_DOUBLE_PRECISION
 			vffilter = 6.661338147750939e-15;
@@ -259,7 +259,7 @@ namespace ccd
 	{
 		Scalar vffilter;
 		bool use_ms = false;
-		if (use_ms)
+		if (!use_ms)
 		{
 
 #ifdef GPUTI_USE_DOUBLE_PRECISION
